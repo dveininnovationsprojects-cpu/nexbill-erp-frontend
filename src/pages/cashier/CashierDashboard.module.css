@@ -1,0 +1,103 @@
+.page { display: flex; flex-direction: column; gap: 20px; }
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.kpiCard {
+  background: #FFFFFF;
+  border: 1px solid #EFE7DE;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: 0 1px 4px rgba(45,45,45,0.05);
+}
+
+.kpiIcon {
+  width: 42px;
+  height: 42px;
+  background: #EFE7DE;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8B7355;
+  flex-shrink: 0;
+}
+
+.kpiValue { font-size: 24px; font-weight: 700; color: #2D2D2D; line-height: 1; margin-bottom: 4px; }
+.kpiLabel { font-size: 13px; font-weight: 500; color: #3F3F46; }
+.kpiSub   { font-size: 11px; color: #8B7355; margin-top: 2px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid #EFE7DE;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(45,45,45,0.05);
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2D2D2D;
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.actionBtn {
+  padding: 14px 12px;
+  background: #F8F5F2;
+  border: 1.5px solid #EFE7DE;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3F3F46;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover { background: #2D2D2D; color: #C6A969; border-color: #2D2D2D; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8B7355;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #EFE7DE;
+}
+.table td { padding: 11px 10px; border-bottom: 1px solid #F8F5F2; }
+
+.skeleton {
+  display: inline-block;
+  height: 12px;
+  background: #EFE7DE;
+  border-radius: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.note { font-size: 12px; color: #D6D3D1; text-align: center; margin: 12px 0 0; }
