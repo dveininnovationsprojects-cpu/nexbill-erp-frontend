@@ -1,24 +1,24 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Products from './pages/admin/products/Products';
-import Inventory from './pages/admin/inventory/Inventory';
-import Customers from './pages/admin/customers/Customers';
-import Billing from './pages/admin/billing/Billing';
-import Payments from './pages/admin/payments/Payments';
-import Invoices from './pages/admin/invoices/Invoices';
-import Reports from './pages/admin/reports/Reports';
-import Settings from './pages/admin/settings/Settings';
-import CashierDashboard from './pages/cashier/CashierDashboard';
-import CashierBilling from './pages/cashier/billing/CashierBilling';
-import CashierProducts from './pages/cashier/products/CashierProducts';
-import CashierCustomers from './pages/cashier/customers/CashierCustomers';
-import CashierInvoices from './pages/cashier/invoices/CashierInvoices';
-import CashierPayments from './pages/cashier/payments/CashierPayments';
+import Login           from './pages/jsx/Login';
+import Register        from './pages/jsx/Register';
+import ForgotPassword  from './pages/jsx/ForgotPassword';
+import AdminDashboard  from './pages/jsx/AdminDashboard';
+import Products        from './pages/jsx/Products';
+import Inventory       from './pages/jsx/Inventory';
+import Customers       from './pages/jsx/Customers';
+import Billing         from './pages/jsx/Billing';
+import Payments        from './pages/jsx/Payments';
+import Invoices        from './pages/jsx/Invoices';
+import Reports         from './pages/jsx/Reports';
+import Settings        from './pages/jsx/Settings';
+import CashierDashboard from './pages/jsx/CashierDashboard';
+import CashierBilling   from './pages/jsx/CashierBilling';
+import CashierProducts  from './pages/jsx/CashierProducts';
+import CashierCustomers from './pages/jsx/CashierCustomers';
+import CashierInvoices  from './pages/jsx/CashierInvoices';
+import CashierPayments  from './pages/jsx/CashierPayments';
 
 function RoleRoute({ role, children }) {
   const { user } = useAuth();
@@ -43,7 +43,6 @@ export default function App() {
           <Route path="/register"        element={<PublicRoute><Register /></PublicRoute>} />
           <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
 
-          {/* Admin */}
           <Route path="/admin/dashboard" element={<RoleRoute role="ADMIN"><AdminDashboard /></RoleRoute>} />
           <Route path="/admin/products"  element={<RoleRoute role="ADMIN"><Products /></RoleRoute>} />
           <Route path="/admin/inventory" element={<RoleRoute role="ADMIN"><Inventory /></RoleRoute>} />
@@ -54,7 +53,6 @@ export default function App() {
           <Route path="/admin/reports"   element={<RoleRoute role="ADMIN"><Reports /></RoleRoute>} />
           <Route path="/admin/settings"  element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
 
-          {/* Cashier */}
           <Route path="/cashier/dashboard" element={<RoleRoute role="CASHIER"><CashierDashboard /></RoleRoute>} />
           <Route path="/cashier/billing"   element={<RoleRoute role="CASHIER"><CashierBilling /></RoleRoute>} />
           <Route path="/cashier/products"  element={<RoleRoute role="CASHIER"><CashierProducts /></RoleRoute>} />

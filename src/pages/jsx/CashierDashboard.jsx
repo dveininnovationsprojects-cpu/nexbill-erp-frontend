@@ -1,5 +1,5 @@
 import { Receipt, Users, TrendingUp, Clock } from 'lucide-react';
-import styles from './CashierDashboard.module.css';
+import styles from '../css/CashierDashboard.module.css';
 
 const kpis = [
   { label: "Today's Bills",    value: '0',  icon: Receipt,    sub: 'Invoices generated' },

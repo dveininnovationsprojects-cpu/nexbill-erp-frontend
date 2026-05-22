@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Users, ShoppingBag, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react';
 import axios from 'axios';
-import styles from './AdminDashboard.module.css';
+import styles from '../css/AdminDashboard.module.css';
 
 const KPI_PLACEHOLDER = [
   { label: "Today's Revenue",  value: '₹0',  icon: TrendingUp, sub: 'Live sales' },

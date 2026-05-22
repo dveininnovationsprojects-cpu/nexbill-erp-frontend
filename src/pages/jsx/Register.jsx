@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, ShieldCheck, User } from 'lucide-react';
 import axios from 'axios';
-import styles from './Register.module.css';
+import styles from '../css/Register.module.css';
 
 export default function Register() {
   const [role, setRole] = useState('CASHIER');

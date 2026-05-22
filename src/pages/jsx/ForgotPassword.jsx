@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail } from 'lucide-react';
 import axios from 'axios';
-import styles from './ForgotPassword.module.css';
+import styles from '../css/ForgotPassword.module.css';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
