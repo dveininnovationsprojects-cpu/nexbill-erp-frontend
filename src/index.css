@@ -1,51 +1,13 @@
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
-  width: 100%;
-  min-height: 100%;
-  background: #f8f5f2;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Arial, sans-serif;
-  color: #2d2d2d;
-  text-align: left;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  overflow-x: hidden;
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #F8F5F2;
+  -webkit-font-smoothing: antialiased;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-table {
-  text-align: left;
-}
-
-th,
-td {
-  text-align: left;
-}
-
-input,
-textarea,
-select {
-  text-align: left;
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
