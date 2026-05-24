@@ -25,6 +25,22 @@ export function AuthProvider({ children }) {
   });
 
   const login = async (email, password) => {
+    // ── DEV BYPASS ── all real DB accounts with password: admin123
+    const DEV_ACCOUNTS = {
+      'admin@gmail.com':            { password: 'admin123', role: 'ADMIN' },
+      'admin@nexbill.com':          { password: 'admin123', role: 'ADMIN' },
+      'itsahamed515@gmail.com':     { password: 'admin123', role: 'CASHIER' },
+      'ahamedyasikcareer@gmail.com':{ password: 'admin123', role: 'CASHIER' },
+      'yasikjas@gmail.com':         { password: 'admin123', role: 'CASHIER' },
+      'cashier@nexbill.com':        { password: 'admin123', role: 'CASHIER' },
+    };
+    if (DEV_ACCOUNTS[email] && DEV_ACCOUNTS[email].password === password) {
+      const userData = { email, token: 'dev-token', role: DEV_ACCOUNTS[email].role };
+      setUser(userData);
+      localStorage.setItem('nexbill_user', JSON.stringify(userData));
+      return userData;
+    }
+    // ── REAL BACKEND ──
     const res = await axios.post(
       `${API_URL}/api/auth/login`,
       { email, password },
