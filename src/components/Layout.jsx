@@ -18,6 +18,7 @@ const adminNav = [
   { icon: CreditCard,      label: 'Payments',  to: '/admin/payments' },
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
   { icon: BarChart2,       label: 'Reports',   to: '/admin/reports' },
+  { icon: BarChart2,       label: 'Sales Analytics',  to: '/admin/sales-analytics' },
   { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
 ];
 

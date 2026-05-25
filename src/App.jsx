@@ -13,6 +13,7 @@ import Billing          from './pages/Billing';
 import Payments         from './pages/Payments';
 import Invoices         from './pages/Invoices';
 import Reports          from './pages/Reports';
+import SalesAnalytics   from './pages/SalesAnalytics';
 import Settings         from './pages/Settings';
 import CashierBilling   from './pages/CashierBilling';
 import CashierProducts  from './pages/CashierProducts';
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/admin/payments"  element={<RoleRoute role="ADMIN"><Payments /></RoleRoute>} />
           <Route path="/admin/invoices"  element={<RoleRoute role="ADMIN"><Invoices /></RoleRoute>} />
           <Route path="/admin/reports"   element={<RoleRoute role="ADMIN"><Reports /></RoleRoute>} />
+          <Route path="/admin/sales-analytics" element={<RoleRoute role="ADMIN"><SalesAnalytics /></RoleRoute>} />
           <Route path="/admin/settings"  element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
 
           <Route path="/cashier/dashboard" element={<RoleRoute role="CASHIER"><CashierDashboard /></RoleRoute>} />
