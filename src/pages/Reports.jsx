@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 
-function ReportsExport({ sales = [], role = "admin" }) {
+function Reports({ sales = [], role = "admin" }) {
   const [reportType, setReportType] = useState("Sales Report");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("All");
+
+  const isAdmin = role === "admin" || role === "ADMIN";
 
   const filteredSales = useMemo(() => {
     return sales.filter((sale) => {
@@ -18,7 +20,7 @@ function ReportsExport({ sales = [], role = "admin" }) {
     });
   }, [sales, fromDate, toDate, paymentFilter]);
 
-  if (role !== "admin") {
+  if (!isAdmin) {
     return (
       <section style={styles.page}>
         <div style={styles.card}>
@@ -41,8 +43,7 @@ function ReportsExport({ sales = [], role = "admin" }) {
   );
 
   const totalDiscount = filteredSales.reduce(
-    (sum, sale) =>
-      sum + Number(sale.discount || sale.discountAmount || 0),
+    (sum, sale) => sum + Number(sale.discount || sale.discountAmount || 0),
     0
   );
 
@@ -81,152 +82,222 @@ function ReportsExport({ sales = [], role = "admin" }) {
   }
 
   return (
-    <section style={styles.page}>
-      <div style={styles.pageTitleRow}>
-        <div>
-          <h1 style={styles.pageTitle}>Reports & Export</h1>
-          
-        </div>
+    <>
+      <style>{`
+        .nb-btn {
+          transition: all 0.2s ease;
+        }
 
-        <div style={styles.actionGroup}>
-          <button onClick={exportPDF} style={styles.ghostBtn}>
-            Export PDF
-          </button>
+        .nb-primary:hover {
+          background: #2D2D2D !important;
+          color: #F8F5F2 !important;
+          border-color: #2D2D2D !important;
+          transform: translateY(-1px);
+        }
 
-          <button onClick={exportExcel} style={styles.primaryBtn}>
-            Export Excel
-          </button>
-        </div>
-      </div>
+        .nb-ghost:hover {
+          background: #C6A969 !important;
+          border-color: #C6A969 !important;
+          color: #2D2D2D !important;
+          transform: translateY(-1px);
+        }
 
-      <div style={styles.card}>
-        <div style={styles.cardHead}>
+        .nb-input:focus {
+          border-color: #C6A969 !important;
+          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
+          background: #FFFFFF !important;
+        }
+
+        .nb-table-row:hover td {
+          background: #FFFDFB;
+        }
+
+        .nb-kpi-card {
+          transition: all 0.2s ease;
+        }
+
+        .nb-kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 28px rgba(45,45,45,0.08) !important;
+          border-color: #C6A969 !important;
+        }
+
+        .nb-report-card {
+          transition: all 0.2s ease;
+        }
+
+        .nb-report-card:hover {
+          box-shadow: 0 16px 34px rgba(45,45,45,0.08) !important;
+        }
+
+        .nb-badge:hover {
+          background: #2D2D2D !important;
+          color: #F8F5F2 !important;
+          border-color: #2D2D2D !important;
+        }
+      `}</style>
+
+      <section style={styles.page}>
+        <div style={styles.pageTitleRow}>
           <div>
-            <h2 style={styles.cardTitle}>{reportType}</h2>
-            
+            <h1 style={styles.pageTitle}>Reports & Export</h1>
+          </div>
+
+          <div style={styles.actionGroup}>
+            <button
+              type="button"
+              onClick={exportPDF}
+              className="nb-btn nb-ghost"
+              style={styles.ghostBtn}
+            >
+              Export PDF
+            </button>
+
+            <button
+              type="button"
+              onClick={exportExcel}
+              className="nb-btn nb-primary"
+              style={styles.primaryBtn}
+            >
+              Export Excel
+            </button>
           </div>
         </div>
 
-        <div style={styles.toolbar}>
-          <select
-            value={reportType}
-            onChange={(event) => setReportType(event.target.value)}
-            style={styles.select}
-          >
-            <option>Sales Report</option>
-            <option>GST Report</option>
-            <option>Customer Report</option>
-          </select>
+        <div className="nb-report-card" style={styles.card}>
+          <div style={styles.cardHead}>
+            <div>
+              <h2 style={styles.cardTitle}>{reportType}</h2>
+            </div>
+          </div>
 
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(event) => setFromDate(event.target.value)}
-            style={styles.input}
-          />
+          <div style={styles.toolbar}>
+            <select
+              className="nb-input"
+              value={reportType}
+              onChange={(event) => setReportType(event.target.value)}
+              style={styles.select}
+            >
+              <option>Sales Report</option>
+              <option>GST Report</option>
+              <option>Customer Report</option>
+            </select>
 
-          <input
-            type="date"
-            value={toDate}
-            onChange={(event) => setToDate(event.target.value)}
-            style={styles.input}
-          />
+            <input
+              className="nb-input"
+              type="date"
+              value={fromDate}
+              onChange={(event) => setFromDate(event.target.value)}
+              style={styles.input}
+            />
 
-          <select
-            value={paymentFilter}
-            onChange={(event) => setPaymentFilter(event.target.value)}
-            style={styles.select}
-          >
-            <option>All</option>
-            <option>Paid</option>
-            <option>Pending</option>
-          </select>
-        </div>
+            <input
+              className="nb-input"
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              style={styles.input}
+            />
 
-        <div style={styles.kpiGrid}>
-          <Kpi
-            title="Total Invoices"
-            value={filteredSales.length}
-            sub="Filtered invoices"
-          />
+            <select
+              className="nb-input"
+              value={paymentFilter}
+              onChange={(event) => setPaymentFilter(event.target.value)}
+              style={styles.select}
+            >
+              <option>All</option>
+              <option>Paid</option>
+              <option>Pending</option>
+            </select>
+          </div>
 
-          <Kpi
-            title="Sales Amount"
-            value={money(totalRevenue)}
-            sub="Total sales value"
-          />
+          <div style={styles.kpiGrid}>
+            <Kpi
+              title="Total Invoices"
+              value={filteredSales.length}
+              sub="Filtered invoices"
+            />
 
-          <Kpi
-            title="GST Amount"
-            value={money(totalGst)}
-            sub="Tax report value"
-          />
+            <Kpi
+              title="Sales Amount"
+              value={money(totalRevenue)}
+              sub="Total sales value"
+            />
 
-          <Kpi
-            title="Discount"
-            value={money(totalDiscount)}
-            sub="Total discount"
-          />
-        </div>
+            <Kpi
+              title="GST Amount"
+              value={money(totalGst)}
+              sub="Tax report value"
+            />
 
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <Th>Date</Th>
-                <Th>Invoice</Th>
-                <Th>Customer</Th>
-                <Th>Product</Th>
-                <Th>Qty</Th>
-                <Th>Revenue</Th>
-                <Th>GST</Th>
-                <Th>Discount</Th>
-                <Th>Payment</Th>
-              </tr>
-            </thead>
+            <Kpi
+              title="Discount"
+              value={money(totalDiscount)}
+              sub="Total discount"
+            />
+          </div>
 
-            <tbody>
-              {filteredSales.map((sale, index) => (
-                <tr key={sale.id || sale.invoiceNo || index}>
-                  <Td>{sale.date || "-"}</Td>
-                  <Td>{sale.invoiceNo || sale.invoiceNumber || "-"}</Td>
-                  <Td>{sale.customer || sale.customerName || "-"}</Td>
-                  <Td>
-                    {sale.productName || sale.product || sale.itemName || "-"}
-                  </Td>
-                  <Td>{sale.quantity || sale.qty || 0}</Td>
-                  <Td>
-                    {money(
-                      sale.revenue || sale.totalAmount || sale.amount || 0
-                    )}
-                  </Td>
-                  <Td>{money(sale.gst || sale.gstAmount || 0)}</Td>
-                  <Td>
-                    {money(sale.discount || sale.discountAmount || 0)}
-                  </Td>
-                  <Td>
-                    <Badge text={sale.payment || sale.paymentStatus || "-"} />
-                  </Td>
-                </tr>
-              ))}
-
-              {filteredSales.length === 0 && (
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan="9" style={styles.emptyCell}>
-                    No report data found. Connect billing module sales data here.
-                  </td>
+                  <Th>Date</Th>
+                  <Th>Invoice</Th>
+                  <Th>Customer</Th>
+                  <Th>Product</Th>
+                  <Th>Qty</Th>
+                  <Th>Revenue</Th>
+                  <Th>GST</Th>
+                  <Th>Discount</Th>
+                  <Th>Payment</Th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
 
-        <p style={styles.reportFooter}>
-          Generated from NexBill ERP • Smart E-Commerce Billing & Inventory
-          Management System
-        </p>
-      </div>
-    </section>
+              <tbody>
+                {filteredSales.map((sale, index) => (
+                  <tr
+                    key={sale.id || sale.invoiceNo || index}
+                    className="nb-table-row"
+                  >
+                    <Td>{sale.date || "-"}</Td>
+                    <Td>{sale.invoiceNo || sale.invoiceNumber || "-"}</Td>
+                    <Td>{sale.customer || sale.customerName || "-"}</Td>
+                    <Td>
+                      {sale.productName || sale.product || sale.itemName || "-"}
+                    </Td>
+                    <Td>{sale.quantity || sale.qty || 0}</Td>
+                    <Td>
+                      {money(
+                        sale.revenue || sale.totalAmount || sale.amount || 0
+                      )}
+                    </Td>
+                    <Td>{money(sale.gst || sale.gstAmount || 0)}</Td>
+                    <Td>{money(sale.discount || sale.discountAmount || 0)}</Td>
+                    <Td>
+                      <Badge text={sale.payment || sale.paymentStatus || "-"} />
+                    </Td>
+                  </tr>
+                ))}
+
+                {filteredSales.length === 0 && (
+                  <tr>
+                    <td colSpan="9" style={styles.emptyCell}>
+                      No report data found. Connect billing module sales data
+                      here.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <p style={styles.reportFooter}>
+            Generated from NexBill ERP • Smart E-Commerce Billing & Inventory
+            Management System
+          </p>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -261,7 +332,7 @@ function downloadCSV(filename, rows) {
 
 function Kpi({ title, value, sub }) {
   return (
-    <div style={styles.kpiCard}>
+    <div className="nb-kpi-card" style={styles.kpiCard}>
       <p style={styles.kpiTitle}>{title}</p>
       <h3 style={styles.kpiValue}>{value}</h3>
       <span style={styles.kpiSub}>{sub}</span>
@@ -270,7 +341,11 @@ function Kpi({ title, value, sub }) {
 }
 
 function Badge({ text }) {
-  return <span style={styles.badge}>{text}</span>;
+  return (
+    <span className="nb-badge" style={styles.badge}>
+      {text}
+    </span>
+  );
 }
 
 function Th({ children }) {
@@ -300,14 +375,6 @@ const styles = {
     fontSize: 22,
     letterSpacing: "-0.02em",
     fontWeight: 700,
-  },
-
-  pageSub: {
-    display: "block",
-    marginTop: 7,
-    color: "#8B7355",
-    fontSize: 13,
-    fontWeight: 400,
   },
 
   actionGroup: {
@@ -485,6 +552,7 @@ const styles = {
     padding: "5px 10px",
     fontSize: 11,
     fontWeight: 600,
+    transition: "all 0.2s ease",
   },
 
   reportFooter: {
@@ -497,4 +565,4 @@ const styles = {
   },
 };
 
-export default ReportsExport;
+export default Reports;

@@ -6,6 +6,7 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  const isAdmin = role === "admin" || role === "ADMIN";
   const today = getTodayISO();
 
   const categories = [
@@ -24,7 +25,7 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
     });
   }, [sales, categoryFilter, periodFilter, fromDate, toDate]);
 
-  if (role !== "admin") {
+  if (!isAdmin) {
     return (
       <section style={styles.page}>
         <div style={styles.card}>
@@ -93,192 +94,249 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
   }
 
   return (
-    <section style={styles.page}>
-      <div style={styles.pageTitleRow}>
-        <div>
-          <h1 style={styles.pageTitle}>Sales Dashboard & Analytics</h1>
+    <>
+      <style>{`
+        .nb-input:focus {
+          border-color: #C6A969 !important;
+          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
+          background: #FFFFFF !important;
+        }
+
+        .nb-kpi-card {
+          transition: all 0.2s ease;
+        }
+
+        .nb-kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 28px rgba(45,45,45,0.08) !important;
+          border-color: #C6A969 !important;
+        }
+
+        .nb-card {
+          transition: all 0.2s ease;
+        }
+
+        .nb-card:hover {
+          box-shadow: 0 16px 34px rgba(45,45,45,0.08) !important;
+        }
+
+        .nb-table-row:hover td {
+          background: #FFFDFB;
+        }
+
+        .nb-bar-fill {
+          transition: all 0.2s ease;
+        }
+
+        .nb-bar-item:hover .nb-bar-fill {
+          background: #C6A969 !important;
+        }
+
+        .nb-info-box {
+          transition: all 0.2s ease;
+        }
+
+        .nb-info-box:hover {
+          transform: translateY(-1px);
+          border-color: #C6A969 !important;
+          background: #FFFFFF !important;
+        }
+      `}</style>
+
+      <section style={styles.page}>
+        <div style={styles.pageTitleRow}>
+          <div>
+            <h1 style={styles.pageTitle}>Sales Dashboard & Analytics</h1>
+          </div>
+
+          <div style={styles.filters}>
+            <label style={styles.filterField}>
+              <span style={styles.filterLabel}>Time Period</span>
+              <select
+                className="nb-input"
+                value={periodFilter}
+                onChange={(event) => {
+                  setPeriodFilter(event.target.value);
+
+                  if (event.target.value !== "Range") {
+                    clearRange();
+                  }
+                }}
+                style={styles.select}
+              >
+                <option>Today</option>
+                <option>This Week</option>
+                <option>This Month</option>
+                <option>This Year</option>
+                <option>Range</option>
+              </select>
+            </label>
+
+            {periodFilter === "Range" && (
+              <>
+                <label style={styles.filterField}>
+                  <span style={styles.filterLabel}>From Date</span>
+                  <input
+                    className="nb-input"
+                    type="date"
+                    value={fromDate}
+                    min="2000-01-01"
+                    max={today}
+                    onChange={(event) => setFromDate(event.target.value)}
+                    style={styles.dateInput}
+                  />
+                </label>
+
+                <label style={styles.filterField}>
+                  <span style={styles.filterLabel}>To Date</span>
+                  <input
+                    className="nb-input"
+                    type="date"
+                    value={toDate}
+                    min="2000-01-01"
+                    max={today}
+                    onChange={(event) => setToDate(event.target.value)}
+                    style={styles.dateInput}
+                  />
+                </label>
+              </>
+            )}
+
+            <label style={styles.filterField}>
+              <span style={styles.filterLabel}>Category</span>
+              <select
+                className="nb-input"
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                style={styles.select}
+              >
+                {categories.map((category) => (
+                  <option key={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
-        <div style={styles.filters}>
-          <label style={styles.filterField}>
-            <span style={styles.filterLabel}>Time Period</span>
-            <select
-              value={periodFilter}
-              onChange={(event) => {
-                setPeriodFilter(event.target.value);
-
-                if (event.target.value !== "Range") {
-                  clearRange();
-                }
-              }}
-              style={styles.select}
-            >
-              <option>Today</option>
-              <option>This Week</option>
-              <option>This Month</option>
-              <option>This Year</option>
-              <option>Range</option>
-            </select>
-          </label>
-
-          {periodFilter === "Range" && (
+        <div style={styles.filterSummary}>
+          Showing: <strong>{getShowingText()}</strong> sales
+          {categoryFilter !== "All Categories" && (
             <>
-              <label style={styles.filterField}>
-                <span style={styles.filterLabel}>From Date</span>
-                <input
-                  type="date"
-                  value={fromDate}
-                  min="2000-01-01"
-                  max={today}
-                  onChange={(event) => setFromDate(event.target.value)}
-                  style={styles.dateInput}
-                />
-              </label>
-
-              <label style={styles.filterField}>
-                <span style={styles.filterLabel}>To Date</span>
-                <input
-                  type="date"
-                  value={toDate}
-                  min="2000-01-01"
-                  max={today}
-                  onChange={(event) => setToDate(event.target.value)}
-                  style={styles.dateInput}
-                />
-              </label>
+              {" "}
+              for <strong>{categoryFilter}</strong>
             </>
           )}
-
-          <label style={styles.filterField}>
-            <span style={styles.filterLabel}>Category</span>
-            <select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-              style={styles.select}
-            >
-              {categories.map((category) => (
-                <option key={category}>{category}</option>
-              ))}
-            </select>
-          </label>
         </div>
-      </div>
 
-      <div style={styles.filterSummary}>
-        Showing: <strong>{getShowingText()}</strong> sales
-        {categoryFilter !== "All Categories" && (
-          <>
-            {" "}
-            for <strong>{categoryFilter}</strong>
-          </>
-        )}
-      </div>
+        <div style={styles.kpiGrid}>
+          <Kpi
+            title="Total Revenue"
+            value={money(totalRevenue)}
+            sub="Filtered revenue"
+          />
 
-      <div style={styles.kpiGrid}>
-        <Kpi
-          title="Total Revenue"
-          value={money(totalRevenue)}
-          sub="Filtered revenue"
-        />
+          <Kpi
+            title="Total Orders"
+            value={filteredSales.length}
+            sub="Completed invoices"
+          />
 
-        <Kpi
-          title="Total Orders"
-          value={filteredSales.length}
-          sub="Completed invoices"
-        />
+          <Kpi
+            title="Products Sold"
+            value={totalQuantity}
+            sub="Total quantity"
+          />
 
-        <Kpi
-          title="Products Sold"
-          value={totalQuantity}
-          sub="Total quantity"
-        />
+          <Kpi
+            title="Profit Margin"
+            value={`${profitMargin}%`}
+            sub={money(grossProfit)}
+          />
+        </div>
 
-        <Kpi
-          title="Profit Margin"
-          value={`${profitMargin}%`}
-          sub={money(grossProfit)}
-        />
-      </div>
+        <div style={styles.chartGrid}>
+          <Chart
+            title="Revenue Chart"
+            subtitle={`${getShowingText()} revenue performance`}
+            data={revenueChart}
+            moneyMode
+          />
 
-      <div style={styles.chartGrid}>
-        <Chart
-          title="Revenue Chart"
-          subtitle={`${getShowingText()} revenue performance`}
-          data={revenueChart}
-          moneyMode
-        />
+          <Chart
+            title="Sales Graph"
+            subtitle={`${getShowingText()} product sales quantity`}
+            data={salesGraph}
+          />
+        </div>
 
-        <Chart
-          title="Sales Graph"
-          subtitle={`${getShowingText()} product sales quantity`}
-          data={salesGraph}
-        />
-      </div>
-
-      <div style={styles.bottomGrid}>
-        <div style={styles.card}>
-          <div style={styles.cardHead}>
-            <div>
-              <h2 style={styles.cardTitle}>Top Products</h2>
-              <p style={styles.muted}>
-                Best selling products ranked by revenue.
-              </p>
+        <div style={styles.bottomGrid}>
+          <div className="nb-card" style={styles.card}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>Top Products</h2>
+                <p style={styles.muted}>
+                  Best selling products ranked by revenue.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <Th>Product</Th>
-                  <Th>Category</Th>
-                  <Th>Units</Th>
-                  <Th>Revenue</Th>
-                  <Th>Profit</Th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {topProducts.map((product) => (
-                  <tr key={product.productName}>
-                    <Td>{product.productName}</Td>
-                    <Td>{product.category}</Td>
-                    <Td>{product.quantity}</Td>
-                    <Td>{money(product.revenue)}</Td>
-                    <Td>{money(product.revenue - product.cost)}</Td>
-                  </tr>
-                ))}
-
-                {topProducts.length === 0 && (
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
                   <tr>
-                    <td colSpan="5" style={styles.emptyCell}>
-                      No sales data found for selected filter.
-                    </td>
+                    <Th>Product</Th>
+                    <Th>Category</Th>
+                    <Th>Units</Th>
+                    <Th>Revenue</Th>
+                    <Th>Profit</Th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                </thead>
 
-        <div style={styles.card}>
-          <div style={styles.cardHead}>
-            <div>
-              <h2 style={styles.cardTitle}>Business Insights</h2>
-              <p style={styles.muted}>Useful BA analytics summary.</p>
+                <tbody>
+                  {topProducts.map((product) => (
+                    <tr key={product.productName} className="nb-table-row">
+                      <Td>{product.productName}</Td>
+                      <Td>{product.category}</Td>
+                      <Td>{product.quantity}</Td>
+                      <Td>{money(product.revenue)}</Td>
+                      <Td>{money(product.revenue - product.cost)}</Td>
+                    </tr>
+                  ))}
+
+                  {topProducts.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={styles.emptyCell}>
+                        No sales data found for selected filter.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div style={styles.infoGridOne}>
-            <Info label="Total Cost" value={money(totalCost)} />
-            <Info label="Gross Profit" value={money(grossProfit)} />
-            <Info label="Average Order Value" value={money(averageOrderValue)} />
-            <Info label="GST Collected" value={money(totalGst)} />
-            <Info label="Pending Payments" value={pendingPayments} />
+          <div className="nb-card" style={styles.insightsCard}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>Business Insights</h2>
+                <p style={styles.muted}>Useful BA analytics summary.</p>
+              </div>
+            </div>
+
+            <div style={styles.infoGridOne}>
+              <Info label="Total Cost" value={money(totalCost)} />
+              <Info label="Gross Profit" value={money(grossProfit)} />
+              <Info
+                label="Average Order Value"
+                value={money(averageOrderValue)}
+              />
+              <Info label="GST Collected" value={money(totalGst)} />
+              <Info label="Pending Payments" value={pendingPayments} />
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
 
@@ -325,13 +383,11 @@ function dateMatches(date, filter, fromDate, toDate) {
 
     if (fromDate) {
       const from = startOfDay(new Date(fromDate));
-
       if (selectedStart < from) return false;
     }
 
     if (toDate) {
       const to = endOfDay(new Date(toDate));
-
       if (selectedStart > to) return false;
     }
 
@@ -448,7 +504,7 @@ function groupByProduct(data) {
 
 function Kpi({ title, value, sub }) {
   return (
-    <div style={styles.kpiCard}>
+    <div className="nb-kpi-card" style={styles.kpiCard}>
       <p style={styles.kpiTitle}>{title}</p>
       <h3 style={styles.kpiValue}>{value}</h3>
       <span style={styles.kpiSub}>{sub}</span>
@@ -460,7 +516,7 @@ function Chart({ title, subtitle, data, moneyMode }) {
   const max = Math.max(...data.map((item) => item.value), 1);
 
   return (
-    <div style={styles.card}>
+    <div className="nb-card" style={styles.card}>
       <div style={styles.cardHead}>
         <div>
           <h2 style={styles.cardTitle}>{title}</h2>
@@ -474,9 +530,10 @@ function Chart({ title, subtitle, data, moneyMode }) {
         )}
 
         {data.map((item) => (
-          <div key={item.label} style={styles.barItem}>
+          <div key={item.label} className="nb-bar-item" style={styles.barItem}>
             <div style={styles.barTrack}>
               <div
+                className="nb-bar-fill"
                 style={{
                   ...styles.barFill,
                   height: `${Math.max((item.value / max) * 100, 8)}%`,
@@ -498,7 +555,7 @@ function Chart({ title, subtitle, data, moneyMode }) {
 
 function Info({ label, value }) {
   return (
-    <div style={styles.infoBox}>
+    <div className="nb-info-box" style={styles.infoBox}>
       <span style={styles.infoLabel}>{label}</span>
       <strong style={styles.infoValue}>{value}</strong>
     </div>
@@ -636,8 +693,9 @@ const styles = {
 
   bottomGrid: {
     display: "grid",
-    gridTemplateColumns: "1.2fr 0.8fr",
+    gridTemplateColumns: "1.35fr 0.65fr",
     gap: 18,
+    alignItems: "stretch",
   },
 
   card: {
@@ -646,6 +704,17 @@ const styles = {
     borderRadius: 16,
     boxShadow: "0 12px 28px rgba(45,45,45,0.05)",
     padding: 24,
+  },
+
+  insightsCard: {
+    background: "#FFFFFF",
+    border: "1px solid #EFE7DE",
+    borderRadius: 16,
+    boxShadow: "0 12px 28px rgba(45,45,45,0.05)",
+    padding: 24,
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
   },
 
   cardHead: {
@@ -770,6 +839,8 @@ const styles = {
   infoGridOne: {
     display: "grid",
     gap: 14,
+    flex: 1,
+    alignContent: "space-between",
   },
 
   infoBox: {

@@ -18,7 +18,7 @@ const emptyCustomer = {
   notes: "",
 };
 
-function CustomerManagement({ role = "admin", initialCustomers = [] }) {
+function Customers({ role = "admin", initialCustomers = [] }) {
   const [customers, setCustomers] = useState(() => {
     try {
       const savedCustomers = localStorage.getItem("nexbill_customers");
@@ -45,7 +45,11 @@ function CustomerManagement({ role = "admin", initialCustomers = [] }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyCustomer);
 
-  const canAccess = role === "admin" || role === "cashier";
+  const canAccess =
+    role === "admin" ||
+    role === "cashier" ||
+    role === "ADMIN" ||
+    role === "CASHIER";
 
   useEffect(() => {
     function loadSalesRecords() {
@@ -126,16 +130,19 @@ function CustomerManagement({ role = "admin", initialCustomers = [] }) {
 
     const matchedSales = salesRecords.filter((sale) => {
       const saleCustomerId = String(sale.customerId || "").toLowerCase();
+
       const saleCustomerName = String(
         sale.customer || sale.customerName || sale.buyerName || ""
       )
         .toLowerCase()
         .trim();
+
       const saleCustomerMobile = String(
         sale.mobile || sale.customerMobile || sale.phone || ""
       )
         .toLowerCase()
         .trim();
+
       const saleCustomerEmail = String(sale.email || sale.customerEmail || "")
         .toLowerCase()
         .trim();
@@ -208,7 +215,6 @@ function CustomerManagement({ role = "admin", initialCustomers = [] }) {
 
   function openEdit(customer) {
     const displayCustomer = getDisplayCustomer(customer);
-
     setForm(displayCustomer);
     setEditingId(customer.id);
     setSelectedCustomer(displayCustomer);
@@ -311,403 +317,496 @@ function CustomerManagement({ role = "admin", initialCustomers = [] }) {
   ).length;
 
   return (
-    <section style={styles.page}>
-      <div style={styles.pageTitleRow}>
-        <div>
-          <h1 style={styles.pageTitle}>Customer Management</h1>
-          
+    <>
+      <style>{`
+        .nb-btn {
+          transition: all 0.2s ease;
+        }
+
+        .nb-primary:hover {
+          background: #2D2D2D !important;
+          color: #F8F5F2 !important;
+          border-color: #2D2D2D !important;
+          transform: translateY(-1px);
+        }
+
+        .nb-ghost:hover {
+          background: #EFE7DE !important;
+          border-color: #C6A969 !important;
+          color: #2D2D2D !important;
+        }
+
+        .nb-view-btn:hover {
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+          border-color: #C6A969 !important;
+          transform: translateY(-1px);
+        }
+
+        .nb-edit-btn:hover {
+          background: #2D2D2D !important;
+          color: #F8F5F2 !important;
+          border-color: #2D2D2D !important;
+          transform: translateY(-1px);
+        }
+
+        .nb-delete-btn:hover {
+          background: #9B4444 !important;
+          color: #FFFFFF !important;
+          border-color: #9B4444 !important;
+          transform: translateY(-1px);
+        }
+
+        .nb-table-row:hover td {
+          background: #FFFDFB;
+        }
+
+        .nb-input:focus {
+          border-color: #C6A969 !important;
+          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
+          background: #FFFFFF !important;
+        }
+      `}</style>
+
+      <section style={styles.page}>
+        <div style={styles.pageTitleRow}>
+          <div>
+            <h1 style={styles.pageTitle}>Customer Management</h1>
+          </div>
+
+          {view === "list" && (
+            <button
+              type="button"
+              onClick={openAdd}
+              className="nb-btn nb-primary"
+              style={styles.primaryBtn}
+            >
+              + Add Customer
+            </button>
+          )}
+        </div>
+
+        <div style={styles.kpiGrid}>
+          <Kpi
+            title="Total Customers"
+            value={customers.length}
+            sub="Registered buyers"
+          />
+          <Kpi
+            title="Active Customers"
+            value={activeCustomers}
+            sub="Ready for billing"
+          />
+          <Kpi
+            title="Premium Customers"
+            value={premiumCustomers}
+            sub="High value accounts"
+          />
+          <Kpi
+            title="Customer Value"
+            value={money(totalValue)}
+            sub="Total purchase value"
+          />
         </div>
 
         {view === "list" && (
-          <button onClick={openAdd} style={styles.primaryBtn}>
-            + Add Customer
-          </button>
-        )}
-      </div>
-
-      <div style={styles.kpiGrid}>
-        <Kpi
-          title="Total Customers"
-          value={customers.length}
-          sub="Registered buyers"
-        />
-        <Kpi
-          title="Active Customers"
-          value={activeCustomers}
-          sub="Ready for billing"
-        />
-        <Kpi
-          title="Premium Customers"
-          value={premiumCustomers}
-          sub="High value accounts"
-        />
-        <Kpi
-          title="Customer Value"
-          value={money(totalValue)}
-          sub="Total purchase value"
-        />
-      </div>
-
-      {view === "list" && (
-        <div style={styles.card}>
-          <div style={styles.cardHead}>
-            <div>
-              <h2 style={styles.cardTitle}>Customer List</h2>
-              
-            </div>
-          </div>
-
-          <div style={styles.toolbar}>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search customer, mobile,"
-              style={styles.input}
-            />
-
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              style={styles.select}
-            >
-              <option>All</option>
-              <option>Active</option>
-              <option>Inactive</option>
-            </select>
-
-            <select
-              value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value)}
-              style={styles.select}
-            >
-              <option>All</option>
-              <option>Regular</option>
-              <option>Premium</option>
-              <option>Wholesale</option>
-            </select>
-          </div>
-
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <Th>Customer Details</Th>
-                  <Th>Contact</Th>
-                  <Th>Location</Th>
-                  <Th>Type</Th>
-                  <Th>Orders</Th>
-                  <Th>Total Spent</Th>
-                  <Th>Status</Th>
-                  <Th>Actions</Th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredCustomers.map((customer) => {
-                  const displayCustomer = getDisplayCustomer(customer);
-
-                  return (
-                    <tr key={customer.id}>
-                      <Td>
-                        <b style={styles.cellMain}>{displayCustomer.name}</b>
-                        <small style={styles.cellSub}>
-                          {displayCustomer.id}
-                        </small>
-                      </Td>
-                      <Td>
-                        <b style={styles.cellMain}>{displayCustomer.mobile}</b>
-                        <small style={styles.cellSub}>
-                          {displayCustomer.email || "No email"}
-                        </small>
-                      </Td>
-                      <Td>
-                        <b style={styles.cellMain}>{displayCustomer.city}</b>
-                        <small style={styles.cellSub}>
-                          {displayCustomer.state}
-                        </small>
-                      </Td>
-                      <Td>{displayCustomer.type}</Td>
-                      <Td>{displayCustomer.totalOrders}</Td>
-                      <Td>{money(displayCustomer.totalSpent)}</Td>
-                      <Td>
-                        <Badge text={displayCustomer.status} />
-                      </Td>
-                      <Td>
-                        <div style={styles.actionGroup}>
-                          <button
-                            style={styles.actionBtn}
-                            onClick={() => openView(customer)}
-                          >
-                            View
-                          </button>
-                          <button
-                            style={styles.actionBtn}
-                            onClick={() => openEdit(customer)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            style={styles.actionBtn}
-                            onClick={() => deleteCustomer(customer)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </Td>
-                    </tr>
-                  );
-                })}
-
-                {filteredCustomers.length === 0 && (
-                  <tr>
-                    <td colSpan="8" style={styles.emptyCell}>
-                      No customers found. Click “Add Customer” to create a
-                      customer.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {view === "form" && (
-        <div style={styles.card}>
-          <div style={styles.cardHead}>
-            <div>
-              <h2 style={styles.cardTitle}>
-                {editingId ? "Edit Customer" : "Add Customer"}
-              </h2>
-              <p style={styles.muted}>
-                Total Orders and Total Spent can be entered manually. Billing
-                sales will override these values when available.
-              </p>
+          <div style={styles.card}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>Customer List</h2>
+              </div>
             </div>
 
-            <button onClick={() => setView("list")} style={styles.ghostBtn}>
-              Back
-            </button>
-          </div>
-
-          <form onSubmit={saveCustomer} style={styles.formGrid}>
-            <Input
-              label="Customer Name"
-              value={form.name}
-              onChange={(value) => setForm({ ...form, name: value })}
-            />
-
-            <Input
-              label="Mobile Number"
-              value={form.mobile}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  mobile: value.replace(/\D/g, "").slice(0, 10),
-                })
-              }
-            />
-
-            <Input
-              label="Email"
-              value={form.email}
-              onChange={(value) => setForm({ ...form, email: value })}
-            />
-
-            <Input
-              label="City"
-              value={form.city}
-              onChange={(value) => setForm({ ...form, city: value })}
-            />
-
-            <Input
-              label="State"
-              value={form.state}
-              onChange={(value) => setForm({ ...form, state: value })}
-            />
-
-            <Input
-              label="Pincode"
-              value={form.pincode}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  pincode: value.replace(/\D/g, "").slice(0, 6),
-                })
-              }
-            />
-
-            <Input
-              label="Total Orders"
-              value={form.totalOrders}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  totalOrders: value.replace(/\D/g, ""),
-                })
-              }
-            />
-
-            <Input
-              label="Total Spent"
-              value={form.totalSpent}
-              onChange={(value) =>
-                setForm({
-                  ...form,
-                  totalSpent: value.replace(/[^\d.]/g, ""),
-                })
-              }
-            />
-
-            <label style={styles.field}>
-              <span style={styles.fieldLabel}>Customer Type</span>
-              <select
-                value={form.type}
-                onChange={(event) =>
-                  setForm({ ...form, type: event.target.value })
-                }
+            <div style={styles.toolbar}>
+              <input
+                className="nb-input"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search customer, mobile,"
                 style={styles.input}
+              />
+
+              <select
+                className="nb-input"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                style={styles.select}
               >
+                <option>All</option>
+                <option>Active</option>
+                <option>Inactive</option>
+              </select>
+
+              <select
+                className="nb-input"
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
+                style={styles.select}
+              >
+                <option>All</option>
                 <option>Regular</option>
                 <option>Premium</option>
                 <option>Wholesale</option>
               </select>
-            </label>
+            </div>
 
-            <label style={styles.field}>
-              <span style={styles.fieldLabel}>Status</span>
-              <select
-                value={form.status}
-                onChange={(event) =>
-                  setForm({ ...form, status: event.target.value })
-                }
-                style={styles.input}
-              >
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
-            </label>
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <Th>Customer Details</Th>
+                    <Th>Contact</Th>
+                    <Th>Location</Th>
+                    <Th>Type</Th>
+                    <Th>Orders</Th>
+                    <Th>Total Spent</Th>
+                    <Th>Status</Th>
+                    <Th>Actions</Th>
+                  </tr>
+                </thead>
 
-            <Input
-              label="GST Number"
-              value={form.gst}
-              onChange={(value) =>
-                setForm({ ...form, gst: value.toUpperCase() })
-              }
-            />
+                <tbody>
+                  {filteredCustomers.map((customer) => {
+                    const displayCustomer = getDisplayCustomer(customer);
 
-            <Input
-              label="Last Purchase"
-              value={form.lastPurchase}
-              onChange={(value) => setForm({ ...form, lastPurchase: value })}
-            />
+                    return (
+                      <tr key={customer.id} className="nb-table-row">
+                        <Td>
+                          <b style={styles.cellMain}>{displayCustomer.name}</b>
+                          <small style={styles.cellSub}>
+                            {displayCustomer.id}
+                          </small>
+                        </Td>
 
-            <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
-              <span style={styles.fieldLabel}>Billing Address</span>
-              <textarea
-                value={form.address}
-                onChange={(event) =>
-                  setForm({ ...form, address: event.target.value })
-                }
-                style={styles.textarea}
-              />
-            </label>
+                        <Td>
+                          <b style={styles.cellMain}>
+                            {displayCustomer.mobile}
+                          </b>
+                          <small style={styles.cellSub}>
+                            {displayCustomer.email || "No email"}
+                          </small>
+                        </Td>
 
-            <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
-              <span style={styles.fieldLabel}>Customer Notes</span>
-              <textarea
-                value={form.notes}
-                onChange={(event) =>
-                  setForm({ ...form, notes: event.target.value })
-                }
-                style={styles.textarea}
-              />
-            </label>
+                        <Td>
+                          <b style={styles.cellMain}>{displayCustomer.city}</b>
+                          <small style={styles.cellSub}>
+                            {displayCustomer.state}
+                          </small>
+                        </Td>
 
-            <div style={styles.formActions}>
+                        <Td>{displayCustomer.type}</Td>
+                        <Td>{displayCustomer.totalOrders}</Td>
+                        <Td>{money(displayCustomer.totalSpent)}</Td>
+
+                        <Td>
+                          <Badge text={displayCustomer.status} />
+                        </Td>
+
+                        <Td>
+                          <div style={styles.actionGroup}>
+                            <button
+                              type="button"
+                              className="nb-btn nb-view-btn"
+                              style={styles.actionBtn}
+                              onClick={() => openView(customer)}
+                            >
+                              View
+                            </button>
+
+                            <button
+                              type="button"
+                              className="nb-btn nb-edit-btn"
+                              style={styles.actionBtn}
+                              onClick={() => openEdit(customer)}
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              className="nb-btn nb-delete-btn"
+                              style={styles.deleteBtn}
+                              onClick={() => deleteCustomer(customer)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </Td>
+                      </tr>
+                    );
+                  })}
+
+                  {filteredCustomers.length === 0 && (
+                    <tr>
+                      <td colSpan="8" style={styles.emptyCell}>
+                        No customers found. Click “Add Customer” to create a
+                        customer.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {view === "form" && (
+          <div style={styles.card}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>
+                  {editingId ? "Edit Customer" : "Add Customer"}
+                </h2>
+                <p style={styles.muted}>
+                  Total Orders and Total Spent can be entered manually. Billing
+                  sales will override these values when available.
+                </p>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setView("list")}
+                className="nb-btn nb-ghost"
                 style={styles.ghostBtn}
               >
-                Cancel
-              </button>
-
-              <button type="submit" style={styles.primaryBtn}>
-                Save Customer
+                Back
               </button>
             </div>
-          </form>
-        </div>
-      )}
 
-      {view === "details" && selectedCustomer && (
-        <div style={styles.card}>
-          <div style={styles.cardHead}>
-            <div>
-              <h2 style={styles.cardTitle}>Customer Details</h2>
-              <p style={styles.muted}>
-                Complete customer profile and billing information.
-              </p>
+            <form onSubmit={saveCustomer} style={styles.formGrid}>
+              <Input
+                label="Customer Name"
+                value={form.name}
+                onChange={(value) => setForm({ ...form, name: value })}
+              />
+
+              <Input
+                label="Mobile Number"
+                value={form.mobile}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    mobile: value.replace(/\D/g, "").slice(0, 10),
+                  })
+                }
+              />
+
+              <Input
+                label="Email"
+                value={form.email}
+                onChange={(value) => setForm({ ...form, email: value })}
+              />
+
+              <Input
+                label="City"
+                value={form.city}
+                onChange={(value) => setForm({ ...form, city: value })}
+              />
+
+              <Input
+                label="State"
+                value={form.state}
+                onChange={(value) => setForm({ ...form, state: value })}
+              />
+
+              <Input
+                label="Pincode"
+                value={form.pincode}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    pincode: value.replace(/\D/g, "").slice(0, 6),
+                  })
+                }
+              />
+
+              <Input
+                label="Total Orders"
+                value={form.totalOrders}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    totalOrders: value.replace(/\D/g, ""),
+                  })
+                }
+              />
+
+              <Input
+                label="Total Spent"
+                value={form.totalSpent}
+                onChange={(value) =>
+                  setForm({
+                    ...form,
+                    totalSpent: value.replace(/[^\d.]/g, ""),
+                  })
+                }
+              />
+
+              <label style={styles.field}>
+                <span style={styles.fieldLabel}>Customer Type</span>
+                <select
+                  className="nb-input"
+                  value={form.type}
+                  onChange={(event) =>
+                    setForm({ ...form, type: event.target.value })
+                  }
+                  style={styles.input}
+                >
+                  <option>Regular</option>
+                  <option>Premium</option>
+                  <option>Wholesale</option>
+                </select>
+              </label>
+
+              <label style={styles.field}>
+                <span style={styles.fieldLabel}>Status</span>
+                <select
+                  className="nb-input"
+                  value={form.status}
+                  onChange={(event) =>
+                    setForm({ ...form, status: event.target.value })
+                  }
+                  style={styles.input}
+                >
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </label>
+
+              <Input
+                label="GST Number"
+                value={form.gst}
+                onChange={(value) =>
+                  setForm({ ...form, gst: value.toUpperCase() })
+                }
+              />
+
+              <Input
+                label="Last Purchase"
+                value={form.lastPurchase}
+                onChange={(value) =>
+                  setForm({ ...form, lastPurchase: value })
+                }
+              />
+
+              <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <span style={styles.fieldLabel}>Billing Address</span>
+                <textarea
+                  className="nb-input"
+                  value={form.address}
+                  onChange={(event) =>
+                    setForm({ ...form, address: event.target.value })
+                  }
+                  style={styles.textarea}
+                />
+              </label>
+
+              <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
+                <span style={styles.fieldLabel}>Customer Notes</span>
+                <textarea
+                  className="nb-input"
+                  value={form.notes}
+                  onChange={(event) =>
+                    setForm({ ...form, notes: event.target.value })
+                  }
+                  style={styles.textarea}
+                />
+              </label>
+
+              <div style={styles.formActions}>
+                <button
+                  type="button"
+                  onClick={() => setView("list")}
+                  className="nb-btn nb-ghost"
+                  style={styles.ghostBtn}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="nb-btn nb-primary"
+                  style={styles.primaryBtn}
+                >
+                  Save Customer
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {view === "details" && selectedCustomer && (
+          <div style={styles.card}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>Customer Details</h2>
+                <p style={styles.muted}>
+                  Complete customer profile and billing information.
+                </p>
+              </div>
+
+              <div style={styles.actionGroup}>
+                <button
+                  type="button"
+                  className="nb-btn nb-view-btn"
+                  style={styles.actionBtn}
+                  onClick={() => setView("list")}
+                >
+                  Customer List
+                </button>
+
+                <button
+                  type="button"
+                  className="nb-btn nb-edit-btn"
+                  style={styles.actionBtn}
+                  onClick={() => openEdit(selectedCustomer)}
+                >
+                  Edit
+                </button>
+              </div>
             </div>
 
-            <div style={styles.actionGroup}>
-              <button
-                style={styles.actionBtn}
-                onClick={() => setView("list")}
-              >
-                Customer List
-              </button>
+            <div style={styles.profileBox}>
+              <div style={styles.avatarLarge}>
+                {selectedCustomer.name.slice(0, 2).toUpperCase()}
+              </div>
 
-              <button
-                style={styles.actionBtn}
-                onClick={() => openEdit(selectedCustomer)}
-              >
-                Edit
-              </button>
+              <div>
+                <h2 style={styles.profileTitle}>{selectedCustomer.name}</h2>
+                <p style={styles.muted}>
+                  {selectedCustomer.id} • {selectedCustomer.type} •{" "}
+                  {selectedCustomer.status}
+                </p>
+              </div>
+            </div>
+
+            <div style={styles.infoGrid}>
+              <Info label="Mobile" value={selectedCustomer.mobile} />
+              <Info label="Email" value={selectedCustomer.email || "-"} />
+              <Info label="GST Number" value={selectedCustomer.gst || "-"} />
+              <Info label="City" value={selectedCustomer.city} />
+              <Info label="State" value={selectedCustomer.state} />
+              <Info label="Pincode" value={selectedCustomer.pincode || "-"} />
+              <Info label="Total Orders" value={selectedCustomer.totalOrders} />
+              <Info
+                label="Total Spent"
+                value={money(selectedCustomer.totalSpent)}
+              />
+              <Info
+                label="Last Purchase"
+                value={selectedCustomer.lastPurchase || "-"}
+              />
+              <Info label="Address" value={selectedCustomer.address} wide />
+              <Info
+                label="Notes"
+                value={selectedCustomer.notes || "No notes added"}
+                wide
+              />
             </div>
           </div>
-
-          <div style={styles.profileBox}>
-            <div style={styles.avatarLarge}>
-              {selectedCustomer.name.slice(0, 2).toUpperCase()}
-            </div>
-
-            <div>
-              <h2 style={styles.profileTitle}>{selectedCustomer.name}</h2>
-              <p style={styles.muted}>
-                {selectedCustomer.id} • {selectedCustomer.type} •{" "}
-                {selectedCustomer.status}
-              </p>
-            </div>
-          </div>
-
-          <div style={styles.infoGrid}>
-            <Info label="Mobile" value={selectedCustomer.mobile} />
-            <Info label="Email" value={selectedCustomer.email || "-"} />
-            <Info label="GST Number" value={selectedCustomer.gst || "-"} />
-            <Info label="City" value={selectedCustomer.city} />
-            <Info label="State" value={selectedCustomer.state} />
-            <Info label="Pincode" value={selectedCustomer.pincode || "-"} />
-            <Info label="Total Orders" value={selectedCustomer.totalOrders} />
-            <Info
-              label="Total Spent"
-              value={money(selectedCustomer.totalSpent)}
-            />
-            <Info
-              label="Last Purchase"
-              value={selectedCustomer.lastPurchase || "-"}
-            />
-            <Info label="Address" value={selectedCustomer.address} wide />
-            <Info
-              label="Notes"
-              value={selectedCustomer.notes || "No notes added"}
-              wide
-            />
-          </div>
-        </div>
-      )}
-    </section>
+        )}
+      </section>
+    </>
   );
 }
 
@@ -730,6 +829,7 @@ function Input({ label, value, onChange }) {
     <label style={styles.field}>
       <span style={styles.fieldLabel}>{label}</span>
       <input
+        className="nb-input"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         style={styles.input}
@@ -776,14 +876,6 @@ const styles = {
     fontSize: 22,
     letterSpacing: "-0.02em",
     fontWeight: 700,
-  },
-
-  pageSub: {
-    display: "block",
-    marginTop: 7,
-    color: "#8B7355",
-    fontSize: 13,
-    fontWeight: 400,
   },
 
   kpiGrid: {
@@ -988,6 +1080,17 @@ const styles = {
     fontSize: 12,
   },
 
+  deleteBtn: {
+    minHeight: 34,
+    borderRadius: 9,
+    border: "1px solid #F0D0D0",
+    background: "#FDF0F0",
+    color: "#9B4444",
+    padding: "0 12px",
+    fontWeight: 500,
+    fontSize: 12,
+  },
+
   formGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -1089,4 +1192,4 @@ const styles = {
   },
 };
 
-export default CustomerManagement;
+export default Customers;
