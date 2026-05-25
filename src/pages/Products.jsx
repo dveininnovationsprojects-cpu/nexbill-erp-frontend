@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, X, CheckCircle } from 'lucide-react';
-
-const MOCK_CATEGORIES = ['Electronics', 'Groceries', 'Clothing', 'Stationery', 'Beverages'];
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const MOCK_PRODUCTS = [
   { id: 1, sku: 'SKU001', name: 'Wireless Mouse', category: 'Electronics', sellingPrice: 599, purchasePrice: 350, stock: 45, gstRate: 18 },
@@ -11,17 +11,29 @@ const MOCK_PRODUCTS = [
   { id: 5, sku: 'SKU005', name: 'Mineral Water 1L', category: 'Beverages', sellingPrice: 20, purchasePrice: 10, stock: 500, gstRate: 0 },
 ];
 
-const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', gstRate: '' };
+const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', gstRate: '0' };
 
 export default function Products() {
+  const { user } = useAuth();
   const [products, setProducts] = useState(MOCK_PRODUCTS);
+  const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [modal, setModal] = useState(null); // null | 'add' | 'edit'
+  const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editId, setEditId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Fetch real categories from backend
+  useEffect(() => {
+    axios.get('/api/categories/all', {
+      headers: { Authorization: `Bearer ${user.token}` },
+      withCredentials: true,
+    })
+      .then(res => setCategories(res.data.map(c => ({ id: c.id, name: c.name }))))
+      .catch(() => setCategories([]));
+  }, []);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -143,7 +155,7 @@ export default function Products() {
                     <label>Category</label>
                     <select required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                       <option value="">Select category</option>
-                      {MOCK_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
                   <div className="pr-field">
@@ -202,7 +214,7 @@ export default function Products() {
           </div>
           <select className="pr-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
             <option value="">All Categories</option>
-            {MOCK_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
           <button className="pr-add-btn" onClick={openAdd}><Plus size={15} /> Add Product</button>
         </div>
