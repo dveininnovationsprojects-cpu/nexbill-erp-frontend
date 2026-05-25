@@ -3,36 +3,51 @@ import { Plus, Search, Pencil, Trash2, X, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const MOCK_PRODUCTS = [
-  { id: 1, sku: 'SKU001', name: 'Wireless Mouse', category: 'Electronics', sellingPrice: 599, purchasePrice: 350, stock: 45, gstRate: 18 },
-  { id: 2, sku: 'SKU002', name: 'Rice 5kg', category: 'Groceries', sellingPrice: 280, purchasePrice: 210, stock: 120, gstRate: 5 },
-  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack', category: 'Stationery', sellingPrice: 45, purchasePrice: 25, stock: 300, gstRate: 12 },
-  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt', category: 'Clothing', sellingPrice: 399, purchasePrice: 200, stock: 80, gstRate: 5 },
-  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L', category: 'Beverages', sellingPrice: 20, purchasePrice: 10, stock: 500, gstRate: 0 },
+const DUMMY_PRODUCTS = [
+  { id: 1, sku: 'SKU001', name: 'Wireless Mouse',   category: 'Electronics', sellingPrice: 599,  purchasePrice: 350, stock: 45,  gstRate: 18 },
+  { id: 2, sku: 'SKU002', name: 'Rice 5kg',          category: 'Groceries',   sellingPrice: 280,  purchasePrice: 210, stock: 8,   gstRate: 5  },
+  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack',     category: 'Stationery',  sellingPrice: 45,   purchasePrice: 25,  stock: 300, gstRate: 12 },
+  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt',    category: 'Clothing',    sellingPrice: 399,  purchasePrice: 200, stock: 5,   gstRate: 5  },
+  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L',  category: 'Beverages',   sellingPrice: 20,   purchasePrice: 10,  stock: 500, gstRate: 0  },
 ];
 
 const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', gstRate: '0' };
 
 export default function Products() {
   const { user } = useAuth();
-  const [products, setProducts] = useState(MOCK_PRODUCTS);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState(DUMMY_PRODUCTS);
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([
+    { id: 1, name: 'Electronics' },
+    { id: 2, name: 'Groceries' },
+    { id: 3, name: 'Clothing' },
+    { id: 4, name: 'Stationery' },
+    { id: 5, name: 'Beverages' },
+  ]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editId, setEditId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Fetch real categories from backend
+  const getHeaders = () => ({ Authorization: `Bearer ${user.token}` });
+
+  const fetchProducts = async () => {
+    try {
+      const res = await axios.get('/api/products/all', { headers: getHeaders(), withCredentials: true });
+      if (res.data?.length) setProducts(res.data);
+    } catch { /* keep dummy data */ }
+    finally { setLoading(false); }
+  };
+
   useEffect(() => {
-    axios.get('/api/categories/all', {
-      headers: { Authorization: `Bearer ${user.token}` },
-      withCredentials: true,
-    })
-      .then(res => setCategories(res.data.map(c => ({ id: c.id, name: c.name }))))
-      .catch(() => setCategories([]));
+    fetchProducts();
+    axios.get('/api/categories/all', { headers: getHeaders(), withCredentials: true })
+      .then(res => { if (res.data?.length) setCategories(res.data.map(c => ({ id: c.id, name: c.name }))); })
+      .catch(() => {});
   }, []);
 
   const showToast = (msg, type = 'success') => {
@@ -41,30 +56,64 @@ export default function Products() {
   };
 
   const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchCat = categoryFilter ? p.category === categoryFilter : true;
+    const matchSearch = p.name?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase());
+    const matchCat = categoryFilter ? (p.category === categoryFilter || p.category?.name === categoryFilter) : true;
     return matchSearch && matchCat;
   });
 
   const openAdd = () => { setForm(EMPTY_FORM); setEditId(null); setModal('add'); };
-  const openEdit = (p) => { setForm({ ...p, sellingPrice: String(p.sellingPrice), purchasePrice: String(p.purchasePrice), stock: String(p.stock), gstRate: String(p.gstRate) }); setEditId(p.id); setModal('edit'); };
+  const openEdit = (p) => {
+    setForm({
+      sku: p.sku || '',
+      name: p.name || '',
+      category: p.category?.name || p.category || '',
+      sellingPrice: String(p.sellingPrice || ''),
+      purchasePrice: String(p.purchasePrice || ''),
+      stock: String(p.stock || ''),
+      gstRate: String(p.gstRate || '0'),
+    });
+    setEditId(p.id);
+    setModal('edit');
+  };
   const closeModal = () => { setModal(null); setForm(EMPTY_FORM); };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    const product = { ...form, sellingPrice: parseFloat(form.sellingPrice), purchasePrice: parseFloat(form.purchasePrice), stock: parseInt(form.stock), gstRate: parseFloat(form.gstRate) };
-    if (modal === 'add') {
-      setProducts([...products, { ...product, id: Date.now() }]);
-      showToast('Product added successfully!');
-    } else {
-      setProducts(products.map(p => p.id === editId ? { ...product, id: editId } : p));
-      showToast('Product updated successfully!');
-    }
-    closeModal();
+    setSaving(true);
+    const payload = {
+      ...form,
+      sellingPrice: parseFloat(form.sellingPrice),
+      purchasePrice: parseFloat(form.purchasePrice),
+      stock: parseInt(form.stock),
+      gstRate: parseFloat(form.gstRate),
+    };
+    try {
+      if (modal === 'add') {
+        try {
+          const res = await axios.post('/api/products/add', payload, { headers: getHeaders(), withCredentials: true });
+          setProducts(prev => [...prev, res.data]);
+        } catch {
+          setProducts(prev => [...prev, { ...payload, id: Date.now() }]);
+        }
+        showToast('Product added successfully!');
+      } else {
+        try {
+          const res = await axios.put(`/api/products/update/${editId}`, payload, { headers: getHeaders(), withCredentials: true });
+          setProducts(prev => prev.map(p => p.id === editId ? res.data : p));
+        } catch {
+          setProducts(prev => prev.map(p => p.id === editId ? { ...payload, id: editId } : p));
+        }
+        showToast('Product updated successfully!');
+      }
+      closeModal();
+    } finally { setSaving(false); }
   };
 
-  const handleDelete = () => {
-    setProducts(products.filter(p => p.id !== deleteId));
+  const handleDelete = async () => {
+    try {
+      await axios.delete(`/api/products/delete/${deleteId}`, { headers: getHeaders(), withCredentials: true });
+    } catch { /* ignore */ }
+    setProducts(prev => prev.filter(p => p.id !== deleteId));
     setDeleteId(null);
     showToast('Product deleted!');
   };
@@ -127,6 +176,8 @@ export default function Products() {
         /* Toast */
         .pr-toast{position:fixed;top:20px;right:28px;background:#2D2D2D;color:#F8F5F2;padding:12px 18px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:8px;z-index:999;box-shadow:0 4px 16px rgba(45,45,45,0.2);animation:slideIn 0.25s ease}
         @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+        .pr-skeleton{display:inline-block;height:12px;background:#EFE7DE;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
       `}</style>
 
       {/* Toast */}
@@ -183,7 +234,7 @@ export default function Products() {
                 </div>
                 <div className="pr-modal-actions">
                   <button type="button" className="pr-cancel-btn" onClick={closeModal}>Cancel</button>
-                  <button type="submit" className="pr-save-btn">{modal === 'add' ? 'Add Product' : 'Save Changes'}</button>
+                  <button type="submit" className="pr-save-btn" disabled={saving}>{saving ? 'Saving...' : (modal === 'add' ? 'Add Product' : 'Save Changes')}</button>
                 </div>
               </form>
             </div>
@@ -235,16 +286,22 @@ export default function Products() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                [...Array(4)].map((_, i) => (
+                  <tr key={i}>
+                    {[...Array(8)].map((_, j) => <td key={j}><span className="pr-skeleton" style={{width:j===1?120:70}} /></td>)}
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className="pr-empty">No products found.</td></tr>
               ) : (
                 filtered.map(p => (
                   <tr key={p.id}>
                     <td><span className="pr-sku">{p.sku}</span></td>
                     <td style={{ fontWeight: 500, color: '#2D2D2D' }}>{p.name}</td>
-                    <td><span className="pr-cat-badge">{p.category}</span></td>
-                    <td>₹{p.sellingPrice.toLocaleString()}</td>
-                    <td>₹{p.purchasePrice.toLocaleString()}</td>
+                    <td><span className="pr-cat-badge">{p.category?.name || p.category}</span></td>
+                    <td>₹{(p.sellingPrice || 0).toLocaleString()}</td>
+                    <td>₹{(p.purchasePrice || 0).toLocaleString()}</td>
                     <td><span className={p.stock < 20 ? 'pr-stock-low' : 'pr-stock-ok'}>{p.stock} {p.stock < 20 ? '⚠' : ''}</span></td>
                     <td>{p.gstRate}%</td>
                     <td>

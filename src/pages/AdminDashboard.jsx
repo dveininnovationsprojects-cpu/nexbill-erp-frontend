@@ -3,13 +3,6 @@ import { Users, ShoppingBag, TrendingUp, AlertTriangle, CheckCircle, Clock, X } 
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const KPIs = [
-  { label: "Today's Revenue", value: '₹0', icon: TrendingUp,    sub: 'Live sales' },
-  { label: 'Total Products',  value: '0',  icon: ShoppingBag,   sub: 'In inventory' },
-  { label: 'Active Cashiers', value: '0',  icon: Users,         sub: 'On duty' },
-  { label: 'Low Stock Alerts',value: '0',  icon: AlertTriangle, sub: 'Need restock' },
-];
-
 const EMPTY_FORM = { phone: '', branch: '', counterNumber: '', shiftTiming: '', basicSalary: '' };
 
 export default function AdminDashboard() {
@@ -20,6 +13,7 @@ export default function AdminDashboard() {
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [approving, setApproving]       = useState(false);
   const [toast, setToast]               = useState(null);
+  const [kpis, setKpis]                 = useState({ revenue: '₹0', products: '0', cashiers: '0', lowStock: '0' });
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -37,7 +31,22 @@ export default function AdminDashboard() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchPending(); }, []);
+  useEffect(() => { fetchPending(); fetchKpis(); }, []);
+
+  const fetchKpis = async () => {
+    try {
+      const headers = { Authorization: `Bearer ${user.token}` };
+      const [cashiersRes, inventoryRes] = await Promise.allSettled([
+        axios.get('/api/admin/active-cashiers', { headers, withCredentials: true }),
+        axios.get('/api/inventory/all', { headers, withCredentials: true }),
+      ]);
+      const cashiers = cashiersRes.status === 'fulfilled' ? cashiersRes.value.data.length : 0;
+      const inventory = inventoryRes.status === 'fulfilled' ? inventoryRes.value.data : [];
+      const lowStock = inventory.filter(i => i.stock < i.minStock).length;
+      const totalProducts = inventory.length;
+      setKpis(k => ({ ...k, cashiers, products: totalProducts, lowStock }));
+    } catch { /* ignore */ }
+  };
 
   const handleApprove = async (e) => {
     e.preventDefault();
@@ -167,7 +176,12 @@ export default function AdminDashboard() {
         )}
 
         <div className="ad-kpi-grid">
-          {KPIs.map(({ label, value, icon: Icon, sub }) => (
+          {[
+            { label: "Today's Revenue", value: kpis.revenue,            icon: TrendingUp,    sub: 'Live sales' },
+            { label: 'Total Products',  value: String(kpis.products),    icon: ShoppingBag,   sub: 'In inventory' },
+            { label: 'Active Cashiers', value: String(kpis.cashiers),    icon: Users,         sub: 'On duty' },
+            { label: 'Low Stock Alerts',value: String(kpis.lowStock),    icon: AlertTriangle, sub: 'Need restock' },
+          ].map(({ label, value, icon: Icon, sub }) => (
             <div key={label} className="ad-kpi-card">
               <div className="ad-kpi-icon"><Icon size={20} /></div>
               <div>

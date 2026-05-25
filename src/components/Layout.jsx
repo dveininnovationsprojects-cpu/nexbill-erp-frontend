@@ -39,6 +39,7 @@ export default function Layout({ children }) {
   const [profileOpen, setProfileOpen]   = useState(false);
   const [notifOpen, setNotifOpen]       = useState(false);
   const [pendingList, setPendingList]   = useState([]);
+  const [lowStockList, setLowStockList] = useState([]);
   const [modal, setModal]               = useState(null); // cashier object
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [approving, setApproving]       = useState(false);
@@ -57,10 +58,21 @@ export default function Layout({ children }) {
     } catch { /* ignore */ }
   };
 
+  const fetchLowStock = async () => {
+    try {
+      const res = await axios.get('/api/inventory/low-stock', {
+        headers: { Authorization: `Bearer ${user.token}` },
+        withCredentials: true,
+      });
+      setLowStockList(res.data);
+    } catch { setLowStockList([]); }
+  };
+
   useEffect(() => {
     if (!isAdmin) return;
     fetchPending();
-    const interval = setInterval(fetchPending, 30000);
+    fetchLowStock();
+    const interval = setInterval(() => { fetchPending(); fetchLowStock(); }, 30000);
     return () => clearInterval(interval);
   }, [isAdmin]);
 
@@ -203,26 +215,47 @@ export default function Layout({ children }) {
               <div className={styles.notifWrap}>
                 <button className={styles.iconBtn} onClick={() => setNotifOpen(!notifOpen)}>
                   <Bell size={18} />
-                  {pendingList.length > 0 && <span className={styles.badge}>{pendingList.length}</span>}
+                  {pendingList.length + lowStockList.length > 0 && <span className={styles.badge}>{pendingList.length + lowStockList.length}</span>}
                 </button>
                 {notifOpen && (
                   <div className={styles.notifDropdown}>
-                    <div className={styles.notifHeader}>Pending Cashier Approvals</div>
-                    {pendingList.length === 0 ? (
-                      <div className={styles.notifEmpty}>No pending requests</div>
-                    ) : (
-                      pendingList.map(c => (
-                        <div key={c.email} className={styles.notifItem}>
-                          <div className={styles.notifAvatar}>{(c.name || c.email)[0].toUpperCase()}</div>
-                          <div className={styles.notifInfo}>
-                            <div className={styles.notifName}>{c.name || '—'}</div>
-                            <div className={styles.notifEmail}>{c.email}</div>
+                    <div className={styles.notifHeader}>Notifications</div>
+
+                    {/* Pending Cashiers */}
+                    {pendingList.length > 0 && (
+                      <>
+                        <div className={styles.notifSection}>👤 Pending Approvals ({pendingList.length})</div>
+                        {pendingList.map(c => (
+                          <div key={c.email} className={styles.notifItem}>
+                            <div className={styles.notifAvatar}>{(c.name || c.email)[0].toUpperCase()}</div>
+                            <div className={styles.notifInfo}>
+                              <div className={styles.notifName}>{c.name || '—'}</div>
+                              <div className={styles.notifEmail}>{c.email}</div>
+                            </div>
+                            <button className={styles.notifApproveBtn} onClick={() => openModal(c)}>Approve</button>
                           </div>
-                          <button className={styles.notifApproveBtn} onClick={() => openModal(c)}>
-                            Approve
-                          </button>
-                        </div>
-                      ))
+                        ))}
+                      </>
+                    )}
+
+                    {/* Low Stock */}
+                    {lowStockList.length > 0 && (
+                      <>
+                        <div className={styles.notifSection}>⚠️ Low Stock ({lowStockList.length})</div>
+                        {lowStockList.map(item => (
+                          <div key={item.id} className={styles.notifItem}>
+                            <div className={styles.notifAvatarWarn}>!</div>
+                            <div className={styles.notifInfo}>
+                              <div className={styles.notifName}>{item.name}</div>
+                              <div className={styles.notifEmail}>Stock: {item.stock} (Min: {item.minStock})</div>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {pendingList.length === 0 && lowStockList.length === 0 && (
+                      <div className={styles.notifEmpty}>No new notifications</div>
                     )}
                   </div>
                 )}
