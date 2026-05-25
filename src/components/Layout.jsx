@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Warehouse, Users, Receipt,
   CreditCard, FileText, BarChart2, Settings, LogOut,
@@ -46,6 +46,7 @@ export default function Layout({ children }) {
   const [approving, setApproving]       = useState(false);
   const [toast, setToast]               = useState(null);
 
+  const location = useLocation();
   const isAdmin = user?.role === 'ADMIN';
   const navItems = isAdmin ? adminNav : cashierNav;
 

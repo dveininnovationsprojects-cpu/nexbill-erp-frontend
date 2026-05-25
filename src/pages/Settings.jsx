@@ -5,7 +5,7 @@
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Building2, FileText, Percent, Bell, Shield, Settings2,
   Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
@@ -25,7 +25,7 @@ const STYLES = `
   .st-sidebar-label { font-size:10px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.8px; padding:0 10px; margin-bottom:4px; margin-top:8px; }
   .st-sidebar-label:first-child { margin-top:0; }
   .st-tab { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all 0.15s; color:#9E9087; font-size:13px; font-weight:500; border:none; background:none; font-family:inherit; width:100%; text-align:left; }
-  .st-tab:hover { background:rgba(198,169,105,0.08); color:#EFE7DE; }
+  .st-tab:hover { background:rgba(198,169,105,0.08); color:#2D2D2D; }
   .st-tab.active { background:rgba(198,169,105,0.15); color:#C6A969; }
   .st-tab svg { flex-shrink:0; }
 
@@ -190,6 +190,26 @@ function ProfileTab({ onSave }) {
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const logoInputRef = useRef(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, SVG).');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => setLogoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoPreview(null);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
   return (
     <div className="st-card">
       <div className="st-card-head">
@@ -199,13 +219,40 @@ function ProfileTab({ onSave }) {
         </div>
       </div>
       <div className="st-card-body">
+        {/* Hidden file input */}
+        <input
+          ref={logoInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleLogoChange}
+        />
+
         {/* Logo */}
         <div className="st-avatar-wrap">
-          <div className="st-avatar-logo">N</div>
+          <div className="st-avatar-logo" style={logoPreview ? { background: 'transparent', padding: 2 } : {}}>
+            {logoPreview
+              ? <img src={logoPreview} alt="Company Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 14 }} />
+              : form.companyName?.[0]?.toUpperCase() || 'N'
+            }
+          </div>
           <div className="st-avatar-info">
             <div className="st-avatar-name">{form.companyName}</div>
             <div className="st-avatar-sub">{form.tagline}</div>
-            <button className="st-avatar-upload"><Upload size={12} /> Upload Logo</button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              <button className="st-avatar-upload" onClick={() => logoInputRef.current?.click()}>
+                <Upload size={12} /> {logoPreview ? 'Change Logo' : 'Upload Logo'}
+              </button>
+              {logoPreview && (
+                <button
+                  onClick={handleRemoveLogo}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#FEE2E2', border: '1.5px solid #FCA5A5', borderRadius: 9, fontSize: 12, fontWeight: 600, color: '#dc2626', cursor: 'pointer', fontFamily: 'inherit' }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: '#8B7355', marginTop: 5 }}>PNG, JPG or SVG · Max 2MB</div>
           </div>
         </div>
 

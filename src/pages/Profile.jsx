@@ -1150,10 +1150,11 @@ export default function Profile() {
 
   const isAdmin = user?.role === 'ADMIN';
 
-  const [toast, setToast]         = useState(null);
+  const [toast, setToast]           = useState(null);
   const [showLogout, setShowLogout] = useState(false);
-  const [logoutLoading, setLLo]    = useState(false);
-  const [showChangePW, setShowCPW] = useState(false);
+  const [logoutLoading, setLLo]     = useState(false);
+  const [showChangePW, setShowCPW]  = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -1163,16 +1164,24 @@ export default function Profile() {
   const handleLogoutConfirm = async () => {
     setLLo(true);
     await new Promise(r => setTimeout(r, 800));
-    logout();
-    navigate('/login');
+    logout(); // AuthContext handles redirect to /login
   };
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleAvatarChange = (e) => {
-    if (e.target.files?.[0]) {
-      showToast('Profile photo updated!');
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file.', 'error');
+      return;
     }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAvatarPreview(ev.target.result);
+      showToast('Profile photo updated!');
+    };
+    reader.readAsDataURL(file);
   };
 
   /* ── Account summary stats ── */
@@ -1226,7 +1235,12 @@ export default function Profile() {
           {/* Profile Hero Card */}
           <div className="pr-hero">
             <div className="pr-avatar-wrap">
-              <div className="pr-avatar">{user?.email?.[0]?.toUpperCase()}</div>
+              <div className="pr-avatar" style={avatarPreview ? { padding: 0, overflow: 'hidden' } : {}}>
+                {avatarPreview
+                  ? <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                  : user?.email?.[0]?.toUpperCase()
+                }
+              </div>
               <div className="pr-avatar-edit" onClick={handleAvatarClick} title="Change photo">
                 <Camera size={12} color="#2D2D2D" />
               </div>
@@ -1342,8 +1356,11 @@ export default function Profile() {
             </div>
             <div className="pr-card-body">
               <div style={{ background: '#F8F5F2', border: '1px solid #EFE7DE', borderRadius: 10, padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg,#C6A969,#8B7355)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: '#2D2D2D', flexShrink: 0 }}>
-                  {user?.email?.[0]?.toUpperCase()}
+                <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg,#C6A969,#8B7355)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, fontWeight: 800, color: '#2D2D2D', flexShrink: 0, overflow: 'hidden' }}>
+                  {avatarPreview
+                    ? <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : user?.email?.[0]?.toUpperCase()
+                  }
                 </div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#2D2D2D' }}>{user?.email}</div>
