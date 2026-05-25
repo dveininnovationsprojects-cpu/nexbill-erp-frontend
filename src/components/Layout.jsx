@@ -273,6 +273,9 @@ export default function Layout({ children }) {
               </button>
               {profileOpen && (
                 <div className={styles.dropdown}>
+                  <button onClick={() => { setProfileOpen(false); navigate(isAdmin ? '/admin/profile' : '/cashier/profile'); }}>
+                    <Settings size={14} /> Profile
+                  </button>
                   <button onClick={() => { setProfileOpen(false); navigate(isAdmin ? '/admin/settings' : '/cashier/settings'); }}>
                     <Settings size={14} /> Settings
                   </button>
