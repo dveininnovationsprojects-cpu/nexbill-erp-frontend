@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Warehouse, Users, Receipt,
   CreditCard, FileText, BarChart2, Settings, LogOut,
-  Bell, ChevronDown, Menu, X, CheckCircle
+  Bell, ChevronDown, Menu, X, CheckCircle, UserCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +19,7 @@ const adminNav = [
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
   { icon: BarChart2,       label: 'Reports',   to: '/admin/reports' },
   { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
+  { icon: UserCircle,      label: 'Profile',   to: '/admin/profile'  },
 ];
 
 const cashierNav = [
@@ -28,6 +29,7 @@ const cashierNav = [
   { icon: Users,           label: 'Customers', to: '/cashier/customers' },
   { icon: FileText,        label: 'Invoices',  to: '/cashier/invoices' },
   { icon: CreditCard,      label: 'Payments',  to: '/cashier/payments' },
+  { icon: UserCircle,      label: 'Profile',   to: '/cashier/profile'  },
 ];
 
 const EMPTY_FORM = { phone: '', branch: '', counterNumber: '', shiftTiming: '', basicSalary: '' };
@@ -238,6 +240,9 @@ export default function Layout({ children }) {
               </button>
               {profileOpen && (
                 <div className={styles.dropdown}>
+                  <button onClick={() => { setProfileOpen(false); navigate(isAdmin ? '/admin/profile' : '/cashier/profile'); }}>
+                    <UserCircle size={14} /> My Profile
+                  </button>
                   <button onClick={() => { setProfileOpen(false); navigate(isAdmin ? '/admin/settings' : '/cashier/settings'); }}>
                     <Settings size={14} /> Settings
                   </button>

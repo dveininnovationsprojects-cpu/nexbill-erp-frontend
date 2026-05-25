@@ -14,6 +14,7 @@ import Payments         from './pages/Payments';
 import Invoices         from './pages/Invoices';
 import Reports          from './pages/Reports';
 import Settings         from './pages/Settings';
+import Profile          from './pages/Profile';
 import CashierBilling   from './pages/CashierBilling';
 import CashierProducts  from './pages/CashierProducts';
 import CashierCustomers from './pages/CashierCustomers';
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/admin/invoices"  element={<RoleRoute role="ADMIN"><Invoices /></RoleRoute>} />
           <Route path="/admin/reports"   element={<RoleRoute role="ADMIN"><Reports /></RoleRoute>} />
           <Route path="/admin/settings"  element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/profile"   element={<RoleRoute role="ADMIN"><Profile /></RoleRoute>} />
 
           <Route path="/cashier/dashboard" element={<RoleRoute role="CASHIER"><CashierDashboard /></RoleRoute>} />
           <Route path="/cashier/billing"   element={<RoleRoute role="CASHIER"><CashierBilling /></RoleRoute>} />
@@ -59,6 +61,7 @@ export default function App() {
           <Route path="/cashier/customers" element={<RoleRoute role="CASHIER"><CashierCustomers /></RoleRoute>} />
           <Route path="/cashier/invoices"  element={<RoleRoute role="CASHIER"><CashierInvoices /></RoleRoute>} />
           <Route path="/cashier/payments"  element={<RoleRoute role="CASHIER"><CashierPayments /></RoleRoute>} />
+          <Route path="/cashier/profile"   element={<RoleRoute role="CASHIER"><Profile /></RoleRoute>} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
