@@ -7,6 +7,7 @@ import ForgotPassword   from './pages/ForgotPassword';
 import AdminDashboard   from './pages/AdminDashboard';
 import CashierDashboard from './pages/CashierDashboard';
 import Products         from './pages/Products';
+import Suppliers        from './pages/Suppliers';
 import Inventory        from './pages/Inventory';
 import Customers        from './pages/Customers';
 import Billing          from './pages/Billing';
@@ -46,13 +47,20 @@ export default function App() {
 
           <Route path="/admin/dashboard" element={<RoleRoute role="ADMIN"><AdminDashboard /></RoleRoute>} />
           <Route path="/admin/products"  element={<RoleRoute role="ADMIN"><Products /></RoleRoute>} />
+          <Route path="/admin/suppliers" element={<RoleRoute role="ADMIN"><Suppliers /></RoleRoute>} />
           <Route path="/admin/inventory" element={<RoleRoute role="ADMIN"><Inventory /></RoleRoute>} />
           <Route path="/admin/customers" element={<RoleRoute role="ADMIN"><Customers /></RoleRoute>} />
           <Route path="/admin/billing"   element={<RoleRoute role="ADMIN"><Billing /></RoleRoute>} />
           <Route path="/admin/payments"  element={<RoleRoute role="ADMIN"><Payments /></RoleRoute>} />
           <Route path="/admin/invoices"  element={<RoleRoute role="ADMIN"><Invoices /></RoleRoute>} />
           <Route path="/admin/reports"   element={<RoleRoute role="ADMIN"><Reports /></RoleRoute>} />
-          <Route path="/admin/settings"  element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings"                                  element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings/accounts/business-profile"       element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings/billing/tax"                     element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings/billing/invoice"                 element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings/preferences/notifications"       element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings/preferences/security"            element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/settings/preferences/system"              element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
           <Route path="/admin/profile"   element={<RoleRoute role="ADMIN"><Profile /></RoleRoute>} />
 
           <Route path="/cashier/dashboard" element={<RoleRoute role="CASHIER"><CashierDashboard /></RoleRoute>} />

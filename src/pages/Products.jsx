@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, X, CheckCircle } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, X, CheckCircle, Package, TrendingUp, AlertTriangle, Tag } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
 const DUMMY_PRODUCTS = [
-  { id: 1, sku: 'SKU001', name: 'Wireless Mouse',   category: 'Electronics', sellingPrice: 599,  purchasePrice: 350, stock: 45,  gstRate: 18 },
-  { id: 2, sku: 'SKU002', name: 'Rice 5kg',          category: 'Groceries',   sellingPrice: 280,  purchasePrice: 210, stock: 8,   gstRate: 5  },
-  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack',     category: 'Stationery',  sellingPrice: 45,   purchasePrice: 25,  stock: 300, gstRate: 12 },
-  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt',    category: 'Clothing',    sellingPrice: 399,  purchasePrice: 200, stock: 5,   gstRate: 5  },
-  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L',  category: 'Beverages',   sellingPrice: 20,   purchasePrice: 10,  stock: 500, gstRate: 0  },
+  { id: 1, sku: 'SKU001', name: 'Wireless Mouse',   category: 'Electronics', sellingPrice: 599,  purchasePrice: 350, stock: 45,  minStock: 10, gstRate: 18, barcode: '8901234567890', supplier: 'Tech Distributors', expiryDate: '', description: 'Ergonomic wireless mouse with USB receiver', imageUrl: '' },
+  { id: 2, sku: 'SKU002', name: 'Rice 5kg',          category: 'Groceries',   sellingPrice: 280,  purchasePrice: 210, stock: 8,   minStock: 20, gstRate: 5,  barcode: '8902345678901', supplier: 'Agro Suppliers',    expiryDate: '2025-12-31', description: 'Premium basmati rice 5kg pack', imageUrl: '' },
+  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack',     category: 'Stationery',  sellingPrice: 45,   purchasePrice: 25,  stock: 300, minStock: 50, gstRate: 12, barcode: '8903456789012', supplier: 'Stationery Hub',    expiryDate: '', description: 'Pack of 10 blue ballpoint pens', imageUrl: '' },
+  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt',    category: 'Clothing',    sellingPrice: 399,  purchasePrice: 200, stock: 5,   minStock: 15, gstRate: 5,  barcode: '8904567890123', supplier: 'Fashion Wholesale', expiryDate: '', description: '100% cotton round neck t-shirt', imageUrl: '' },
+  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L',  category: 'Beverages',   sellingPrice: 20,   purchasePrice: 10,  stock: 500, minStock: 100,gstRate: 0,  barcode: '8905678901234', supplier: 'Aqua Traders',      expiryDate: '2025-06-30', description: 'Packaged drinking water 1 litre', imageUrl: '' },
 ];
 
-const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', gstRate: '0' };
+const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', minStock: '', gstRate: '0', barcode: '', supplier: '', expiryDate: '', description: '', imageUrl: '' };
 
 export default function Products() {
   const { user } = useAuth();
@@ -70,7 +70,13 @@ export default function Products() {
       sellingPrice: String(p.sellingPrice || ''),
       purchasePrice: String(p.purchasePrice || ''),
       stock: String(p.stock || ''),
+      minStock: String(p.minStock || ''),
       gstRate: String(p.gstRate || '0'),
+      barcode: p.barcode || '',
+      supplier: p.supplier || '',
+      expiryDate: p.expiryDate || '',
+      description: p.description || '',
+      imageUrl: p.imageUrl || '',
     });
     setEditId(p.id);
     setModal('edit');
@@ -85,6 +91,7 @@ export default function Products() {
       sellingPrice: parseFloat(form.sellingPrice),
       purchasePrice: parseFloat(form.purchasePrice),
       stock: parseInt(form.stock),
+      minStock: parseInt(form.minStock) || 0,
       gstRate: parseFloat(form.gstRate),
     };
     try {
@@ -121,6 +128,15 @@ export default function Products() {
   return (
     <>
       <style>{`
+        .pr-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .pr-kpi{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .pr-kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .pr-kpi-icon.gold{background:#FDF8EE;color:#C6A969}
+        .pr-kpi-icon.green{background:#F0F7F0;color:#5A7A5A}
+        .pr-kpi-icon.red{background:#FDF0F0;color:#9B4444}
+        .pr-kpi-icon.blue{background:#EFE7DE;color:#8B7355}
+        .pr-kpi-val{font-size:22px;font-weight:700;color:#2D2D2D;line-height:1;margin-bottom:3px}
+        .pr-kpi-label{font-size:12px;color:#8B7355;font-weight:500}
         .pr-page{display:flex;flex-direction:column;gap:20px;font-family:'Inter',system-ui,sans-serif}
         .pr-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
         .pr-search-wrap{position:relative;flex:1;min-width:200px}
@@ -131,8 +147,8 @@ export default function Products() {
         .pr-select:focus{border-color:#C6A969}
         .pr-add-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;white-space:nowrap}
         .pr-add-btn:hover{background:#C6A969;color:#2D2D2D}
-        .pr-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
-        .pr-table{width:100%;border-collapse:collapse;font-size:13px}
+        .pr-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow-x:auto;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .pr-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
         .pr-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;background:#F8F5F2;border-bottom:1px solid #EFE7DE}
         .pr-table td{padding:13px 16px;border-bottom:1px solid #F8F5F2;color:#3F3F46;vertical-align:middle}
         .pr-table tr:last-child td{border-bottom:none}
@@ -178,6 +194,15 @@ export default function Products() {
         @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
         .pr-skeleton{display:inline-block;height:12px;background:#EFE7DE;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        .pr-field textarea{padding:10px 12px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;color:#2D2D2D;background:#F8F5F2;outline:none;font-family:inherit;transition:border-color 0.2s;width:100%;box-sizing:border-box;resize:vertical;min-height:70px}
+        .pr-field textarea:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12);background:#FFFFFF}
+        .pr-modal-body{padding:20px 24px 24px;max-height:70vh;overflow-y:auto}
+        .pr-section-label{font-size:10px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.7px;margin:16px 0 10px;display:flex;align-items:center;gap:6px}
+        .pr-section-label::after{content:'';flex:1;height:1px;background:#EFE7DE}
+
+        .pr-expiry-warn{color:#9B4444;font-weight:600}
+        .pr-expiry-ok{color:#3F3F46}
+        .pr-profit{font-size:11px;color:#5A7A5A;font-weight:600}
       `}</style>
 
       {/* Toast */}
@@ -193,33 +218,59 @@ export default function Products() {
             </div>
             <div className="pr-modal-body">
               <form onSubmit={handleSave}>
+
+                <div className="pr-section-label">Basic Info</div>
                 <div className="pr-form-grid">
                   <div className="pr-field full">
-                    <label>Product Name</label>
+                    <label>Product Name *</label>
                     <input placeholder="e.g. Wireless Mouse" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                   </div>
                   <div className="pr-field">
-                    <label>SKU</label>
+                    <label>SKU *</label>
                     <input placeholder="SKU001" required value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} />
                   </div>
                   <div className="pr-field">
-                    <label>Category</label>
+                    <label>Barcode</label>
+                    <input placeholder="8901234567890" value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} />
+                  </div>
+                  <div className="pr-field">
+                    <label>Category *</label>
                     <select required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
                       <option value="">Select category</option>
                       {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
+                  <div className="pr-field full">
+                    <label>Description</label>
+                    <textarea placeholder="Short product description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+                  </div>
+                  <div className="pr-field full">
+                    <label>Image URL</label>
+                    <input placeholder="https://example.com/image.jpg" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} />
+                  </div>
+                  <div className="pr-field full">
+                    <label>Supplier</label>
+                    <input placeholder="Supplier name" value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="pr-section-label">Pricing & Stock</div>
+                <div className="pr-form-grid">
                   <div className="pr-field">
-                    <label>Selling Price (₹)</label>
+                    <label>Selling Price (₹) *</label>
                     <input type="number" placeholder="0.00" required min="0" step="0.01" value={form.sellingPrice} onChange={e => setForm({ ...form, sellingPrice: e.target.value })} />
                   </div>
                   <div className="pr-field">
-                    <label>Purchase Price (₹)</label>
+                    <label>Purchase Price (₹) *</label>
                     <input type="number" placeholder="0.00" required min="0" step="0.01" value={form.purchasePrice} onChange={e => setForm({ ...form, purchasePrice: e.target.value })} />
                   </div>
                   <div className="pr-field">
-                    <label>Stock Quantity</label>
+                    <label>Stock Quantity *</label>
                     <input type="number" placeholder="0" required min="0" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} />
+                  </div>
+                  <div className="pr-field">
+                    <label>Min Stock (Alert)</label>
+                    <input type="number" placeholder="10" min="0" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} />
                   </div>
                   <div className="pr-field">
                     <label>GST Rate (%)</label>
@@ -231,7 +282,19 @@ export default function Products() {
                       <option value="28">28%</option>
                     </select>
                   </div>
+                  <div className="pr-field">
+                    <label>Expiry Date</label>
+                    <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })} />
+                  </div>
                 </div>
+
+                {form.sellingPrice && form.purchasePrice && (
+                  <div style={{background:'#F0F7F0',border:'1px solid #C8DFC8',borderRadius:9,padding:'10px 14px',fontSize:12,color:'#5A7A5A',marginTop:4}}>
+                    💰 Profit Margin: ₹{(parseFloat(form.sellingPrice||0) - parseFloat(form.purchasePrice||0)).toFixed(2)} &nbsp;|&nbsp;
+                    {form.purchasePrice > 0 ? (((form.sellingPrice - form.purchasePrice) / form.purchasePrice) * 100).toFixed(1) : 0}%
+                  </div>
+                )}
+
                 <div className="pr-modal-actions">
                   <button type="button" className="pr-cancel-btn" onClick={closeModal}>Cancel</button>
                   <button type="submit" className="pr-save-btn" disabled={saving}>{saving ? 'Saving...' : (modal === 'add' ? 'Add Product' : 'Save Changes')}</button>
@@ -257,6 +320,33 @@ export default function Products() {
       )}
 
       <div className="pr-page">
+        {/* KPI Cards */}
+        {(() => {
+          const totalValue = products.reduce((s, p) => s + (p.sellingPrice || 0) * (p.stock || 0), 0);
+          const lowStock   = products.filter(p => p.stock <= (p.minStock || 0) && p.stock > 0).length;
+          const outStock   = products.filter(p => p.stock === 0).length;
+          const cats       = new Set(products.map(p => p.category?.name || p.category)).size;
+          return (
+            <div className="pr-kpi-grid">
+              <div className="pr-kpi">
+                <div className="pr-kpi-icon gold"><Package size={18} /></div>
+                <div><div className="pr-kpi-val">{products.length}</div><div className="pr-kpi-label">Total Products</div></div>
+              </div>
+              <div className="pr-kpi">
+                <div className="pr-kpi-icon green"><TrendingUp size={18} /></div>
+                <div><div className="pr-kpi-val">₹{totalValue.toLocaleString()}</div><div className="pr-kpi-label">Inventory Value</div></div>
+              </div>
+              <div className="pr-kpi">
+                <div className="pr-kpi-icon red"><AlertTriangle size={18} /></div>
+                <div><div className="pr-kpi-val">{lowStock + outStock}</div><div className="pr-kpi-label">Low / Out of Stock</div></div>
+              </div>
+              <div className="pr-kpi">
+                <div className="pr-kpi-icon blue"><Tag size={18} /></div>
+                <div><div className="pr-kpi-val">{cats}</div><div className="pr-kpi-label">Categories</div></div>
+              </div>
+            </div>
+          );
+        })()}
         {/* Top Bar */}
         <div className="pr-topbar">
           <div className="pr-search-wrap">
@@ -280,8 +370,10 @@ export default function Products() {
                 <th>Category</th>
                 <th>Selling Price</th>
                 <th>Purchase Price</th>
+                <th>Profit</th>
                 <th>Stock</th>
                 <th>GST</th>
+                <th>Expiry</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -293,17 +385,35 @@ export default function Products() {
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="pr-empty">No products found.</td></tr>
+                <tr><td colSpan={10} className="pr-empty">No products found.</td></tr>
               ) : (
-                filtered.map(p => (
+                filtered.map(p => {
+                  const profit = (p.sellingPrice || 0) - (p.purchasePrice || 0);
+                  const isLowStock = p.stock <= (p.minStock || 20);
+                  const isExpired = p.expiryDate && new Date(p.expiryDate) < new Date();
+                  const isExpiringSoon = p.expiryDate && !isExpired && new Date(p.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                  return (
                   <tr key={p.id}>
                     <td><span className="pr-sku">{p.sku}</span></td>
-                    <td style={{ fontWeight: 500, color: '#2D2D2D' }}>{p.name}</td>
+                    <td>
+                      <div style={{fontWeight:500,color:'#2D2D2D'}}>{p.name}</div>
+                      {p.description && <div style={{fontSize:11,color:'#8B7355',marginTop:2}}>{p.description.slice(0,40)}{p.description.length>40?'...':''}</div>}
+                      {p.barcode && <div style={{fontSize:10,color:'#D6D3D1',marginTop:1}}>#{p.barcode}</div>}
+                    </td>
                     <td><span className="pr-cat-badge">{p.category?.name || p.category}</span></td>
                     <td>₹{(p.sellingPrice || 0).toLocaleString()}</td>
                     <td>₹{(p.purchasePrice || 0).toLocaleString()}</td>
-                    <td><span className={p.stock < 20 ? 'pr-stock-low' : 'pr-stock-ok'}>{p.stock} {p.stock < 20 ? '⚠' : ''}</span></td>
+                    <td><span className="pr-profit">₹{profit.toLocaleString()}</span></td>
+                    <td><span className={isLowStock ? 'pr-stock-low' : 'pr-stock-ok'}>{p.stock} {isLowStock ? '⚠' : ''}</span></td>
                     <td>{p.gstRate}%</td>
+                    <td>
+                      {p.expiryDate
+                        ? <span className={isExpired ? 'pr-expiry-warn' : isExpiringSoon ? 'pr-expiry-warn' : 'pr-expiry-ok'}>
+                            {p.expiryDate} {isExpired ? '❌' : isExpiringSoon ? '⚠' : ''}
+                          </span>
+                        : <span style={{color:'#D6D3D1'}}>—</span>
+                      }
+                    </td>
                     <td>
                       <div className="pr-actions">
                         <button className="pr-edit-btn" onClick={() => openEdit(p)}><Pencil size={13} /> Edit</button>
@@ -311,7 +421,8 @@ export default function Products() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -6,12 +6,13 @@
 // ╚══════════════════════════════════════════════════════════════════════╝
 
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Building2, FileText, Percent, Bell, Shield, Settings2,
-  Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
-  User, Phone, Mail, MapPin, Globe, Hash, Camera,
-  CreditCard, Calendar, Clock, ToggleLeft, ToggleRight,
-  ChevronRight, Lock, Smartphone, RefreshCw, Upload,
+  Save, Eye, EyeOff, CheckCircle, AlertCircle,
+  Phone, Mail, MapPin, Globe, Hash,
+  Calendar, Clock, ToggleLeft, ToggleRight,
+  Lock, Smartphone, RefreshCw, Upload,
 } from 'lucide-react';
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -21,13 +22,14 @@ const STYLES = `
   .st-shell { display:flex; gap:24px; font-family:'Inter',system-ui,sans-serif; min-height:calc(100vh - 88px - 56px); }
 
   /* ── Sidebar ── */
-  .st-sidebar { width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; }
-  .st-sidebar-label { font-size:10px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.8px; padding:0 10px; margin-bottom:4px; margin-top:8px; }
-  .st-sidebar-label:first-child { margin-top:0; }
-  .st-tab { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:all 0.15s; color:#9E9087; font-size:13px; font-weight:500; border:none; background:none; font-family:inherit; width:100%; text-align:left; }
-  .st-tab:hover { background:rgba(198,169,105,0.08); color:#EFE7DE; }
-  .st-tab.active { background:rgba(198,169,105,0.15); color:#C6A969; }
-  .st-tab svg { flex-shrink:0; }
+  .st-sidebar { width:220px; flex-shrink:0; display:flex; flex-direction:column; gap:2px; }
+  .st-group-btn { display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; cursor:pointer; padding:10px 12px; border-radius:10px; font-family:inherit; font-size:11px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.8px; transition:background 0.15s; }
+  .st-group-btn:hover { background:rgba(198,169,105,0.08); color:#C6A969; }
+  .st-group-arrow { transition:transform 0.2s; }
+  .st-sub-nav { display:flex; flex-direction:column; gap:1px; padding:2px 0 4px 12px; }
+  .st-tab { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:9px; cursor:pointer; transition:all 0.15s; color:#3F3F46; font-size:13px; font-weight:500; border:none; background:none; font-family:inherit; width:100%; text-align:left; }
+  .st-tab:hover { background:#F8F5F2; color:#2D2D2D; }
+  .st-tab.active { background:#EFE7DE; color:#2D2D2D; font-weight:600; }
 
   /* ── Content ── */
   .st-content { flex:1; min-width:0; display:flex; flex-direction:column; gap:20px; }
@@ -930,8 +932,19 @@ function SystemTab({ onSave }) {
    SETTINGS — DEFAULT EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('profile');
-  const [toast, setToast]         = useState(null);
+  const location = useLocation();
+  const path = location.pathname;
+  
+  // Determine active tab from path
+  let activeTab = 'profile';
+  if (path.includes('/accounts/business-profile')) activeTab = 'profile';
+  else if (path.includes('/billing/tax')) activeTab = 'tax';
+  else if (path.includes('/billing/invoice')) activeTab = 'invoice';
+  else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
+  else if (path.includes('/preferences/security')) activeTab = 'security';
+  else if (path.includes('/preferences/system')) activeTab = 'system';
+  
+  const [toast, setToast] = useState(null);
 
   const showToast = (msg = 'Settings saved successfully!', type = 'success') => {
     setToast({ msg, type });
@@ -946,62 +959,20 @@ export default function Settings() {
       case 'notifications': return <NotificationsTab    onSave={() => showToast()} />;
       case 'security':      return <SecurityTab         onSave={(m) => showToast(typeof m === 'string' ? m : 'Settings saved!')} />;
       case 'system':        return <SystemTab           onSave={(m) => showToast(typeof m === 'string' ? m : 'Settings saved!')} />;
-      default:              return null;
+      default:              return <ProfileTab          onSave={() => showToast()} />;
     }
   };
 
   return (
     <>
       <style>{STYLES}</style>
-
-      {/* Toast */}
       {toast && (
         <div className={`st-toast ${toast.type === 'error' ? 'st-toast-err' : ''}`}>
           <CheckCircle size={14} /> {toast.msg}
         </div>
       )}
-
-      <div className="st-shell">
-        {/* ── Settings Sidebar ── */}
-        <div className="st-sidebar">
-          <div className="st-sidebar-label">Account</div>
-          {TABS.slice(0, 1).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              className={`st-tab ${activeTab === id ? 'active' : ''}`}
-              onClick={() => setActiveTab(id)}
-            >
-              <Icon size={15} /> {label}
-            </button>
-          ))}
-
-          <div className="st-sidebar-label">Billing</div>
-          {TABS.slice(1, 3).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              className={`st-tab ${activeTab === id ? 'active' : ''}`}
-              onClick={() => setActiveTab(id)}
-            >
-              <Icon size={15} /> {label}
-            </button>
-          ))}
-
-          <div className="st-sidebar-label">Preferences</div>
-          {TABS.slice(3).map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              className={`st-tab ${activeTab === id ? 'active' : ''}`}
-              onClick={() => setActiveTab(id)}
-            >
-              <Icon size={15} /> {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ── Settings Content ── */}
-        <div className="st-content">
-          {renderContent()}
-        </div>
+      <div style={{ fontFamily: "'Inter',system-ui,sans-serif" }}>
+        {renderContent()}
       </div>
     </>
   );
