@@ -26,6 +26,7 @@ const adminNav = [
   { icon: CreditCard,      label: 'Payments',  to: '/admin/payments' },
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
   { icon: BarChart2,       label: 'Reports',   to: '/admin/reports' },
+<<<<<<< HEAD
   {
     icon: Settings, label: 'Settings', dropdown: [
       { 
@@ -55,6 +56,10 @@ const adminNav = [
     ]
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
+=======
+  { icon: BarChart2,       label: 'Sales Analytics',  to: '/admin/sales-analytics' },
+  { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
+>>>>>>> c23f4d7995b71619be1ce8df64e5cab8d8d011af
 ];
 
 const cashierNav = [
@@ -609,3 +614,4 @@ export default function Layout({ children }) {
     </div>
   );
 }
+
