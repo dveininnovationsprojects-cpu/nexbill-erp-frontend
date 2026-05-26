@@ -31,6 +31,7 @@ export default function CashierDashboard() {
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
         .cd-note{font-size:12px;color:#D6D3D1;text-align:center;margin:12px 0 0}
       `}</style>
+
       <div className="cd-page">
         <div className="cd-kpi-grid">
           {kpis.map(({ label, value, icon: Icon, sub }) => (
@@ -44,6 +45,7 @@ export default function CashierDashboard() {
             </div>
           ))}
         </div>
+
         <div className="cd-grid2">
           <div className="cd-card">
             <div className="cd-card-title"><Receipt size={16} />Quick Actions</div>

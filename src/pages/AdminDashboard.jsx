@@ -1,39 +1,67 @@
 import { useEffect, useState } from 'react';
 import { Users, ShoppingBag, TrendingUp, AlertTriangle, CheckCircle, Clock, X } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
-const KPIs = [
-  { label: "Today's Revenue", value: '₹0',  icon: TrendingUp,    sub: 'Live sales' },
-  { label: 'Total Products',  value: '0',   icon: ShoppingBag,   sub: 'In inventory' },
-  { label: 'Active Cashiers', value: '0',   icon: Users,         sub: 'On duty' },
-  { label: 'Low Stock Alerts',value: '0',   icon: AlertTriangle, sub: 'Need restock' },
-];
+const EMPTY_FORM = { phone: '', branch: '', counterNumber: '', shiftTiming: '', basicSalary: '' };
 
 export default function AdminDashboard() {
-  const [pending, setPending] = useState([]);
-  const [loadingPending, setLoadingPending] = useState(true);
-  const [approvingEmail, setApprovingEmail] = useState(null);
-  const [toast, setToast] = useState(null);
+  const { user } = useAuth();
+  const [pending, setPending]           = useState([]);
+  const [loadingPending, setLoading]    = useState(true);
+  const [modal, setModal]               = useState(null);
+  const [form, setForm]                 = useState(EMPTY_FORM);
+  const [approving, setApproving]       = useState(false);
+  const [toast, setToast]               = useState(null);
+  const [kpis, setKpis]                 = useState({ revenue: '₹0', products: '0', cashiers: '0', lowStock: '0' });
 
-  const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchPending = async () => {
     try {
-      const res = await axios.get('/api/admin/pending-cashiers', { withCredentials: true });
+      const res = await axios.get('/api/admin/pending-cashiers', {
+        headers: { Authorization: `Bearer ${user.token}` },
+        withCredentials: true,
+      });
       setPending(res.data);
-    } catch { setPending([]); } finally { setLoadingPending(false); }
+    } catch { setPending([]); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchPending(); }, []);
+  useEffect(() => { fetchPending(); fetchKpis(); }, []);
 
-  const approveCashier = async (email) => {
-    setApprovingEmail(email);
+  const fetchKpis = async () => {
     try {
-      await axios.post(`/api/admin/approve-cashier/${email}`, {}, { withCredentials: true });
-      showToast(`${email} approved successfully`);
+      const headers = { Authorization: `Bearer ${user.token}` };
+      const [cashiersRes, inventoryRes] = await Promise.allSettled([
+        axios.get('/api/admin/active-cashiers', { headers, withCredentials: true }),
+        axios.get('/api/inventory/all', { headers, withCredentials: true }),
+      ]);
+      const cashiers = cashiersRes.status === 'fulfilled' ? cashiersRes.value.data.length : 0;
+      const inventory = inventoryRes.status === 'fulfilled' ? inventoryRes.value.data : [];
+      const lowStock = inventory.filter(i => i.stock < i.minStock).length;
+      const totalProducts = inventory.length;
+      setKpis(k => ({ ...k, cashiers, products: totalProducts, lowStock }));
+    } catch { /* ignore */ }
+  };
+
+  const handleApprove = async (e) => {
+    e.preventDefault();
+    setApproving(true);
+    try {
+      await axios.post(
+        `/api/admin/approve-cashier/${modal.email}`,
+        { ...form, basicSalary: parseFloat(form.basicSalary) },
+        { headers: { Authorization: `Bearer ${user.token}` }, withCredentials: true }
+      );
+      showToast(`${modal.name || modal.email} approved successfully!`);
+      setModal(null);
       fetchPending();
     } catch { showToast('Approval failed. Try again.', 'error'); }
-    finally { setApprovingEmail(null); }
+    finally { setApproving(false); }
   };
 
   return (
@@ -60,10 +88,9 @@ export default function AdminDashboard() {
         .ad-pending-info{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
         .ad-pending-name{font-size:13px;font-weight:600;color:#2D2D2D}
         .ad-pending-email{font-size:12px;color:#8B7355;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .ad-approve-btn{padding:7px 16px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;display:flex;align-items:center;justify-content:center;min-width:72px}
-        .ad-approve-btn:hover:not(:disabled){background:#C6A969;color:#2D2D2D}
-        .ad-approve-btn:disabled{opacity:0.6;cursor:not-allowed}
-        .ad-spinner{width:13px;height:13px;border:2px solid rgba(248,245,242,0.3);border-top-color:#F8F5F2;border-radius:50%;animation:spin 0.7s linear infinite}
+        .ad-approve-btn{padding:7px 16px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;white-space:nowrap}
+        .ad-approve-btn:hover{background:#C6A969;color:#2D2D2D}
+        .ad-spinner{width:13px;height:13px;border:2px solid rgba(248,245,242,0.3);border-top-color:#F8F5F2;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
         @keyframes spin{to{transform:rotate(360deg)}}
         .ad-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 0;color:#D6D3D1;font-size:13px}
         .ad-table{width:100%;border-collapse:collapse;font-size:13px}
@@ -71,16 +98,90 @@ export default function AdminDashboard() {
         .ad-table td{padding:12px;border-bottom:1px solid #F8F5F2;color:#3F3F46}
         .ad-skeleton{display:inline-block;height:12px;background:#EFE7DE;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-        .ad-placeholder-note{font-size:12px;color:#D6D3D1;text-align:center;margin:12px 0 0}
+        .ad-note{font-size:12px;color:#D6D3D1;text-align:center;margin:12px 0 0}
+        .ad-overlay{position:fixed;inset:0;background:rgba(45,45,45,0.4);backdrop-filter:blur(2px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
+        .ad-modal{background:#FFFFFF;border-radius:18px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(45,45,45,0.2);overflow:hidden}
+        .ad-modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 16px;border-bottom:1px solid #EFE7DE}
+        .ad-modal-header h3{font-size:17px;font-weight:700;color:#2D2D2D;margin:0 0 4px}
+        .ad-modal-header p{font-size:13px;color:#8B7355;margin:0}
+        .ad-modal-close{background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8B7355;flex-shrink:0}
+        .ad-modal-close:hover{background:#EFE7DE;color:#2D2D2D}
+        .ad-modal-body{padding:20px 24px 24px}
+        .ad-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+        .ad-field{display:flex;flex-direction:column;gap:6px}
+        .ad-field.full{grid-column:1/-1}
+        .ad-field label{font-size:12px;font-weight:600;color:#3F3F46;text-transform:uppercase;letter-spacing:0.4px}
+        .ad-field input{padding:10px 12px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;color:#2D2D2D;background:#F8F5F2;outline:none;font-family:inherit;width:100%;box-sizing:border-box;transition:border-color 0.2s}
+        .ad-field input:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12);background:#FFFFFF}
+        .ad-modal-actions{display:flex;gap:10px;justify-content:flex-end}
+        .ad-cancel-btn{padding:10px 20px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;font-weight:600;color:#8B7355;cursor:pointer;font-family:inherit}
+        .ad-cancel-btn:hover{background:#EFE7DE;color:#2D2D2D}
+        .ad-confirm-btn{padding:10px 22px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;display:flex;align-items:center;gap:6px}
+        .ad-confirm-btn:hover:not(:disabled){background:#C6A969;color:#2D2D2D}
+        .ad-confirm-btn:disabled{opacity:0.6;cursor:not-allowed}
       `}</style>
+
+      {/* Approve Modal */}
+      {modal && (
+        <div className="ad-overlay" onClick={() => setModal(null)}>
+          <div className="ad-modal" onClick={e => e.stopPropagation()}>
+            <div className="ad-modal-header">
+              <div>
+                <h3>Approve Cashier</h3>
+                <p>{modal.name} · {modal.email}</p>
+              </div>
+              <button className="ad-modal-close" onClick={() => setModal(null)}><X size={16} /></button>
+            </div>
+            <div className="ad-modal-body">
+              <form onSubmit={handleApprove}>
+                <div className="ad-form-grid">
+                  <div className="ad-field">
+                    <label>Phone</label>
+                    <input placeholder="9876543210" required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+                  </div>
+                  <div className="ad-field">
+                    <label>Branch</label>
+                    <input placeholder="Main Branch" required value={form.branch} onChange={e => setForm({...form, branch: e.target.value})} />
+                  </div>
+                  <div className="ad-field">
+                    <label>Counter Number</label>
+                    <input placeholder="Counter 1" required value={form.counterNumber} onChange={e => setForm({...form, counterNumber: e.target.value})} />
+                  </div>
+                  <div className="ad-field">
+                    <label>Shift Timing</label>
+                    <input placeholder="9AM - 5PM" required value={form.shiftTiming} onChange={e => setForm({...form, shiftTiming: e.target.value})} />
+                  </div>
+                  <div className="ad-field full">
+                    <label>Basic Salary (₹)</label>
+                    <input type="number" placeholder="15000" required value={form.basicSalary} onChange={e => setForm({...form, basicSalary: e.target.value})} />
+                  </div>
+                </div>
+                <div className="ad-modal-actions">
+                  <button type="button" className="ad-cancel-btn" onClick={() => setModal(null)}>Cancel</button>
+                  <button type="submit" className="ad-confirm-btn" disabled={approving}>
+                    {approving ? <span className="ad-spinner" /> : <><CheckCircle size={14} /> Approve</>}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="ad-page">
         {toast && (
           <div className={`ad-toast ${toast.type === 'error' ? 'ad-toast-err' : ''}`}>
             {toast.type === 'error' ? <X size={14} /> : <CheckCircle size={14} />}{toast.msg}
           </div>
         )}
+
         <div className="ad-kpi-grid">
-          {KPIs.map(({ label, value, icon: Icon, sub }) => (
+          {[
+            { label: "Today's Revenue", value: kpis.revenue,            icon: TrendingUp,    sub: 'Live sales' },
+            { label: 'Total Products',  value: String(kpis.products),    icon: ShoppingBag,   sub: 'In inventory' },
+            { label: 'Active Cashiers', value: String(kpis.cashiers),    icon: Users,         sub: 'On duty' },
+            { label: 'Low Stock Alerts',value: String(kpis.lowStock),    icon: AlertTriangle, sub: 'Need restock' },
+          ].map(({ label, value, icon: Icon, sub }) => (
             <div key={label} className="ad-kpi-card">
               <div className="ad-kpi-icon"><Icon size={20} /></div>
               <div>
@@ -91,6 +192,7 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+
         <div className="ad-grid2">
           <div className="ad-card">
             <div className="ad-card-header">
@@ -105,19 +207,20 @@ export default function AdminDashboard() {
               <div className="ad-pending-list">
                 {pending.map(c => (
                   <div key={c.email} className="ad-pending-item">
-                    <div className="ad-pending-avatar">{c.name?.[0]?.toUpperCase() ?? c.email[0].toUpperCase()}</div>
+                    <div className="ad-pending-avatar">{(c.name || c.email)[0].toUpperCase()}</div>
                     <div className="ad-pending-info">
                       <span className="ad-pending-name">{c.name || '—'}</span>
                       <span className="ad-pending-email">{c.email}</span>
                     </div>
-                    <button className="ad-approve-btn" onClick={() => approveCashier(c.email)} disabled={approvingEmail === c.email}>
-                      {approvingEmail === c.email ? <span className="ad-spinner" /> : 'Approve'}
+                    <button className="ad-approve-btn" onClick={() => { setModal(c); setForm(EMPTY_FORM); }}>
+                      Approve
                     </button>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
           <div className="ad-card">
             <div className="ad-card-header">
               <div className="ad-card-title"><TrendingUp size={16} />Monthly Sales</div>
@@ -125,6 +228,7 @@ export default function AdminDashboard() {
             <BarChartMock />
           </div>
         </div>
+
         <div className="ad-card">
           <div className="ad-card-header">
             <div className="ad-card-title"><ShoppingBag size={16} />Recent Transactions</div>
@@ -143,7 +247,7 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
-          <p className="ad-placeholder-note">Transaction data will appear once billing is active.</p>
+          <p className="ad-note">Transaction data will appear once billing is active.</p>
         </div>
       </div>
     </>

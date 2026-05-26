@@ -5,7 +5,8 @@
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Building2, FileText, Percent, Bell, Shield, Settings2,
   Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
@@ -31,6 +32,7 @@ const STYLES = `
   }
 
   /* ── Sidebar ── */
+<<<<<<< HEAD
   .st-sidebar {
     width: 224px;
     flex-shrink: 0;
@@ -604,7 +606,6 @@ function ProfileTab({ onSave }) {
   };
 
   const handleDiscard = () => { setForm(orig); setDirty(false); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoPreview(null); };
-
   return (
     <div className="st-card">
       <div className="st-card-head">
@@ -1519,8 +1520,19 @@ function SystemTab({ onSave }) {
    SETTINGS — DEFAULT EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('profile');
-  const [toast, setToast]         = useState(null);
+  const location = useLocation();
+  const path = location.pathname;
+  
+  // Determine active tab from path
+  let activeTab = 'profile';
+  if (path.includes('/accounts/business-profile')) activeTab = 'profile';
+  else if (path.includes('/billing/tax')) activeTab = 'tax';
+  else if (path.includes('/billing/invoice')) activeTab = 'invoice';
+  else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
+  else if (path.includes('/preferences/security')) activeTab = 'security';
+  else if (path.includes('/preferences/system')) activeTab = 'system';
+  
+  const [toast, setToast] = useState(null);
 
   const showToast = (msg = 'Settings saved successfully!', type = 'success') => {
     setToast({ msg, type });
@@ -1547,8 +1559,6 @@ export default function Settings() {
   return (
     <>
       <style>{STYLES}</style>
-
-      {/* Toast */}
       {toast && (
         <div className={`st-toast ${toast.type === 'error' ? 'st-toast-err' : ''}`}>
           {toast.type === 'error'

@@ -62,16 +62,22 @@ export default function Register() {
         .reg-login-link{color:#C6A969;font-weight:600;text-decoration:none}
         .reg-login-link:hover{color:#2D2D2D}
       `}</style>
+
       <div className="reg-page">
         <div className="reg-card">
-          <div className="reg-brand"><div className="reg-logo">N</div><span>NexBill ERP</span></div>
+          <div className="reg-brand">
+            <div className="reg-logo">N</div>
+            <span>NexBill ERP</span>
+          </div>
           <div className="reg-toggle">
             <button type="button" className={`reg-role-btn ${!isAdmin ? 'reg-role-active' : ''}`} onClick={() => switchRole('CASHIER')}><User size={14} /> Cashier</button>
             <button type="button" className={`reg-role-btn ${isAdmin ? 'reg-role-active' : ''}`} onClick={() => switchRole('ADMIN')}><ShieldCheck size={14} /> Admin</button>
           </div>
           <h2>{isAdmin ? 'Create Admin Account' : 'Request Cashier Access'}</h2>
           <p className="reg-sub">{isAdmin ? 'Enter the admin secret key to register.' : 'Submit your details for admin approval.'}</p>
+
           {success && <div className="reg-success"><CheckCircle size={16} /><span>{success}</span></div>}
+
           <form onSubmit={handleSubmit} className="reg-form">
             <div className="reg-field"><label>Full Name</label><input name="name" value={form.name} onChange={handleChange} placeholder="Your full name" required /></div>
             <div className="reg-field"><label>Email Address</label><input type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@company.com" required /></div>
