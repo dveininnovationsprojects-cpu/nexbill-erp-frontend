@@ -95,6 +95,13 @@ function Reports({ sales = [], role = "admin" }) {
           transform: translateY(-1px);
         }
 
+        .nb-excel-export:hover {
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+          border-color: #C6A969 !important;
+          transform: translateY(-1px);
+        }
+
         .nb-ghost:hover {
           background: #C6A969 !important;
           border-color: #C6A969 !important;
@@ -178,8 +185,8 @@ function Reports({ sales = [], role = "admin" }) {
             <button
               type="button"
               onClick={exportExcel}
-              className="nb-btn nb-primary"
-              style={styles.primaryBtn}
+              className="nb-btn nb-excel-export"
+              style={styles.excelBtn}
             >
               Export Excel
             </button>
@@ -315,11 +322,6 @@ function Reports({ sales = [], role = "admin" }) {
               </tbody>
             </table>
           </div>
-
-          <p style={styles.reportFooter}>
-            Generated from NexBill ERP • Smart E-Commerce Billing & Inventory
-            Management System
-          </p>
         </div>
       </section>
     </>
@@ -408,12 +410,12 @@ const styles = {
     gap: 8,
   },
 
-  primaryBtn: {
+  excelBtn: {
     minHeight: 42,
     borderRadius: 10,
-    border: "1px solid #C6A969",
-    background: "#C6A969",
-    color: "#2D2D2D",
+    border: "1px solid #000000",
+    background: "#000000",
+    color: "#FFFFFF",
     padding: "0 16px",
     fontWeight: 600,
     fontSize: 13,
