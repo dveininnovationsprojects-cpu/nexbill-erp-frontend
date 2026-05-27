@@ -4,8 +4,9 @@
 // ║   Works for both Admin & Cashier roles — ONE FILE                  ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
   User, Mail, Phone, MapPin, Calendar, Clock, Shield,
   LogOut, Edit3, Save, X, Camera, Lock, Eye, EyeOff,
@@ -13,7 +14,7 @@ import {
   ChevronRight, Star, Award, TrendingUp, Hash, Key, Globe,
   Copy, Check, Settings, Activity, FileText, CreditCard,
   Package, AlertTriangle, LogIn, UserCheck, RefreshCw,
-  Filter, Search, Download,
+  Filter, Search, Download, Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -464,7 +465,7 @@ function CopyButton({ text }) {
 /* ══════════════════════════════════════════════════════════════════════
    CHANGE PASSWORD MODAL
 ══════════════════════════════════════════════════════════════════════ */
-function ChangePasswordModal({ onClose, onSave }) {
+function ChangePasswordModal({ onClose, onSave, userToken }) {
   const [form, setForm]     = useState({ current: '', newPw: '', confirm: '' });
   const [show, setShow]     = useState({ current: false, newPw: false, confirm: false });
   const [saving, setSaving] = useState(false);
@@ -477,14 +478,24 @@ function ChangePasswordModal({ onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.current)             { setError('Please enter your current password.'); return; }
-    if (form.newPw.length < 8)     { setError('New password must be at least 8 characters.'); return; }
-    if (form.newPw !== form.confirm){ setError('Passwords do not match.'); return; }
+    if (!form.current)              { setError('Please enter your current password.'); return; }
+    if (form.newPw.length < 8)      { setError('New password must be at least 8 characters.'); return; }
+    if (form.newPw !== form.confirm) { setError('Passwords do not match.'); return; }
     setSaving(true);
-    await new Promise(r => setTimeout(r, 900));
-    setSaving(false);
-    onSave('Password updated successfully!');
-    onClose();
+    try {
+      await axios.put(
+        '/api/profile/change-password',
+        { currentPassword: form.current, newPassword: form.newPw },
+        { headers: { Authorization: `Bearer ${userToken}` }, withCredentials: true }
+      );
+      onSave('Password updated successfully!');
+      onClose();
+    } catch (err) {
+      // Backend returns { message: '...' } on 400
+      setError(err.response?.data?.message || 'Failed to update password. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const PwInput = ({ field, label, placeholder }) => (
@@ -566,27 +577,40 @@ function LogoutModal({ user, onCancel, onConfirm, loading }) {
 /* ══════════════════════════════════════════════════════════════════════
    TAB 1 — PERSONAL INFORMATION
 ══════════════════════════════════════════════════════════════════════ */
-function PersonalInfoTab({ user, onSave, onChangePW }) {
+function PersonalInfoTab({ user, profileData, onSave, onChangePW, onProfileRefresh }) {
   const isAdmin = user?.role === 'ADMIN';
   const [editing, setEditing] = useState(false);
   const [saving, setSaving]   = useState(false);
   const [form, setForm] = useState({
-    name:       isAdmin ? 'NexBill Admin' : 'Ahamed Yasik',
-    phone:      isAdmin ? '+91 9876 543 210' : '+91 9123 456 789',
-    department: isAdmin ? 'Administration' : 'Billing & Counter',
-    location:   'Bangalore, Karnataka',
-    bio:        isAdmin
-      ? 'System administrator for NexBill ERP. Manages users, settings, and overall platform operations.'
-      : 'Cashier at Counter 2. Responsible for billing customers and managing daily transactions.',
+    name:  profileData?.name  || '',
+    phone: profileData?.phone || '',
   });
-  const [orig] = useState(form);
+  // Sync form when profileData loads
+  useEffect(() => {
+    if (profileData) {
+      setForm({ name: profileData.name || '', phone: profileData.phone || '' });
+    }
+  }, [profileData]);
+  const [orig, setOrig] = useState(form);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(r => setTimeout(r, 900));
-    setSaving(false); setEditing(false);
-    onSave('Profile updated successfully!');
+    try {
+      await axios.put(
+        '/api/profile/update',
+        { name: form.name, phone: form.phone },
+        { headers: { Authorization: `Bearer ${user.token}` }, withCredentials: true }
+      );
+      setOrig(form);
+      setEditing(false);
+      onSave('Profile updated successfully!');
+      onProfileRefresh(); // Re-fetch latest from backend
+    } catch (err) {
+      onSave(err.response?.data?.message || 'Failed to update profile.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -717,7 +741,7 @@ function PersonalInfoTab({ user, onSave, onChangePW }) {
 /* ══════════════════════════════════════════════════════════════════════
    TAB 2a — ADMIN DETAILS
 ══════════════════════════════════════════════════════════════════════ */
-function AdminDetailsTab() {
+function AdminDetailsTab({ profileData }) {
   const permissions = [
     { label: 'Product & Inventory Management', granted: true  },
     { label: 'Billing & Invoice Control',       granted: true  },
@@ -802,11 +826,16 @@ function AdminDetailsTab() {
 /* ══════════════════════════════════════════════════════════════════════
    TAB 2b — CASHIER DETAILS
 ══════════════════════════════════════════════════════════════════════ */
-function CashierDetailsTab() {
+function CashierDetailsTab({ profileData }) {
   const data = {
-    branch:'Main Branch — Bangalore', counter:'Counter 2', shift:'9:00 AM – 5:00 PM',
-    employeeId:'NB-CSH-042', joiningDate:'15 March 2025', supervisor:'Admin Manager',
-    todayInvoices:14, weekInvoices:87, totalRevenue:'₹1,24,500', avgBillValue:'₹1,432',
+    branch:       profileData?.branch        || 'Main Branch',
+    counter:      profileData?.counterNumber ? `Counter ${profileData.counterNumber}` : '—',
+    shift:        profileData?.shiftTiming   || '—',
+    employeeId:   `NB-CSH-${String(profileData?.id || '').padStart(3, '0')}`,
+    status:       profileData?.status        || 'ACTIVE',
+    joiningDate:  '15 March 2025',
+    supervisor:   'Admin Manager',
+    todayInvoices: 14, weekInvoices: 87, totalRevenue: '₹1,24,500', avgBillValue: '₹1,432',
   };
 
   return (
@@ -818,7 +847,7 @@ function CashierDetailsTab() {
             <div className="pr-card-title"><Briefcase size={15} /> Cashier Assignment</div>
             <div className="pr-card-sub">Your counter, shift and performance stats</div>
           </div>
-          <span style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:10, background:'rgba(34,197,94,0.12)', color:'#16a34a', border:'1px solid rgba(34,197,94,0.25)' }}>Active · On Duty</span>
+          <span style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:10, background: data.status==='ACTIVE' ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)', color: data.status==='ACTIVE' ? '#16a34a' : '#d97706', border: `1px solid ${data.status==='ACTIVE' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}` }}>{data.status==='ACTIVE' ? 'Active · On Duty' : 'Pending Approval'}</span>
         </div>
         <div className="pr-card-body">
           <div className="pr-role-panel">
@@ -983,9 +1012,39 @@ export default function Profile() {
   const [showChangePW, setShowChangePW]     = useState(false);
   const [avatarPreview, setAvatarPreview]   = useState(null);
 
-  const completionPct = avatarPreview ? 90 : 75;
+  // ── Real profile data from backend ──
+  const [profileData, setProfileData]       = useState(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
+  // showToast defined before fetchProfile so it can be called inside
   const showToast = (msg, type = 'success') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); };
+
+  const fetchProfile = async () => {
+    if (!user?.token) return;
+    try {
+      const res = await axios.get('/api/profile/me', {
+        headers: { Authorization: `Bearer ${user.token}` },
+        withCredentials: true,
+      });
+      setProfileData(res.data);
+    } catch (err) {
+      showToast('Could not load profile data.', 'error');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchProfile(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const completionPct = (() => {
+    if (!profileData) return avatarPreview ? 50 : 40;
+    let pct = 60;
+    if (profileData.name)  pct += 10;
+    if (profileData.phone) pct += 10;
+    if (avatarPreview)     pct += 10;
+    if (profileData.branch) pct += 10;
+    return Math.min(pct, 100);
+  })();
 
   const handleLogoutConfirm = async () => {
     setLogoutLoading(true);
@@ -1040,7 +1099,7 @@ export default function Profile() {
       )}
 
       {showLogout && <LogoutModal user={user} onCancel={() => setShowLogout(false)} onConfirm={handleLogoutConfirm} loading={logoutLoading} />}
-      {showChangePW && <ChangePasswordModal onClose={() => setShowChangePW(false)} onSave={showToast} />}
+      {showChangePW && <ChangePasswordModal onClose={() => setShowChangePW(false)} onSave={showToast} userToken={user?.token} />}
 
       <input ref={fileInputRef} type="file" accept="image/*" className="pr-file-input" onChange={handleAvatarChange} />
 
@@ -1064,7 +1123,12 @@ export default function Profile() {
                   <Camera size={11} color="#2D2D2D" />
                 </div>
               </div>
-              <div className="pr-hero-name">{isAdmin ? 'NexBill Admin' : 'Ahamed Yasik'}</div>
+              <div className="pr-hero-name">
+                {profileLoading
+                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:6, color:'#9E9087' }}><Loader2 size={14} style={{ animation:'prSpin 0.7s linear infinite' }} /> Loading…</span>
+                  : (profileData?.name || user?.email?.split('@')[0] || 'User')
+                }
+              </div>
               <div className="pr-hero-email">{user?.email}</div>
               <div className={`pr-role-badge ${isAdmin ? 'pr-role-admin' : 'pr-role-cashier'}`}>
                 {isAdmin ? <Award size={11} /> : <Briefcase size={11} />}
@@ -1161,10 +1225,20 @@ export default function Profile() {
           {/* Tab Panel */}
           <div className="pr-tab-panel-wrap" key={activeTab}>
             {activeTab === 'personal' && (
-              <PersonalInfoTab user={user} onSave={showToast} onChangePW={() => setShowChangePW(true)} />
+              <PersonalInfoTab
+                user={user}
+                profileData={profileData}
+                onSave={showToast}
+                onChangePW={() => setShowChangePW(true)}
+                onProfileRefresh={fetchProfile}
+              />
             )}
             {activeTab === 'role' && (
-              isAdmin ? <AdminDetailsTab /> : <CashierDetailsTab />
+              profileLoading
+                ? <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'60px 0', color:'#9E9087', gap:10 }}><Loader2 size={20} style={{ animation:'prSpin 0.7s linear infinite', color:'#C6A969' }} /> Loading details…</div>
+                : isAdmin
+                  ? <AdminDetailsTab profileData={profileData} />
+                  : <CashierDetailsTab profileData={profileData} />
             )}
             {activeTab === 'activity' && (
               <ActivityLogTab isAdmin={isAdmin} />
