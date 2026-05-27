@@ -343,16 +343,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     (customer) => customer.type !== "Regular"
   ).length;
 
-  const startCustomerNumber =
-    filteredCustomers.length === 0
-      ? 0
-      : (currentPage - 1) * CUSTOMERS_PER_PAGE + 1;
-
-  const endCustomerNumber = Math.min(
-    currentPage * CUSTOMERS_PER_PAGE,
-    filteredCustomers.length
-  );
-
   return (
     <>
       <style>{`
@@ -361,10 +351,17 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         }
 
         .nb-primary:hover {
-          background: #2D2D2D !important;
-          color: #F8F5F2 !important;
-          border-color: #2D2D2D !important;
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+          border-color: #C6A969 !important;
           transform: translateY(-1px);
+        }
+
+        .nb-primary:active {
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+          border-color: #C6A969 !important;
+          transform: translateY(0);
         }
 
         .nb-ghost:hover {
@@ -394,14 +391,8 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           transform: translateY(-1px);
         }
 
-        .nb-filter-btn {
-          transition: all 0.2s ease;
-        }
-
         .nb-filter-btn:hover {
-          background: #2D2D2D !important;
-          color: #F8F5F2 !important;
-          border-color: #2D2D2D !important;
+          border-color: #C6A969 !important;
           transform: translateY(-1px);
         }
 
@@ -410,9 +401,9 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         }
 
         .nb-page-btn:hover:not(:disabled) {
-          background: #2D2D2D !important;
-          color: #F8F5F2 !important;
-          border-color: #2D2D2D !important;
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+          border-color: #C6A969 !important;
           transform: translateY(-1px);
         }
 
@@ -489,16 +480,19 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             value={customers.length}
             sub="Registered buyers"
           />
+
           <Kpi
             title="Active Customers"
             value={activeCustomers}
             sub="Ready for billing"
           />
+
           <Kpi
             title="Premium Customers"
             value={premiumCustomers}
             sub="High value accounts"
           />
+
           <Kpi
             title="Customer Value"
             value={money(totalValue)}
@@ -511,7 +505,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             <div style={styles.cardHead}>
               <div>
                 <h2 style={styles.cardTitle}>Customer List</h2>
-                
               </div>
             </div>
 
@@ -537,7 +530,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "All" ? styles.filterBtnActive : {}),
+                    ...(statusFilter === "All" ? styles.allActiveBtn : {}),
                   }}
                 >
                   All
@@ -549,9 +542,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "Active"
-                      ? styles.filterBtnActive
-                      : {}),
+                    ...(statusFilter === "Active" ? styles.activeBtn : {}),
                   }}
                 >
                   Active
@@ -563,9 +554,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "Inactive"
-                      ? styles.filterBtnActive
-                      : {}),
+                    ...(statusFilter === "Inactive" ? styles.inactiveBtn : {}),
                   }}
                 >
                   Inactive
@@ -686,7 +675,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             {filteredCustomers.length > 0 && (
               <div className="customer-pagination" style={styles.pagination}>
                 <div style={styles.pageInfo}>
-                  Page {currentPage} of {totalPages} 
+                  Page {currentPage} of {totalPages}
                 </div>
 
                 <div style={styles.pageControls}>
@@ -700,7 +689,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                       ...(currentPage === 1 ? styles.pageBtnDisabled : {}),
                     }}
                   >
-                    {"<"}
+                    ‹
                   </button>
 
                   {Array.from({ length: totalPages }, (_, index) => {
@@ -736,7 +725,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                         : {}),
                     }}
                   >
-                    {">"}
+                    ›
                   </button>
                 </div>
               </div>
@@ -1145,9 +1134,9 @@ const styles = {
   primaryBtn: {
     minHeight: 42,
     borderRadius: 10,
-    border: "1px solid #C6A969",
-    background: "#C6A969",
-    color: "#2D2D2D",
+    border: "1px solid #2D2D2D",
+    background: "#2D2D2D",
+    color: "#F8F5F2",
     padding: "0 16px",
     fontWeight: 600,
     fontSize: 13,
@@ -1212,18 +1201,31 @@ const styles = {
   filterBtn: {
     minHeight: 40,
     borderRadius: 9,
-    border: "1px solid #EFE7DE",
+    border: "1.5px solid #EFE7DE",
     background: "#FFFFFF",
     color: "#8B7355",
     padding: "0 14px",
     fontWeight: 600,
     fontSize: 12,
+    cursor: "pointer",
   },
 
-  filterBtnActive: {
+  allActiveBtn: {
     background: "#2D2D2D",
     borderColor: "#2D2D2D",
     color: "#F8F5F2",
+  },
+
+  activeBtn: {
+    background: "#2F5D3A",
+    borderColor: "#2F5D3A",
+    color: "#FFFFFF",
+  },
+
+  inactiveBtn: {
+    background: "#7A1F1F",
+    borderColor: "#7A1F1F",
+    color: "#FFFFFF",
   },
 
   typeSelect: {
@@ -1362,37 +1364,40 @@ const styles = {
   pageControls: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     flexWrap: "wrap",
   },
 
   pageBtn: {
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: 9,
+    minWidth: 42,
+    minHeight: 42,
+    borderRadius: 12,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
-    color: "#2D2D2D",
-    padding: "0 10px",
-    fontWeight: 700,
-    fontSize: 14,
+    color: "#8B7355",
+    padding: "0 12px",
+    fontWeight: 800,
+    fontSize: 24,
+    lineHeight: 1,
+    cursor: "pointer",
   },
 
   pageBtnDisabled: {
-    opacity: 0.45,
+    opacity: 0.35,
     cursor: "not-allowed",
   },
 
   numberBtn: {
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: 9,
+    minWidth: 42,
+    minHeight: 42,
+    borderRadius: 12,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
     color: "#2D2D2D",
-    padding: "0 10px",
-    fontWeight: 600,
-    fontSize: 12,
+    padding: "0 12px",
+    fontWeight: 700,
+    fontSize: 13,
+    cursor: "pointer",
   },
 
   numberBtnActive: {
