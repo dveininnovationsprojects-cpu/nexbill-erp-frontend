@@ -108,6 +108,12 @@ function Reports({ sales = [], role = "admin" }) {
           background: #FFFFFF !important;
         }
 
+        .nb-report-search:focus-within {
+          border-color: #C6A969 !important;
+          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
+          background: #FFFFFF !important;
+        }
+
         .nb-table-row:hover td {
           background: #FFFDFB;
         }
@@ -134,6 +140,22 @@ function Reports({ sales = [], role = "admin" }) {
           background: #2D2D2D !important;
           color: #F8F5F2 !important;
           border-color: #2D2D2D !important;
+        }
+
+        @media (max-width: 900px) {
+          .reports-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .reports-toolbar input,
+          .reports-toolbar select {
+            width: 100% !important;
+          }
+
+          .reports-kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
 
@@ -171,24 +193,27 @@ function Reports({ sales = [], role = "admin" }) {
             </div>
           </div>
 
-          <div style={styles.toolbar}>
-            <select
-              className="nb-input"
-              value={reportType}
-              onChange={(event) => setReportType(event.target.value)}
-              style={styles.select}
-            >
-              <option>Sales Report</option>
-              <option>GST Report</option>
-              <option>Customer Report</option>
-            </select>
+          <div className="reports-toolbar" style={styles.toolbar}>
+            <div className="nb-report-search" style={styles.searchBar}>
+              <span style={styles.searchIcon}>⌕</span>
+
+              <select
+                value={reportType}
+                onChange={(event) => setReportType(event.target.value)}
+                style={styles.reportSelect}
+              >
+                <option>Sales Report</option>
+                <option>GST Report</option>
+                <option>Customer Report</option>
+              </select>
+            </div>
 
             <input
               className="nb-input"
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
-              style={styles.input}
+              style={styles.dateInput}
             />
 
             <input
@@ -196,14 +221,14 @@ function Reports({ sales = [], role = "admin" }) {
               type="date"
               value={toDate}
               onChange={(event) => setToDate(event.target.value)}
-              style={styles.input}
+              style={styles.dateInput}
             />
 
             <select
               className="nb-input"
               value={paymentFilter}
               onChange={(event) => setPaymentFilter(event.target.value)}
-              style={styles.select}
+              style={styles.paymentSelect}
             >
               <option>All</option>
               <option>Paid</option>
@@ -211,7 +236,7 @@ function Reports({ sales = [], role = "admin" }) {
             </select>
           </div>
 
-          <div style={styles.kpiGrid}>
+          <div className="reports-kpi-grid" style={styles.kpiGrid}>
             <Kpi
               title="Total Invoices"
               value={filteredSales.length}
@@ -436,41 +461,74 @@ const styles = {
   },
 
   toolbar: {
+    width: "100%",
     display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 18,
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 22,
   },
 
-  input: {
+  searchBar: {
+    flex: 1,
+    minHeight: 40,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
-    color: "#3F3F46",
     borderRadius: 10,
-    minHeight: 42,
-    padding: "10px 14px",
+    padding: "0 12px",
+  },
+
+  searchIcon: {
+    color: "#8B7355",
+    fontSize: 16,
+    fontWeight: 500,
+    flexShrink: 0,
+  },
+
+  reportSelect: {
+    width: "100%",
+    border: "none",
+    background: "transparent",
+    color: "#3F3F46",
+    minHeight: 38,
     outline: "none",
     fontSize: 13,
     fontWeight: 400,
   },
 
-  select: {
+  dateInput: {
+    width: 132,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
     color: "#3F3F46",
-    borderRadius: 10,
-    minHeight: 42,
-    padding: "10px 14px",
+    borderRadius: 9,
+    minHeight: 38,
+    padding: "7px 9px",
     outline: "none",
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: 400,
+  },
+
+  paymentSelect: {
+    width: 82,
+    border: "1px solid #D6D3D1",
+    background: "#FFFFFF",
+    color: "#3F3F46",
+    borderRadius: 9,
+    minHeight: 38,
+    padding: "7px 9px",
+    outline: "none",
+    fontSize: 12,
     fontWeight: 400,
   },
 
   kpiGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: 14,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 24,
   },
 
   kpiCard: {
