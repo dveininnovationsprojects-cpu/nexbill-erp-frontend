@@ -1,20 +1,19 @@
 // ╔══════════════════════════════════════════════════════════════════════╗
 // ║   NexBill ERP — Settings Module  (Enhanced UI v2)                  ║
 // ║   Tabs: Business Profile · Invoice · Tax & GST ·                   ║
-// ║          Notifications · Security · System                         ║
+// ║          Notifications · Security                                  ║
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  Building2, FileText, Percent, Bell, Shield, Settings2,
+  Building2, FileText, Percent, Bell, Shield,
   Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
   User, Phone, Mail, MapPin, Globe, Hash, Camera,
   CreditCard, Calendar, Clock, ToggleLeft, ToggleRight,
   ChevronRight, Lock, Smartphone, RefreshCw, Upload,
-  Info, AlertTriangle, Database, Palette, Send,
-  Download, Trash2, Check,
+  Info, AlertTriangle, Send, Check,
 } from 'lucide-react';
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -511,10 +510,6 @@ const TABS = [
   {
     id: 'security',      label: 'Security',           icon: Shield,     group: 'Preferences',
     sub: 'Password, two-factor authentication and sessions',
-  },
-  {
-    id: 'system',        label: 'System',             icon: Settings2,  group: 'Preferences',
-    sub: 'Appearance, locale, data and storage preferences',
   },
 ];
 
@@ -1310,211 +1305,6 @@ function SecurityTab({ onSave }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   SYSTEM PREFERENCES TAB
-══════════════════════════════════════════════════════════════════════ */
-const ACCENT_COLORS = [
-  { color: '#C6A969', name: 'Gold (Default)' },
-  { color: '#2563eb', name: 'Blue'    },
-  { color: '#16a34a', name: 'Green'   },
-  { color: '#9333ea', name: 'Purple'  },
-  { color: '#dc2626', name: 'Red'     },
-  { color: '#ea580c', name: 'Orange'  },
-  { color: '#0891b2', name: 'Teal'    },
-  { color: '#db2777', name: 'Pink'    },
-];
-
-function SystemTab({ onSave }) {
-  const { saving, saved, handle } = useSaving(onSave);
-  const [accentColor, setAccent]  = useState('#C6A969');
-  const [timezone, setTimezone]   = useState('Asia/Kolkata');
-  const [language, setLanguage]   = useState('en');
-  const [dateFormat, setDateFmt]  = useState('DD MMM YYYY');
-  const [timeFormat, setTimeFmt]  = useState('12h');
-  const [compactMode, setCompact] = useState(false);
-  const [animations, setAnims]    = useState(true);
-  const [autoSave, setAutoSave]   = useState(true);
-  const [dataRetention, setRetain]= useState('12');
-
-  const accentName = ACCENT_COLORS.find(c => c.color === accentColor)?.name || 'Custom';
-
-  return (
-    <>
-      {/* Appearance */}
-      <div className="st-card">
-        <div className="st-card-head">
-          <div>
-            <div className="st-card-title"><Palette size={15} /> Appearance</div>
-            <div className="st-card-sub">Customize the look and feel of NexBill</div>
-          </div>
-        </div>
-        <div className="st-card-body">
-          <div className="st-field">
-            <label>Accent Color</label>
-            <div className="st-color-chips">
-              {ACCENT_COLORS.map(c => (
-                <div
-                  key={c.color}
-                  className={`st-color-chip ${accentColor === c.color ? 'selected' : ''}`}
-                  style={{ background: c.color }}
-                  title={c.name}
-                  onClick={() => setAccent(c.color)}
-                />
-              ))}
-            </div>
-            <div className="st-field-hint">Selected: <strong style={{ color: '#2D2D2D' }}>{accentName}</strong></div>
-          </div>
-
-          {/* Accent preview */}
-          <div className="st-accent-preview">
-            <div className="st-accent-preview-label">Preview with {accentName}</div>
-            <button
-              className="st-accent-sample-btn"
-              style={{ background: accentColor, color: '#2D2D2D' }}
-            >
-              Primary Button
-            </button>
-            <button
-              className="st-accent-sample-btn"
-              style={{ background: 'transparent', border: `2px solid ${accentColor}`, color: accentColor }}
-            >
-              Outline Button
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <span className="st-accent-nav-dot" style={{ background: accentColor }} />
-              <span style={{ fontSize: 12, color: accentColor, fontWeight: 600 }}>Active nav item</span>
-              <span style={{ fontSize: 11, color: '#8B7355', marginLeft: 8 }}>· sidebar link · badge</span>
-            </div>
-          </div>
-
-          <div className="st-section-lbl" style={{ marginTop: 20 }}>Interface Options</div>
-          {[
-            { val: compactMode, set: setCompact, label: 'Compact Mode',         desc: 'Reduce spacing for a denser, more information-rich layout' },
-            { val: animations,  set: setAnims,   label: 'Interface Animations', desc: 'Enable smooth transitions, hover effects and micro-animations' },
-          ].map(({ val, set, label, desc }) => (
-            <div key={label} className="st-toggle-row">
-              <div className="st-toggle-info">
-                <div className="st-toggle-label">{label}</div>
-                <div className="st-toggle-desc">{desc}</div>
-              </div>
-              <Toggle on={val} onChange={set} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Locale */}
-      <div className="st-card">
-        <div className="st-card-head">
-          <div>
-            <div className="st-card-title"><Globe size={15} /> Locale &amp; Regional</div>
-            <div className="st-card-sub">Language, timezone and date/time format preferences</div>
-          </div>
-        </div>
-        <div className="st-card-body">
-          <div className="st-grid2">
-            <div className="st-field">
-              <label>Timezone</label>
-              <select value={timezone} onChange={e => setTimezone(e.target.value)}>
-                <option value="Asia/Kolkata">IST — Asia/Kolkata (UTC+5:30)</option>
-                <option value="UTC">UTC (UTC+0)</option>
-                <option value="America/New_York">EST — New York (UTC-5)</option>
-                <option value="Europe/London">GMT — London (UTC+0)</option>
-                <option value="Asia/Singapore">SGT — Singapore (UTC+8)</option>
-                <option value="Australia/Sydney">AEST — Sydney (UTC+10)</option>
-              </select>
-            </div>
-            <div className="st-field">
-              <label>Language</label>
-              <select value={language} onChange={e => setLanguage(e.target.value)}>
-                <option value="en">English</option>
-                <option value="hi">हिंदी (Hindi)</option>
-                <option value="ta">தமிழ் (Tamil)</option>
-                <option value="te">తెలుగు (Telugu)</option>
-                <option value="kn">ಕನ್ನಡ (Kannada)</option>
-                <option value="ml">മലയാളം (Malayalam)</option>
-              </select>
-            </div>
-            <div className="st-field">
-              <label>Date Format</label>
-              <select value={dateFormat} onChange={e => setDateFmt(e.target.value)}>
-                <option>DD MMM YYYY</option>
-                <option>DD/MM/YYYY</option>
-                <option>MM/DD/YYYY</option>
-                <option>YYYY-MM-DD</option>
-              </select>
-            </div>
-            <div className="st-field">
-              <label>Time Format</label>
-              <select value={timeFormat} onChange={e => setTimeFmt(e.target.value)}>
-                <option value="12h">12-hour (AM/PM)</option>
-                <option value="24h">24-hour</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="st-card-foot">
-          <SaveBtn saving={saving} saved={saved} onClick={() => handle('Regional settings saved!')} label="Save Settings" icon={Globe} />
-        </div>
-      </div>
-
-      {/* Data & Storage */}
-      <div className="st-card">
-        <div className="st-card-head">
-          <div>
-            <div className="st-card-title"><Database size={15} /> Data &amp; Storage</div>
-            <div className="st-card-sub">Storage usage, auto-save, backups and data retention</div>
-          </div>
-        </div>
-        <div className="st-card-body">
-          <div className="st-quota-wrap">
-            <div className="st-quota-top">
-              <span className="st-quota-label">Storage Used</span>
-              <span className="st-quota-size">1.8 GB / 10 GB</span>
-            </div>
-            <div className="st-quota-sub">18% of your total storage plan is used</div>
-            <div className="st-quota-track">
-              <div className="st-quota-fill" style={{ width: '18%' }} />
-            </div>
-          </div>
-
-          <div className="st-toggle-row" style={{ paddingTop: 0 }}>
-            <div className="st-toggle-info">
-              <div className="st-toggle-label">Auto-save Drafts</div>
-              <div className="st-toggle-desc">Automatically save invoice drafts while you're editing</div>
-            </div>
-            <Toggle on={autoSave} onChange={setAutoSave} />
-          </div>
-
-          <div className="st-field" style={{ marginTop: 16 }}>
-            <label>Data Retention Period</label>
-            <select value={dataRetention} onChange={e => setRetain(e.target.value)}>
-              <option value="3">3 months</option>
-              <option value="6">6 months</option>
-              <option value="12">1 year</option>
-              <option value="24">2 years</option>
-              <option value="60">5 years</option>
-              <option value="0">Indefinitely</option>
-            </select>
-            <div className="st-field-hint">Invoices and records older than this period will be archived automatically</div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-            <button className="st-btn-secondary" style={{ height: 36, fontSize: 12 }} onClick={() => onSave('Data export started — you\'ll receive an email when ready')}>
-              <Download size={13} /> Export All Data
-            </button>
-            <button className="st-btn-danger" style={{ height: 36, fontSize: 12 }} onClick={() => onSave('Cache cleared successfully')}>
-              <Trash2 size={13} /> Clear Cache
-            </button>
-          </div>
-        </div>
-        <div className="st-card-foot">
-          <SaveBtn saving={saving} saved={saved} onClick={() => handle('System preferences saved!')} label="Save Preferences" icon={Settings2} />
-        </div>
-      </div>
-    </>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════════════════
    SETTINGS — DEFAULT EXPORT
@@ -1530,7 +1320,6 @@ export default function Settings() {
   else if (path.includes('/billing/invoice')) activeTab = 'invoice';
   else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
   else if (path.includes('/preferences/security')) activeTab = 'security';
-  else if (path.includes('/preferences/system')) activeTab = 'system';
   
   const [toast, setToast] = useState(null);
 
@@ -1551,7 +1340,6 @@ export default function Settings() {
       case 'tax':           return <TaxTab              onSave={(m, t) => showToast(m, t)} />;
       case 'notifications': return <NotificationsTab    onSave={(m, t) => showToast(m, t)} />;
       case 'security':      return <SecurityTab         onSave={(m, t) => showToast(m, t)} />;
-      case 'system':        return <SystemTab           onSave={(m, t) => showToast(m, t)} />;
       default:              return null;
     }
   };

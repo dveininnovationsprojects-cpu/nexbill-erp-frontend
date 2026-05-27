@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════════════╗
-// ║   NexBill ERP — Profile & Logout Module  (Enhanced UI v2)          ║
-// ║   Tabs: Overview · Security · Activity · Preferences               ║
+// ║   NexBill ERP — Profile & Logout Module  (Enhanced UI v3)          ║
+// ║   Tabs: Overview · Preferences                                      ║
 // ║   Works for both Admin & Cashier roles — ONE FILE                  ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
@@ -10,10 +10,8 @@ import {
   User, Mail, Phone, MapPin, Calendar, Clock, Shield,
   LogOut, Edit3, Save, X, Camera, Lock, Eye, EyeOff,
   CheckCircle, AlertCircle, Briefcase, Building2,
-  Activity, ChevronRight, Smartphone, RefreshCw,
-  Star, Award, TrendingUp, Hash, ToggleLeft, ToggleRight,
-  Key, AlertTriangle, Monitor, Wifi, Globe,
-  Bell, Copy, Check, Settings,
+  ChevronRight, Star, Award, TrendingUp, Hash, Key, Globe,
+  Copy, Check, Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,7 +29,7 @@ const STYLES = `
 
   /* ── Left Column ── */
   .pr-left {
-    width: 272px;
+    width: 280px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -44,7 +42,7 @@ const STYLES = `
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 20px;
   }
 
   /* ── Card ── */
@@ -59,8 +57,9 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 22px;
+    padding: 16px 22px;
     border-bottom: 1px solid #EFE7DE;
+    background: #FDFCFB;
   }
   .pr-card-title {
     font-size: 14px;
@@ -90,10 +89,10 @@ const STYLES = `
     background: #2D2D2D;
     border-radius: 14px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(45,45,45,0.12);
+    box-shadow: 0 4px 16px rgba(45,45,45,0.18);
   }
   .pr-hero-banner {
-    height: 56px;
+    height: 64px;
     background: linear-gradient(135deg, #C6A969 0%, #8B7355 50%, #2D2D2D 100%);
     position: relative;
   }
@@ -118,24 +117,25 @@ const STYLES = `
   }
   .pr-avatar-wrap {
     position: relative;
-    margin-top: -28px;
+    margin-top: -32px;
     margin-bottom: 12px;
     z-index: 2;
   }
   .pr-avatar {
-    width: 80px; height: 80px;
+    width: 84px; height: 84px;
     border-radius: 50%;
     background: linear-gradient(135deg, #C6A969 0%, #8B7355 100%);
     display: flex; align-items: center; justify-content: center;
-    font-size: 30px; font-weight: 800; color: #2D2D2D;
+    font-size: 32px; font-weight: 800; color: #2D2D2D;
     border: 4px solid #2D2D2D;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
   .pr-avatar-edit {
     position: absolute;
     bottom: 2px; right: 2px;
-    width: 24px; height: 24px;
+    width: 26px; height: 26px;
     background: #C6A969;
     border: 2px solid #2D2D2D;
     border-radius: 50%;
@@ -148,6 +148,7 @@ const STYLES = `
   .pr-hero-name {
     font-size: 17px; font-weight: 700; color: #F8F5F2;
     margin-bottom: 3px;
+    letter-spacing: -0.2px;
   }
   .pr-hero-email {
     font-size: 12px; color: #9E9087;
@@ -175,7 +176,7 @@ const STYLES = `
   .pr-completion-label { font-size: 10px; color: #9E9087; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
   .pr-completion-pct   { font-size: 12px; color: #C6A969; font-weight: 700; }
   .pr-completion-track {
-    width: 100%; height: 4px;
+    width: 100%; height: 5px;
     background: rgba(255,255,255,0.08); border-radius: 4px;
     overflow: hidden;
   }
@@ -199,16 +200,19 @@ const STYLES = `
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 12px 12px;
     text-align: center;
+    transition: background 0.2s;
   }
+  .pr-hero-stat:hover { background: rgba(255,255,255,0.09); }
   .pr-hero-stat-val {
-    font-size: 18px; font-weight: 700; color: #C6A969;
+    font-size: 20px; font-weight: 700; color: #C6A969;
     line-height: 1;
   }
   .pr-hero-stat-lbl {
     font-size: 10px; color: #9E9087;
-    margin-top: 3px;
+    margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 0.4px;
   }
 
   /* Online dot */
@@ -216,6 +220,10 @@ const STYLES = `
     display: inline-flex; align-items: center; gap: 5px;
     font-size: 11px; font-weight: 600; color: #22c55e;
     margin-top: 12px;
+    background: rgba(34,197,94,0.1);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(34,197,94,0.2);
   }
   .pr-status-dot {
     width: 7px; height: 7px;
@@ -230,13 +238,13 @@ const STYLES = `
   /* ── Quick Actions ── */
   .pr-quick-action {
     display: flex; align-items: center;
-    gap: 12px; padding: 10px 14px;
+    gap: 12px; padding: 10px 12px;
     border-radius: 10px; cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.1s;
     border: none; background: none;
     font-family: inherit; width: 100%; text-align: left;
   }
-  .pr-quick-action:hover { background: #F8F5F2; }
+  .pr-quick-action:hover { background: #F8F5F2; transform: translateX(2px); }
   .pr-qa-icon {
     width: 34px; height: 34px;
     border-radius: 9px;
@@ -248,6 +256,7 @@ const STYLES = `
   .pr-qa-red    { background: #FEE2E2; color: #dc2626; }
   .pr-qa-blue   { background: #DBEAFE; color: #2563eb; }
   .pr-qa-purple { background: #EDE9FE; color: #7c3aed; }
+  .pr-qa-amber  { background: #FEF3C7; color: #d97706; }
   .pr-qa-label  { font-size: 13px; font-weight: 600; color: #2D2D2D; flex: 1; }
   .pr-qa-sub    { font-size: 11px; color: #8B7355; margin-top: 1px; }
 
@@ -256,7 +265,6 @@ const STYLES = `
     display: flex;
     gap: 4px;
     padding: 16px 22px 0;
-    border-bottom: 1px solid #EFE7DE;
     background: #FFFFFF;
     border-radius: 14px 14px 0 0;
     border: 1px solid #EFE7DE;
@@ -267,15 +275,15 @@ const STYLES = `
   }
   .pr-tabs::-webkit-scrollbar { display: none; }
   .pr-tab {
-    display: flex; align-items: center; gap: 6px;
-    padding: 10px 16px;
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 18px;
     border-radius: 9px 9px 0 0;
     font-size: 13px; font-weight: 600;
     color: #8B7355; cursor: pointer;
     border: none; background: none;
     font-family: inherit; white-space: nowrap;
     border-bottom: 2px solid transparent;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
     margin-bottom: -1px;
   }
   .pr-tab:hover { color: #2D2D2D; background: #F8F5F2; }
@@ -283,14 +291,6 @@ const STYLES = `
     color: #2D2D2D;
     border-bottom: 2px solid #C6A969;
     background: #FDFCFB;
-  }
-  .pr-tab-count {
-    font-size: 10px; font-weight: 700;
-    background: #EFE7DE; color: #8B7355;
-    padding: 1px 6px; border-radius: 8px;
-  }
-  .pr-tab.active .pr-tab-count {
-    background: rgba(198,169,105,0.2); color: #C6A969;
   }
 
   /* Tab Panel */
@@ -407,36 +407,16 @@ const STYLES = `
   .pr-toggle-on  { color: #C6A969; }
   .pr-toggle-off { color: #D6D3D1; }
 
-  /* ── Activity Log ── */
-  .pr-activity-item {
-    display: flex; align-items: flex-start; gap: 12px;
-    padding: 11px 0; border-bottom: 1px solid #F8F5F2;
-  }
-  .pr-activity-item:last-child { border-bottom: none; }
-  .pr-act-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    flex-shrink: 0; margin-top: 5px;
-  }
-  .pr-act-dot-green  { background: #22c55e; }
-  .pr-act-dot-gold   { background: #C6A969; }
-  .pr-act-dot-red    { background: #dc2626; }
-  .pr-act-dot-blue   { background: #2563eb; }
-  .pr-act-dot-gray   { background: #D6D3D1; }
-  .pr-act-content { flex: 1; }
-  .pr-act-title { font-size: 13px; font-weight: 600; color: #2D2D2D; }
-  .pr-act-meta  { font-size: 11px; color: #8B7355; margin-top: 2px; }
-  .pr-act-time  { font-size: 11px; color: #8B7355; white-space: nowrap; flex-shrink: 0; }
-
-  /* ── Security Item ── */
+  /* ── Security item (compact, inside Overview) ── */
   .pr-sec-item {
     display: flex; align-items: center;
     justify-content: space-between;
-    padding: 13px 0; border-bottom: 1px solid #F8F5F2;
+    padding: 12px 0; border-bottom: 1px solid #F8F5F2;
     gap: 12px;
   }
   .pr-sec-item:last-child { border-bottom: none; padding-bottom: 0; }
   .pr-sec-icon {
-    width: 36px; height: 36px;
+    width: 34px; height: 34px;
     background: #EFE7DE; border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
     color: #8B7355; flex-shrink: 0;
@@ -453,29 +433,25 @@ const STYLES = `
   }
   .pr-sec-action:hover { background: #2D2D2D; color: #C6A969; border-color: #2D2D2D; }
 
-  /* ── Session Item ── */
-  .pr-session {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px; background: #F8F5F2;
-    border: 1px solid #EFE7DE; border-radius: 10px;
-    margin-bottom: 8px; transition: border-color 0.2s;
+  /* ── Mini Activity Strip ── */
+  .pr-mini-act {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid #F8F5F2;
   }
-  .pr-session:hover { border-color: #C6A969; }
-  .pr-session:last-child { margin-bottom: 0; }
-  .pr-session-icon {
-    width: 36px; height: 36px;
-    background: #EFE7DE; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    color: #8B7355; flex-shrink: 0;
+  .pr-mini-act:last-child { border-bottom: none; }
+  .pr-act-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 5px;
   }
-  .pr-session-info { flex: 1; }
-  .pr-session-device { font-size: 13px; font-weight: 600; color: #2D2D2D; }
-  .pr-session-meta   { font-size: 11px; color: #8B7355; margin-top: 2px; }
-  .pr-session-current {
-    font-size: 10px; font-weight: 700; color: #16a34a;
-    background: #DCFCE7; padding: 3px 8px; border-radius: 12px;
-    border: 1px solid #86EFAC;
-  }
+  .pr-act-dot-green  { background: #22c55e; }
+  .pr-act-dot-gold   { background: #C6A969; }
+  .pr-act-dot-red    { background: #dc2626; }
+  .pr-act-dot-blue   { background: #2563eb; }
+  .pr-act-dot-gray   { background: #D6D3D1; }
+  .pr-act-content { flex: 1; }
+  .pr-act-title { font-size: 13px; font-weight: 600; color: #2D2D2D; }
+  .pr-act-meta  { font-size: 11px; color: #8B7355; margin-top: 2px; }
+  .pr-act-time  { font-size: 11px; color: #8B7355; white-space: nowrap; flex-shrink: 0; }
 
   /* ── Role Panel ── */
   .pr-role-panel {
@@ -504,27 +480,6 @@ const STYLES = `
   .pr-rp-stat-label { font-size: 10px; color: #9E9087; text-transform: uppercase; letter-spacing: 0.5px; }
   .pr-rp-stat-val   { font-size: 14px; font-weight: 700; color: #C6A969; margin-top: 3px; }
 
-  /* ── Danger Zone ── */
-  .pr-danger-zone {
-    border: 1.5px solid #FCA5A5;
-    border-radius: 14px;
-    overflow: hidden;
-  }
-  .pr-danger-head {
-    background: #FEF2F2; padding: 14px 20px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .pr-danger-title { font-size: 13px; font-weight: 700; color: #dc2626; }
-  .pr-danger-body { padding: 16px 20px; background: #FFFFFF; }
-  .pr-danger-item {
-    display: flex; align-items: center;
-    justify-content: space-between; gap: 16px;
-    padding: 12px 0; border-bottom: 1px solid #F8F5F2;
-  }
-  .pr-danger-item:last-child { border-bottom: none; padding-bottom: 0; }
-  .pr-danger-label { font-size: 13px; font-weight: 600; color: #2D2D2D; }
-  .pr-danger-desc  { font-size: 12px; color: #8B7355; margin-top: 2px; }
-
   /* ── Buttons ── */
   .pr-btn-primary {
     display: flex; align-items: center; gap: 6px;
@@ -545,15 +500,6 @@ const STYLES = `
     font-family: inherit; transition: all 0.2s;
   }
   .pr-btn-secondary:hover { background: #EFE7DE; color: #2D2D2D; }
-  .pr-btn-danger {
-    display: flex; align-items: center; gap: 6px;
-    padding: 0 18px; height: 36px;
-    background: #FEE2E2; color: #dc2626;
-    border: 1.5px solid #FCA5A5; border-radius: 9px;
-    font-size: 12px; font-weight: 600; cursor: pointer;
-    font-family: inherit; transition: all 0.2s;
-  }
-  .pr-btn-danger:hover { background: #dc2626; color: #FFFFFF; border-color: #dc2626; }
   .pr-btn-logout {
     display: flex; align-items: center; gap: 8px;
     padding: 0 20px; height: 42px; width: 100%;
@@ -682,7 +628,7 @@ const STYLES = `
   /* ── Account info card ── */
   .pr-acct-row {
     display: flex; align-items: center; gap: 10px;
-    padding: 8px 0; border-bottom: 1px solid #F8F5F2;
+    padding: 9px 0; border-bottom: 1px solid #F8F5F2;
   }
   .pr-acct-row:last-child { border-bottom: none; }
   .pr-acct-icon {
@@ -694,12 +640,6 @@ const STYLES = `
   .pr-acct-label { font-size: 10px; color: #8B7355; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
   .pr-acct-val   { font-size: 12px; font-weight: 600; color: #2D2D2D; margin-top: 1px; }
 
-  /* ── Empty panel ── */
-  .pr-empty {
-    text-align: center; padding: 32px 20px;
-    color: #D6D3D1; font-size: 13px;
-  }
-
   /* Responsive */
   @media (max-width: 900px) {
     .pr-shell { flex-direction: column; }
@@ -710,9 +650,9 @@ const STYLES = `
 `;
 
 /* ══════════════════════════════════════════════════════════════════════
-   MOCK DATA
+   ACTIVITY LOG DATA
 ══════════════════════════════════════════════════════════════════════ */
-const ACTIVITY_LOG = [
+const ACTIVITY_ADMIN = [
   { dot: 'green', title: 'Logged in successfully',     meta: 'Chrome · Windows · 192.168.1.10',         time: 'Just now'    },
   { dot: 'gold',  title: 'Invoice #INV-1042 created',  meta: 'New invoice for Ravi Kumar — ₹12,400',     time: '2h ago'      },
   { dot: 'green', title: 'Payment received',            meta: '₹18,500 recorded for Invoice #INV-1038',   time: '5h ago'      },
@@ -721,8 +661,7 @@ const ACTIVITY_LOG = [
   { dot: 'red',   title: 'Failed login attempt',        meta: 'Unknown device · IP 103.55.12.8',          time: '3 days ago'  },
   { dot: 'gray',  title: 'Logged out',                  meta: 'Session ended · 8h session duration',      time: '3 days ago'  },
 ];
-
-const CASHIER_ACTIVITY = [
+const ACTIVITY_CASHIER = [
   { dot: 'green', title: 'Logged in successfully',      meta: 'Chrome · Windows · Counter 2',            time: 'Just now'    },
   { dot: 'gold',  title: 'Invoice #INV-1051 generated', meta: 'Billed ₹4,200 to Mohan Lal',              time: '1h ago'      },
   { dot: 'green', title: 'Cash payment collected',      meta: '₹1,850 for INV-1049',                     time: '2h ago'      },
@@ -731,26 +670,9 @@ const CASHIER_ACTIVITY = [
   { dot: 'gray',  title: 'Shift ended',                 meta: '9AM–5PM shift completed · 18 invoices',   time: 'Yesterday'   },
 ];
 
-const SESSIONS = [
-  { icon: Monitor,    device: 'Chrome on Windows 11',       location: 'Bangalore, Karnataka · 192.168.1.10', time: 'Active now', current: true  },
-  { icon: Smartphone, device: 'Mobile Chrome · Android',    location: 'Bangalore, Karnataka · 103.44.22.5',  time: '2h ago',     current: false },
-];
-
 /* ══════════════════════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════════════════════ */
-function Toggle({ on, onChange }) {
-  return (
-    <button
-      className={`pr-toggle-btn ${on ? 'pr-toggle-on' : 'pr-toggle-off'}`}
-      onClick={() => onChange(!on)}
-      aria-pressed={on}
-      title={on ? 'Turn off' : 'Turn on'}
-    >
-      {on ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
-    </button>
-  );
-}
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -781,10 +703,10 @@ function ChangePasswordModal({ onClose, onSave }) {
 
   const strength = (pw) => {
     let s = 0;
-    if (pw.length >= 8)        s++;
-    if (/[A-Z]/.test(pw))     s++;
-    if (/[0-9]/.test(pw))     s++;
-    if (/[^A-Za-z0-9]/.test(pw)) s++;
+    if (pw.length >= 8)            s++;
+    if (/[A-Z]/.test(pw))         s++;
+    if (/[0-9]/.test(pw))         s++;
+    if (/[^A-Za-z0-9]/.test(pw))  s++;
     return s;
   };
   const pw = form.newPw;
@@ -794,9 +716,9 @@ function ChangePasswordModal({ onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.current)                 { setError('Please enter your current password.'); return; }
-    if (pw.length < 8)                 { setError('New password must be at least 8 characters.'); return; }
-    if (pw !== form.confirm)           { setError('New passwords do not match.'); return; }
+    if (!form.current)       { setError('Please enter your current password.'); return; }
+    if (pw.length < 8)       { setError('New password must be at least 8 characters.'); return; }
+    if (pw !== form.confirm) { setError('New passwords do not match.'); return; }
     setSaving(true);
     await new Promise(r => setTimeout(r, 900));
     setSaving(false);
@@ -835,7 +757,6 @@ function ChangePasswordModal({ onClose, onSave }) {
           <PwInput field="current" label="Current Password"     placeholder="Enter current password" />
           <PwInput field="newPw"   label="New Password"         placeholder="Min 8 characters"       />
 
-          {/* Strength bar */}
           {pw.length > 0 && (
             <div>
               <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
@@ -906,7 +827,7 @@ function LogoutModal({ user, onCancel, onConfirm, loading }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   OVERVIEW TAB — Personal Info + Role Section
+   PERSONAL INFO CARD (Overview Tab)
 ══════════════════════════════════════════════════════════════════════ */
 function PersonalInfoCard({ user, onSave }) {
   const isAdmin = user?.role === 'ADMIN';
@@ -990,11 +911,11 @@ function PersonalInfoCard({ user, onSave }) {
         ) : (
           <>
             {[
-              { icon: User,      label: 'Full Name',      val: form.name,        copy: false },
-              { icon: Mail,      label: 'Email Address',  val: user?.email,      copy: true, badge: 'Verified' },
-              { icon: Phone,     label: 'Phone Number',   val: form.phone,       copy: true  },
-              { icon: Briefcase, label: 'Department',     val: form.department,  copy: false },
-              { icon: MapPin,    label: 'Location',       val: form.location,    copy: false },
+              { icon: User,      label: 'Full Name',     val: form.name,       copy: false },
+              { icon: Mail,      label: 'Email Address', val: user?.email,     copy: true,  badge: 'Verified' },
+              { icon: Phone,     label: 'Phone Number',  val: form.phone,      copy: true  },
+              { icon: Briefcase, label: 'Department',    val: form.department, copy: false },
+              { icon: MapPin,    label: 'Location',      val: form.location,   copy: false },
             ].map(({ icon: Icon, label, val, copy, badge }, i) => (
               <div key={i} className="pr-info-row" style={i === 0 ? { paddingTop: 4 } : {}}>
                 <div className="pr-info-icon"><Icon size={15} /></div>
@@ -1033,6 +954,9 @@ function PersonalInfoCard({ user, onSave }) {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   ROLE CARDS (Overview Tab)
+══════════════════════════════════════════════════════════════════════ */
 function AdminRoleCard() {
   const permissions = [
     { label: 'Product & Inventory Management',  granted: true  },
@@ -1120,12 +1044,12 @@ function CashierRoleCard() {
         </div>
         <div className="pr-section-lbl"><Hash size={11} /> Assignment Details</div>
         {[
-          { icon: Hash,       label: 'Employee ID',   val: data.employeeId,   copy: true  },
-          { icon: Building2,  label: 'Branch',        val: data.branch,       copy: false },
-          { icon: Briefcase,  label: 'Counter',       val: data.counter,      copy: false },
-          { icon: Clock,      label: 'Shift Timing',  val: data.shift,        copy: false },
-          { icon: Calendar,   label: 'Joining Date',  val: data.joiningDate,  copy: false },
-          { icon: User,       label: 'Supervisor',    val: data.supervisor,   copy: false },
+          { icon: Hash,       label: 'Employee ID',  val: data.employeeId,  copy: true  },
+          { icon: Building2,  label: 'Branch',       val: data.branch,      copy: false },
+          { icon: Briefcase,  label: 'Counter',      val: data.counter,     copy: false },
+          { icon: Clock,      label: 'Shift Timing', val: data.shift,       copy: false },
+          { icon: Calendar,   label: 'Joining Date', val: data.joiningDate, copy: false },
+          { icon: User,       label: 'Supervisor',   val: data.supervisor,  copy: false },
         ].map(({ icon: Icon, label, val, copy }, i) => (
           <div key={i} className="pr-info-row" style={i === 0 ? { paddingTop: 4 } : {}}>
             <div className="pr-info-icon"><Icon size={15} /></div>
@@ -1141,131 +1065,43 @@ function CashierRoleCard() {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   SECURITY TAB
-══════════════════════════════════════════════════════════════════════ */
-function SecurityTab({ onOpenChangePW, onSave }) {
-  const [twoFA, setTwoFA]       = useState(false);
-  const [loginAlert, setAlert]  = useState(true);
-
-  return (
-    <>
-      <div className="pr-card">
-        <div className="pr-card-head">
-          <div>
-            <div className="pr-card-title"><Lock size={15} /> Password & Authentication</div>
-            <div className="pr-card-sub">Manage your password and two-factor authentication</div>
-          </div>
-        </div>
-        <div className="pr-card-body">
-          <div className="pr-sec-item" style={{ paddingTop: 4 }}>
-            <div className="pr-sec-icon"><Lock size={16} /></div>
-            <div className="pr-sec-info">
-              <div className="pr-sec-label">Password</div>
-              <div className="pr-sec-desc">Last changed 45 days ago · ●●●●●●●●</div>
-            </div>
-            <button className="pr-sec-action" onClick={onOpenChangePW}>Change</button>
-          </div>
-
-          <div className="pr-sec-item">
-            <div className="pr-sec-icon"><Smartphone size={16} /></div>
-            <div className="pr-sec-info">
-              <div className="pr-sec-label">Two-Factor Authentication</div>
-              <div className="pr-sec-desc">{twoFA ? 'Enabled — using Authenticator app' : 'Not enabled — highly recommended'}</div>
-            </div>
-            <Toggle on={twoFA} onChange={v => { setTwoFA(v); onSave(v ? '2FA enabled successfully' : '2FA has been disabled'); }} />
-          </div>
-
-          {twoFA && (
-            <div style={{ background: '#DCFCE7', border: '1px solid #86EFAC', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#15803d', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 8 }}>
-              <CheckCircle size={13} /> 2FA active — your account is secured with an authenticator app.
-            </div>
-          )}
-
-          <div className="pr-sec-item">
-            <div className="pr-sec-icon"><Bell size={16} /></div>
-            <div className="pr-sec-info">
-              <div className="pr-sec-label">Login Alerts</div>
-              <div className="pr-sec-desc">Get notified of new logins from unrecognized devices</div>
-            </div>
-            <Toggle on={loginAlert} onChange={v => { setAlert(v); onSave(v ? 'Login alerts enabled' : 'Login alerts disabled'); }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Active Sessions */}
-      <div className="pr-card">
-        <div className="pr-card-head">
-          <div>
-            <div className="pr-card-title"><Monitor size={15} /> Active Sessions</div>
-            <div className="pr-card-sub">Devices currently signed in to your account</div>
-          </div>
-          <button className="pr-btn-secondary" style={{ height: 34, fontSize: 12, padding: '0 14px' }} onClick={() => onSave('All other sessions revoked')}>
-            <RefreshCw size={13} /> Revoke Others
-          </button>
-        </div>
-        <div className="pr-card-body">
-          {SESSIONS.map((s, i) => (
-            <div key={i} className="pr-session">
-              <div className="pr-session-icon"><s.icon size={16} /></div>
-              <div className="pr-session-info">
-                <div className="pr-session-device">{s.device}</div>
-                <div className="pr-session-meta">{s.location} · {s.time}</div>
-              </div>
-              {s.current
-                ? <div className="pr-session-current">Current</div>
-                : <button className="pr-sec-action" style={{ fontSize: 11, padding: '4px 10px' }} onClick={() => onSave('Session revoked')}>Revoke</button>
-              }
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="pr-danger-zone">
-        <div className="pr-danger-head">
-          <AlertTriangle size={15} style={{ color: '#dc2626' }} />
-          <div className="pr-danger-title">Danger Zone</div>
-        </div>
-        <div className="pr-danger-body">
-          <div className="pr-danger-item" style={{ paddingTop: 4 }}>
-            <div>
-              <div className="pr-danger-label">Sign Out All Devices</div>
-              <div className="pr-danger-desc">Immediately end all active sessions on every device</div>
-            </div>
-            <button className="pr-btn-danger" onClick={() => onSave('All sessions signed out')}>
-              <LogOut size={13} /> Sign Out All
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
 
 /* ══════════════════════════════════════════════════════════════════════
-   ACTIVITY TAB
+   ACTIVITY LOG CARD (Overview Tab)
 ══════════════════════════════════════════════════════════════════════ */
-function ActivityTab({ isAdmin }) {
+function ActivityLogCard({ isAdmin }) {
   const [showAll, setShowAll] = useState(false);
-  const log     = isAdmin ? ACTIVITY_LOG : CASHIER_ACTIVITY;
-  const visible = showAll ? log : log.slice(0, 5);
+  const log     = isAdmin ? ACTIVITY_ADMIN : ACTIVITY_CASHIER;
+  const visible = showAll ? log : log.slice(0, 4);
+
+  const dotColors = {
+    green: '#22c55e', gold: '#C6A969',
+    red:   '#dc2626', blue: '#2563eb', gray: '#D6D3D1',
+  };
 
   return (
     <div className="pr-card">
       <div className="pr-card-head">
         <div>
-          <div className="pr-card-title"><Activity size={15} /> Recent Activity</div>
-          <div className="pr-card-sub">Your login history and recent account actions</div>
+          <div className="pr-card-title"><Clock size={15} /> Activity Log</div>
+          <div className="pr-card-sub">Your recent account actions, logins and events</div>
         </div>
-        <button className="pr-btn-secondary" style={{ height: 32, fontSize: 12, padding: '0 12px' }} onClick={() => setShowAll(v => !v)}>
+        <button
+          className="pr-btn-secondary"
+          style={{ height: 32, fontSize: 12, padding: '0 12px' }}
+          onClick={() => setShowAll(v => !v)}
+        >
           {showAll ? 'Show Less' : `View All (${log.length})`}
         </button>
       </div>
       <div className="pr-card-body">
         {visible.map((a, i) => (
-          <div key={i} className="pr-activity-item">
-            <div className={`pr-act-dot pr-act-dot-${a.dot}`} />
+          <div key={i} className="pr-mini-act">
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: dotColors[a.dot] || '#D6D3D1',
+              flexShrink: 0, marginTop: 6,
+            }} />
             <div className="pr-act-content">
               <div className="pr-act-title">{a.title}</div>
               <div className="pr-act-meta">{a.meta}</div>
@@ -1279,123 +1115,6 @@ function ActivityTab({ isAdmin }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PREFERENCES TAB
-══════════════════════════════════════════════════════════════════════ */
-function PreferencesTab({ onSave }) {
-  const [notifs, setNotifs] = useState({
-    emailInvoice:  true,
-    emailPayment:  true,
-    emailLogin:    false,
-    pushLowStock:  true,
-    pushApproval:  true,
-    weeklyReport:  false,
-  });
-  const set = (k) => setNotifs(n => {
-    const updated = { ...n, [k]: !n[k] };
-    onSave('Notification preferences saved');
-    return updated;
-  });
-
-  const notifGroups = [
-    {
-      label: 'Email Notifications',
-      icon: Mail,
-      items: [
-        { key: 'emailInvoice', label: 'Invoice Created', desc: 'Receive email when a new invoice is generated' },
-        { key: 'emailPayment', label: 'Payment Received', desc: 'Receive email when a payment is recorded' },
-        { key: 'emailLogin',   label: 'New Login Alert', desc: 'Receive email on unrecognized device login' },
-      ],
-    },
-    {
-      label: 'In-App Notifications',
-      icon: Bell,
-      items: [
-        { key: 'pushLowStock',  label: 'Low Stock Alert', desc: 'Notify when a product falls below minimum stock' },
-        { key: 'pushApproval',  label: 'Cashier Approval', desc: 'Notify when a new cashier awaits approval' },
-        { key: 'weeklyReport',  label: 'Weekly Summary', desc: 'Receive a weekly summary every Monday morning' },
-      ],
-    },
-  ];
-
-  return (
-    <>
-      <div className="pr-card">
-        <div className="pr-card-head">
-          <div>
-            <div className="pr-card-title"><Bell size={15} /> Notification Preferences</div>
-            <div className="pr-card-sub">Choose what you want to be notified about</div>
-          </div>
-        </div>
-        <div className="pr-card-body">
-          {notifGroups.map(({ label, icon: Icon, items }) => (
-            <div key={label}>
-              <div className="pr-section-lbl"><Icon size={11} /> {label}</div>
-              {items.map(({ key, label: l, desc }) => (
-                <div key={key} className="pr-toggle-row">
-                  <div className="pr-toggle-info">
-                    <div className="pr-toggle-label">{l}</div>
-                    <div className="pr-toggle-desc">{desc}</div>
-                  </div>
-                  <Toggle on={notifs[key]} onChange={() => set(key)} />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="pr-card">
-        <div className="pr-card-head">
-          <div>
-            <div className="pr-card-title"><Globe size={15} /> Regional Settings</div>
-            <div className="pr-card-sub">Language, timezone and date format preferences</div>
-          </div>
-        </div>
-        <div className="pr-card-body">
-          <div className="pr-grid2">
-            <div className="pr-field">
-              <label>Language</label>
-              <select defaultValue="en">
-                <option value="en">English</option>
-                <option value="ta">Tamil</option>
-                <option value="hi">Hindi</option>
-              </select>
-            </div>
-            <div className="pr-field">
-              <label>Timezone</label>
-              <select defaultValue="IST">
-                <option value="IST">IST (UTC+5:30)</option>
-                <option value="UTC">UTC</option>
-              </select>
-            </div>
-            <div className="pr-field">
-              <label>Date Format</label>
-              <select defaultValue="dd/mm/yyyy">
-                <option value="dd/mm/yyyy">DD/MM/YYYY</option>
-                <option value="mm/dd/yyyy">MM/DD/YYYY</option>
-                <option value="yyyy-mm-dd">YYYY-MM-DD</option>
-              </select>
-            </div>
-            <div className="pr-field">
-              <label>Currency Display</label>
-              <select defaultValue="inr">
-                <option value="inr">₹ Indian Rupee (INR)</option>
-                <option value="usd">$ US Dollar (USD)</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-            <button className="pr-btn-primary" onClick={() => onSave('Regional settings saved')}>
-              <Save size={14} /> Save Preferences
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
    PROFILE — DEFAULT EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Profile() {
@@ -1405,14 +1124,12 @@ export default function Profile() {
 
   const isAdmin = user?.role === 'ADMIN';
 
-  const [activeTab, setActiveTab]         = useState('overview');
   const [toast, setToast]                 = useState(null);
   const [showLogout, setShowLogout]       = useState(false);
   const [logoutLoading, setLLo]           = useState(false);
   const [showChangePW, setShowCPW]        = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
-  // Profile completion percentage (mocked based on filled fields)
   const completionPct = avatarPreview ? 90 : 75;
 
   const showToast = (msg, type = 'success') => {
@@ -1427,32 +1144,18 @@ export default function Profile() {
   };
 
   const handleAvatarClick = () => fileInputRef.current?.click();
-
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('Please select a valid image file.', 'error');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { showToast('Please select a valid image file.', 'error'); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setAvatarPreview(ev.target.result);
-      showToast('Profile photo updated!');
-    };
+    reader.onload = (ev) => { setAvatarPreview(ev.target.result); showToast('Profile photo updated!'); };
     reader.readAsDataURL(file);
   };
 
   const accountStats = isAdmin
     ? [{ val: '12', lbl: 'Users' }, { val: '248', lbl: 'Invoices' }]
     : [{ val: '87',  lbl: 'Bills' }, { val: '14',  lbl: 'Today'   }];
-
-  const tabs = [
-    { id: 'overview',     label: 'Overview',     icon: User    },
-    { id: 'security',     label: 'Security',     icon: Shield  },
-    { id: 'activity',     label: 'Activity',     icon: Activity, count: isAdmin ? '7' : '6' },
-    { id: 'preferences',  label: 'Preferences',  icon: Settings },
-  ];
 
   return (
     <>
@@ -1582,14 +1285,9 @@ export default function Profile() {
               <div className="pr-card-title" style={{ fontSize: 13 }}><ChevronRight size={14} /> Quick Actions</div>
             </div>
             <div style={{ padding: '6px 10px 10px' }}>
-              <button className="pr-quick-action" onClick={() => { setShowCPW(true); }}>
+              <button className="pr-quick-action" onClick={() => setShowCPW(true)}>
                 <div className="pr-qa-icon pr-qa-gold"><Key size={15} /></div>
                 <div><div className="pr-qa-label">Change Password</div><div className="pr-qa-sub">Update your login password</div></div>
-                <ChevronRight size={14} color="#D6D3D1" />
-              </button>
-              <button className="pr-quick-action" onClick={() => setActiveTab('security')}>
-                <div className="pr-qa-icon pr-qa-blue"><Shield size={15} /></div>
-                <div><div className="pr-qa-label">Security Settings</div><div className="pr-qa-sub">2FA, sessions & alerts</div></div>
                 <ChevronRight size={14} color="#D6D3D1" />
               </button>
               <button className="pr-quick-action" onClick={() => navigate(isAdmin ? '/admin/settings' : '/cashier/settings')}>
@@ -1614,56 +1312,9 @@ export default function Profile() {
 
         {/* ════════════════ RIGHT COLUMN ════════════════ */}
         <div className="pr-right">
-
-          {/* Tab Bar */}
-          <div className="pr-tabs">
-            {tabs.map(({ id, label, icon: Icon, count }) => (
-              <button
-                key={id}
-                className={`pr-tab ${activeTab === id ? 'active' : ''}`}
-                onClick={() => setActiveTab(id)}
-              >
-                <Icon size={14} />
-                {label}
-                {count && <span className="pr-tab-count">{count}</span>}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab content sits below the tab bar with a connected card look */}
-          <div style={{
-            background: '#FFFFFF',
-            border: '1px solid #EFE7DE',
-            borderTop: 'none',
-            borderRadius: '0 0 14px 14px',
-            padding: '0 22px 22px',
-            boxShadow: '0 1px 4px rgba(45,45,45,0.05)',
-          }}>
-            <div className="pr-tab-panel">
-              {activeTab === 'overview' && (
-                <>
-                  <PersonalInfoCard user={user} onSave={showToast} />
-                  {isAdmin ? <AdminRoleCard /> : <CashierRoleCard />}
-                </>
-              )}
-
-              {activeTab === 'security' && (
-                <SecurityTab
-                  onOpenChangePW={() => setShowCPW(true)}
-                  onSave={showToast}
-                />
-              )}
-
-              {activeTab === 'activity' && (
-                <ActivityTab isAdmin={isAdmin} />
-              )}
-
-              {activeTab === 'preferences' && (
-                <PreferencesTab onSave={showToast} />
-              )}
-            </div>
-          </div>
-
+          <PersonalInfoCard user={user} onSave={showToast} />
+          {isAdmin ? <AdminRoleCard /> : <CashierRoleCard />}
+          <ActivityLogCard isAdmin={isAdmin} />
         </div>
       </div>
     </>
