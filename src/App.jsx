@@ -65,6 +65,10 @@ export default function App() {
           <Route path="/admin/settings/preferences/system"              element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
           <Route path="/admin/profile"   element={<RoleRoute role="ADMIN"><Profile /></RoleRoute>} />
 
+          <Route path="/cashier/settings"                                    element={<RoleRoute role="CASHIER"><Settings /></RoleRoute>} />
+          <Route path="/cashier/settings/preferences/notifications"         element={<RoleRoute role="CASHIER"><Settings /></RoleRoute>} />
+          <Route path="/cashier/settings/preferences/security"              element={<RoleRoute role="CASHIER"><Settings /></RoleRoute>} />
+
           <Route path="/cashier/dashboard" element={<RoleRoute role="CASHIER"><CashierDashboard /></RoleRoute>} />
           <Route path="/cashier/billing"   element={<RoleRoute role="CASHIER"><CashierBilling /></RoleRoute>} />
           <Route path="/cashier/products"  element={<RoleRoute role="CASHIER"><CashierProducts /></RoleRoute>} />

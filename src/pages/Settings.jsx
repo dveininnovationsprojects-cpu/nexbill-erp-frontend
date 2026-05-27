@@ -5,8 +5,9 @@
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   Building2, FileText, Percent, Bell, Shield,
   Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
@@ -31,7 +32,6 @@ const STYLES = `
   }
 
   /* ── Sidebar ── */
-<<<<<<< HEAD
   .st-sidebar {
     width: 224px;
     flex-shrink: 0;
@@ -1311,16 +1311,33 @@ function SecurityTab({ onSave }) {
 ══════════════════════════════════════════════════════════════════════ */
 export default function Settings() {
   const location = useLocation();
+  const navigate  = useNavigate();
+  const { user }  = useAuth();
   const path = location.pathname;
-  
+  const isAdmin = user?.role === 'ADMIN';
+  const prefix  = isAdmin ? '/admin' : '/cashier';
+
   // Determine active tab from path
-  let activeTab = 'profile';
-  if (path.includes('/accounts/business-profile')) activeTab = 'profile';
-  else if (path.includes('/billing/tax')) activeTab = 'tax';
-  else if (path.includes('/billing/invoice')) activeTab = 'invoice';
+  let activeTab = isAdmin ? 'profile' : 'notifications';
+  if (path.includes('/accounts/business-profile'))    activeTab = 'profile';
+  else if (path.includes('/billing/tax'))             activeTab = 'tax';
+  else if (path.includes('/billing/invoice'))         activeTab = 'invoice';
   else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
-  else if (path.includes('/preferences/security')) activeTab = 'security';
-  
+  else if (path.includes('/preferences/security'))    activeTab = 'security';
+
+  // Cashier only sees Notifications + Security
+  const visibleTabs = isAdmin ? TABS : TABS.filter(t => ['notifications', 'security'].includes(t.id));
+
+  const TAB_URLS = {
+    profile:       `${prefix}/settings/accounts/business-profile`,
+    invoice:       `${prefix}/settings/billing/invoice`,
+    tax:           `${prefix}/settings/billing/tax`,
+    notifications: `${prefix}/settings/preferences/notifications`,
+    security:      `${prefix}/settings/preferences/security`,
+  };
+
+  const setActiveTab = (id) => navigate(TAB_URLS[id]);
+
   const [toast, setToast] = useState(null);
 
   const showToast = (msg = 'Settings saved successfully!', type = 'success') => {
@@ -1362,7 +1379,8 @@ export default function Settings() {
         {/* ── Sidebar ── */}
         <div className="st-sidebar">
           {groups.map(group => {
-            const groupTabs = TABS.filter(t => t.group === group);
+            const groupTabs = visibleTabs.filter(t => t.group === group);
+            if (groupTabs.length === 0) return null;
             return (
               <div key={group}>
                 <div className="st-sidebar-section">{group}</div>

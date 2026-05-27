@@ -37,6 +37,7 @@ const cashierNav = [
   { icon: Users,           label: 'Customers', to: '/cashier/customers' },
   { icon: FileText,        label: 'Invoices',  to: '/cashier/invoices' },
   { icon: CreditCard,      label: 'Payments',  to: '/cashier/payments' },
+  { icon: Settings,        label: 'Settings',  to: '/cashier/settings' },
   { icon: UserCircle,      label: 'Profile',   to: '/cashier/profile'  },
 ];
 
