@@ -511,10 +511,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             <div style={styles.cardHead}>
               <div>
                 <h2 style={styles.cardTitle}>Customer List</h2>
-                <p style={styles.muted}>
-                  Showing {startCustomerNumber} - {endCustomerNumber} of{" "}
-                  {filteredCustomers.length} customers
-                </p>
+                
               </div>
             </div>
 
@@ -689,7 +686,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             {filteredCustomers.length > 0 && (
               <div className="customer-pagination" style={styles.pagination}>
                 <div style={styles.pageInfo}>
-                  Page {currentPage} of {totalPages} • 5 customers per page
+                  Page {currentPage} of {totalPages} 
                 </div>
 
                 <div style={styles.pageControls}>
