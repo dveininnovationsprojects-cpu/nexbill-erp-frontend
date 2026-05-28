@@ -1,52 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 
+const API_BASE_URL = "/api/customers";
+const CUSTOMERS_PER_PAGE = 5;
+
 const emptyCustomer = {
   id: "",
   name: "",
   mobile: "",
   email: "",
-  city: "",
-  state: "",
-  pincode: "",
-  gst: "",
-  type: "Regular",
-  status: "Active",
-  address: "",
-  totalOrders: 0,
-  totalSpent: 0,
-  lastPurchase: "",
-  notes: "",
+  creditLimit: "",
+  billAmount: "",
+  paidAmount: "",
 };
 
-const CUSTOMERS_PER_PAGE = 5;
-
 function Customers({ role = "admin", initialCustomers = [] }) {
-  const [customers, setCustomers] = useState(() => {
-    try {
-      const savedCustomers = localStorage.getItem("nexbill_customers");
-      return savedCustomers ? JSON.parse(savedCustomers) : initialCustomers;
-    } catch {
-      return initialCustomers;
-    }
-  });
-
-  const [salesRecords, setSalesRecords] = useState(() => {
-    try {
-      const savedSales = localStorage.getItem("erp_sales_records");
-      return savedSales ? JSON.parse(savedSales) : [];
-    } catch {
-      return [];
-    }
-  });
-
+  const [customers, setCustomers] = useState(initialCustomers);
   const [view, setView] = useState("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [typeFilter, setTypeFilter] = useState("All");
+  const [tierFilter, setTierFilter] = useState("All");
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyCustomer);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const canAccess =
     role === "admin" ||
@@ -55,53 +32,40 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     role === "CASHIER";
 
   useEffect(() => {
-    function loadSalesRecords() {
-      try {
-        const savedSales = localStorage.getItem("erp_sales_records");
-        setSalesRecords(savedSales ? JSON.parse(savedSales) : []);
-      } catch {
-        setSalesRecords([]);
-      }
-    }
-
-    loadSalesRecords();
-
-    window.addEventListener("storage", loadSalesRecords);
-    window.addEventListener("focus", loadSalesRecords);
-
-    return () => {
-      window.removeEventListener("storage", loadSalesRecords);
-      window.removeEventListener("focus", loadSalesRecords);
-    };
+    loadCustomers();
   }, []);
 
   const filteredCustomers = useMemo(() => {
     return customers
       .filter((customer) => {
-        const text = `
-          ${customer.id}
-          ${customer.name}
-          ${customer.mobile}
-          ${customer.email}
-          ${customer.city}
-          ${customer.state}
-          ${customer.type}
-          ${customer.status}
-          ${customer.gst}
+        const searchableText = `
+          ${customer.id || ""}
+          ${customer.name || ""}
+          ${customer.mobile || ""}
+          ${customer.email || ""}
+          ${customer.tier || ""}
+          ${customer.status || ""}
+          ${customer.totalSpentAmount || ""}
+          ${customer.creditLimit || ""}
+          ${customer.outstandingDebt || ""}
         `.toLowerCase();
 
+        const statusMatch =
+          statusFilter === "All" ||
+          String(customer.status || "").toUpperCase() === statusFilter;
+
+        const tierMatch =
+          tierFilter === "All" ||
+          String(customer.tier || "").toUpperCase() === tierFilter;
+
         return (
-          text.includes(search.toLowerCase()) &&
-          (statusFilter === "All" || customer.status === statusFilter) &&
-          (typeFilter === "All" || customer.type === typeFilter)
+          searchableText.includes(search.toLowerCase()) &&
+          statusMatch &&
+          tierMatch
         );
       })
-      .sort((a, b) => {
-        const aNumber = Number(String(a.id || "").replace("CUS-", "")) || 0;
-        const bNumber = Number(String(b.id || "").replace("CUS-", "")) || 0;
-        return aNumber - bNumber;
-      });
-  }, [customers, search, statusFilter, typeFilter]);
+      .sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
+  }, [customers, search, statusFilter, tierFilter]);
 
   const totalPages = Math.max(
     1,
@@ -116,7 +80,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter, typeFilter]);
+  }, [search, statusFilter, tierFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -124,9 +88,333 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     }
   }, [currentPage, totalPages]);
 
-  function saveCustomers(updatedCustomers) {
-    setCustomers(updatedCustomers);
-    localStorage.setItem("nexbill_customers", JSON.stringify(updatedCustomers));
+  function getToken() {
+    const possibleKeys = [
+      "token",
+      "authToken",
+      "accessToken",
+      "jwt",
+      "user",
+      "auth",
+      "nexbill_user",
+      "nexbill_auth_user",
+    ];
+
+    for (const key of possibleKeys) {
+      const value = localStorage.getItem(key);
+
+      if (!value) continue;
+
+      try {
+        const parsed = JSON.parse(value);
+
+        if (parsed?.token) return parsed.token;
+        if (parsed?.accessToken) return parsed.accessToken;
+        if (parsed?.jwt) return parsed.jwt;
+        if (parsed?.user?.token) return parsed.user.token;
+        if (parsed?.user?.accessToken) return parsed.user.accessToken;
+      } catch {
+        if (value.length > 20) return value;
+      }
+    }
+
+    return "";
+  }
+
+  function getHeaders() {
+    const token = getToken();
+
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  }
+
+  async function readResponse(response) {
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+    const data = isJson ? await response.json() : await response.text();
+
+    if (!response.ok) {
+      const message =
+        data?.message ||
+        data?.error ||
+        data ||
+        `Request failed. Status: ${response.status}`;
+
+      throw new Error(message);
+    }
+
+    return data;
+  }
+
+  async function loadCustomers() {
+    if (!canAccess) return;
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(API_BASE_URL, {
+        method: "GET",
+        headers: getHeaders(),
+      });
+
+      const data = await readResponse(response);
+      setCustomers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setCustomers([]);
+      alert(
+        error.message ||
+          "Unable to load customers. Check backend server and login token."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleFrontendSearch() {
+    const searchText = search.trim().toLowerCase();
+
+    if (!searchText) {
+      setCurrentPage(1);
+      return;
+    }
+
+    const matchedCustomer = customers.find((customer) => {
+      const customerText = `
+        ${customer.id || ""}
+        ${customer.name || ""}
+        ${customer.mobile || ""}
+        ${customer.email || ""}
+        ${customer.tier || ""}
+        ${customer.status || ""}
+      `.toLowerCase();
+
+      return customerText.includes(searchText);
+    });
+
+    if (!matchedCustomer) {
+      alert("No customer found for this search.");
+      return;
+    }
+
+    setCurrentPage(1);
+  }
+
+  async function saveCustomer(event) {
+    event.preventDefault();
+
+    if (!form.name.trim()) {
+      alert("Customer name is required.");
+      return;
+    }
+
+    if (!form.mobile.trim()) {
+      alert("Mobile number is required.");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.mobile)) {
+      alert("Mobile number must be 10 digits.");
+      return;
+    }
+
+    const payload = {
+      name: form.name.trim(),
+      mobile: form.mobile.trim(),
+      email: form.email.trim(),
+      creditLimit: Number(form.creditLimit || 0),
+    };
+
+    try {
+      setLoading(true);
+
+      if (editingId) {
+        const response = await fetch(`${API_BASE_URL}/${editingId}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        const updatedCustomer = await readResponse(response);
+
+        setCustomers((previous) =>
+          previous.map((customer) =>
+            customer.id === editingId ? updatedCustomer : customer
+          )
+        );
+
+        setSelectedCustomer(updatedCustomer);
+        setView("details");
+      } else {
+        const response = await fetch(API_BASE_URL, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        const newCustomer = await readResponse(response);
+
+        setCustomers((previous) => [...previous, newCustomer]);
+        setSelectedCustomer(newCustomer);
+        setCurrentPage(Math.ceil((customers.length + 1) / CUSTOMERS_PER_PAGE));
+        setView("details");
+      }
+    } catch (error) {
+      alert(error.message || "Unable to save customer.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteCustomer(customer) {
+    if (!window.confirm(`Delete ${customer.name}?`)) return;
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/${customer.id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+
+      await readResponse(response);
+
+      setCustomers((previous) =>
+        previous.filter((item) => item.id !== customer.id)
+      );
+
+      setSelectedCustomer(null);
+      setView("list");
+    } catch (error) {
+      alert(error.message || "Unable to delete customer.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function changeCustomerStatus(customer, status) {
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `${API_BASE_URL}/${customer.id}/status?status=${encodeURIComponent(
+          status
+        )}`,
+        {
+          method: "PUT",
+          headers: getHeaders(),
+        }
+      );
+
+      const updatedCustomer = await readResponse(response);
+
+      setCustomers((previous) =>
+        previous.map((item) =>
+          item.id === updatedCustomer.id ? updatedCustomer : item
+        )
+      );
+
+      setSelectedCustomer(updatedCustomer);
+    } catch (error) {
+      alert(error.message || "Unable to update customer status.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function updateLedger(event) {
+    event.preventDefault();
+
+    if (!selectedCustomer?.id) {
+      alert("Select a customer first.");
+      return;
+    }
+
+    const bill = Number(form.billAmount || 0);
+    const paid = Number(form.paidAmount || 0);
+
+    if (bill < 0 || paid < 0) {
+      alert("Bill amount and paid amount cannot be negative.");
+      return;
+    }
+
+    if (bill === 0 && paid === 0) {
+      alert("Enter bill amount or paid amount.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `${API_BASE_URL}/${selectedCustomer.id}/ledger?bill=${encodeURIComponent(
+          bill
+        )}&paid=${encodeURIComponent(paid)}`,
+        {
+          method: "PUT",
+          headers: getHeaders(),
+        }
+      );
+
+      const updatedCustomer = await readResponse(response);
+
+      setCustomers((previous) =>
+        previous.map((item) =>
+          item.id === updatedCustomer.id ? updatedCustomer : item
+        )
+      );
+
+      setSelectedCustomer(updatedCustomer);
+      setForm((previous) => ({
+        ...previous,
+        billAmount: "",
+        paidAmount: "",
+      }));
+
+      alert("Ledger updated successfully.");
+    } catch (error) {
+      alert(error.message || "Unable to update ledger.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openAdd() {
+    setForm(emptyCustomer);
+    setEditingId(null);
+    setSelectedCustomer(null);
+    setView("form");
+  }
+
+  function openEdit(customer) {
+    setForm({
+      id: customer.id || "",
+      name: customer.name || "",
+      mobile: customer.mobile || "",
+      email: customer.email || "",
+      creditLimit: customer.creditLimit ?? "",
+      billAmount: "",
+      paidAmount: "",
+    });
+
+    setEditingId(customer.id);
+    setSelectedCustomer(customer);
+    setView("form");
+  }
+
+  function openView(customer) {
+    setSelectedCustomer(customer);
+    setForm({
+      id: customer.id || "",
+      name: customer.name || "",
+      mobile: customer.mobile || "",
+      email: customer.email || "",
+      creditLimit: customer.creditLimit ?? "",
+      billAmount: "",
+      paidAmount: "",
+    });
+    setView("details");
   }
 
   function money(value) {
@@ -137,182 +425,43 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     }).format(Number(value || 0));
   }
 
-  function nextCustomerId() {
-    const max = customers.reduce((largest, customer) => {
-      const number = Number(String(customer.id || "").replace("CUS-", "")) || 0;
-      return Math.max(largest, number);
-    }, 0);
-
-    return `CUS-${String(max + 1).padStart(4, "0")}`;
+  function formatCustomerId(id) {
+    return `CUS-${String(id || 0).padStart(4, "0")}`;
   }
 
-  function getCustomerSalesSummary(customer) {
-    const customerId = String(customer.id || "").toLowerCase();
-    const customerName = String(customer.name || "").toLowerCase().trim();
-    const customerMobile = String(customer.mobile || "").toLowerCase().trim();
-    const customerEmail = String(customer.email || "").toLowerCase().trim();
+  function formatTier(tier) {
+    if (!tier) return "Regular";
 
-    const matchedSales = salesRecords.filter((sale) => {
-      const saleCustomerId = String(sale.customerId || "").toLowerCase();
+    const value = String(tier).toUpperCase();
 
-      const saleCustomerName = String(
-        sale.customer || sale.customerName || sale.buyerName || ""
-      )
-        .toLowerCase()
-        .trim();
-
-      const saleCustomerMobile = String(
-        sale.mobile || sale.customerMobile || sale.phone || ""
-      )
-        .toLowerCase()
-        .trim();
-
-      const saleCustomerEmail = String(sale.email || sale.customerEmail || "")
-        .toLowerCase()
-        .trim();
-
-      return (
-        (customerId && saleCustomerId && saleCustomerId === customerId) ||
-        (customerName && saleCustomerName && saleCustomerName === customerName) ||
-        (customerMobile &&
-          saleCustomerMobile &&
-          saleCustomerMobile === customerMobile) ||
-        (customerEmail &&
-          saleCustomerEmail &&
-          saleCustomerEmail === customerEmail)
-      );
-    });
-
-    const totalOrders = matchedSales.length;
-
-    const totalSpent = matchedSales.reduce((sum, sale) => {
-      return (
-        sum +
-        Number(
-          sale.revenue ||
-            sale.totalAmount ||
-            sale.amount ||
-            sale.grandTotal ||
-            sale.netAmount ||
-            0
-        )
-      );
-    }, 0);
-
-    const lastPurchase =
-      matchedSales
-        .map((sale) => sale.date || sale.invoiceDate || sale.createdAt || "")
-        .filter(Boolean)
-        .sort()
-        .reverse()[0] || "";
-
-    return {
-      totalOrders,
-      totalSpent,
-      lastPurchase,
-      hasSales: matchedSales.length > 0,
-    };
+    if (value === "VIP") return "VIP";
+    if (value === "CORPORATE") return "Corporate";
+    return "Regular";
   }
 
-  function getDisplayCustomer(customer) {
-    const salesSummary = getCustomerSalesSummary(customer);
+  function formatStatus(status) {
+    const value = String(status || "").toUpperCase();
 
-    return {
-      ...customer,
-      totalOrders: salesSummary.hasSales
-        ? salesSummary.totalOrders
-        : Number(customer.totalOrders || 0),
-      totalSpent: salesSummary.hasSales
-        ? salesSummary.totalSpent
-        : Number(customer.totalSpent || 0),
-      lastPurchase: salesSummary.hasSales
-        ? salesSummary.lastPurchase
-        : customer.lastPurchase || "",
-    };
+    if (value === "BLACKLISTED") return "Inactive";
+    if (value === "ACTIVE") return "Active";
+
+    return "-";
   }
 
-  function openAdd() {
-    setForm(emptyCustomer);
-    setEditingId(null);
-    setView("form");
-  }
+  function formatDateTime(value) {
+    if (!value) return "-";
 
-  function openEdit(customer) {
-    const displayCustomer = getDisplayCustomer(customer);
-    setForm(displayCustomer);
-    setEditingId(customer.id);
-    setSelectedCustomer(displayCustomer);
-    setView("form");
-  }
-
-  function openView(customer) {
-    setSelectedCustomer(getDisplayCustomer(customer));
-    setView("details");
-  }
-
-  function deleteCustomer(customer) {
-    if (!window.confirm(`Delete ${customer.name}?`)) return;
-
-    const updated = customers.filter((item) => item.id !== customer.id);
-    saveCustomers(updated);
-    setSelectedCustomer(null);
-    setView("list");
-  }
-
-  function saveCustomer(event) {
-    event.preventDefault();
-
-    if (
-      !form.name.trim() ||
-      !form.mobile.trim() ||
-      !form.city.trim() ||
-      !form.address.trim()
-    ) {
-      alert("Fill customer name, mobile, city and address.");
-      return;
+    try {
+      return new Date(value).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "-";
     }
-
-    if (!/^\d{10}$/.test(form.mobile)) {
-      alert("Mobile number must be 10 digits.");
-      return;
-    }
-
-    if (form.pincode && !/^\d{6}$/.test(form.pincode)) {
-      alert("Pincode must be 6 digits.");
-      return;
-    }
-
-    if (editingId) {
-      const updatedCustomer = {
-        ...form,
-        id: editingId,
-        totalOrders: Number(form.totalOrders || 0),
-        totalSpent: Number(form.totalSpent || 0),
-      };
-
-      const updated = customers.map((customer) =>
-        customer.id === editingId ? updatedCustomer : customer
-      );
-
-      saveCustomers(updated);
-      setSelectedCustomer(getDisplayCustomer(updatedCustomer));
-      setView("details");
-      return;
-    }
-
-    const newCustomer = {
-      ...form,
-      id: nextCustomerId(),
-      totalOrders: Number(form.totalOrders || 0),
-      totalSpent: Number(form.totalSpent || 0),
-    };
-
-    const updatedCustomers = [...customers, newCustomer];
-
-    saveCustomers(updatedCustomers);
-    setSelectedCustomer(getDisplayCustomer(newCustomer));
-    setCurrentPage(Math.ceil(updatedCustomers.length / CUSTOMERS_PER_PAGE));
-    setView("details");
   }
 
   if (!canAccess) {
@@ -328,20 +477,19 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     );
   }
 
-  const customerDisplayList = customers.map(getDisplayCustomer);
-
-  const totalValue = customerDisplayList.reduce(
-    (sum, customer) => sum + Number(customer.totalSpent || 0),
+  const totalValue = customers.reduce(
+    (sum, customer) => sum + Number(customer.totalSpentAmount || 0),
     0
   );
 
   const activeCustomers = customers.filter(
-    (customer) => customer.status === "Active"
+    (customer) => String(customer.status).toUpperCase() === "ACTIVE"
   ).length;
 
-  const premiumCustomers = customers.filter(
-    (customer) => customer.type !== "Regular"
-  ).length;
+  const premiumCustomers = customers.filter((customer) => {
+    const tier = String(customer.tier || "").toUpperCase();
+    return tier === "VIP" || tier === "CORPORATE";
+  }).length;
 
   return (
     <>
@@ -453,6 +601,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             flex-direction: column !important;
             align-items: flex-start !important;
           }
+
+          .ledger-actions {
+            justify-content: flex-start !important;
+          }
         }
       `}</style>
 
@@ -468,6 +620,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               onClick={openAdd}
               className="nb-btn nb-primary"
               style={styles.primaryBtn}
+              disabled={loading}
             >
               + Add Customer
             </button>
@@ -490,7 +643,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           <Kpi
             title="Premium Customers"
             value={premiumCustomers}
-            sub="High value accounts"
+            sub="VIP / Corporate"
           />
 
           <Kpi
@@ -505,6 +658,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             <div style={styles.cardHead}>
               <div>
                 <h2 style={styles.cardTitle}>Customer List</h2>
+                {loading && <p style={styles.muted}>Loading customers...</p>}
               </div>
             </div>
 
@@ -515,10 +669,25 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search customer, mobile..."
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      handleFrontendSearch();
+                    }
+                  }}
+                  placeholder="Search by name, mobile or email..."
                   style={styles.searchInput}
                 />
               </div>
+
+              <button
+                type="button"
+                onClick={handleFrontendSearch}
+                className="nb-btn nb-primary"
+                style={styles.searchBtn}
+                disabled={loading}
+              >
+                Search
+              </button>
 
               <div
                 className="customer-filter-buttons"
@@ -538,11 +707,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
                 <button
                   type="button"
-                  onClick={() => setStatusFilter("Active")}
+                  onClick={() => setStatusFilter("ACTIVE")}
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "Active" ? styles.activeBtn : {}),
+                    ...(statusFilter === "ACTIVE" ? styles.activeBtn : {}),
                   }}
                 >
                   Active
@@ -550,11 +719,13 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
                 <button
                   type="button"
-                  onClick={() => setStatusFilter("Inactive")}
+                  onClick={() => setStatusFilter("BLACKLISTED")}
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "Inactive" ? styles.inactiveBtn : {}),
+                    ...(statusFilter === "BLACKLISTED"
+                      ? styles.inactiveBtn
+                      : {}),
                   }}
                 >
                   Inactive
@@ -563,14 +734,14 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
               <select
                 className="nb-input"
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value)}
+                value={tierFilter}
+                onChange={(event) => setTierFilter(event.target.value)}
                 style={styles.typeSelect}
               >
-                <option>All</option>
-                <option>Regular</option>
-                <option>Premium</option>
-                <option>Wholesale</option>
+                <option value="All">All</option>
+                <option value="REGULAR">Regular</option>
+                <option value="VIP">VIP</option>
+                <option value="CORPORATE">Corporate</option>
               </select>
             </div>
 
@@ -580,91 +751,80 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   <tr>
                     <Th>Customer Details</Th>
                     <Th>Contact</Th>
-                    <Th>Location</Th>
-                    <Th>Type</Th>
-                    <Th>Orders</Th>
+                    <Th>Tier</Th>
                     <Th>Total Spent</Th>
+                    <Th>Credit Limit</Th>
+                    <Th>Outstanding</Th>
                     <Th>Status</Th>
                     <Th>Actions</Th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {paginatedCustomers.map((customer) => {
-                    const displayCustomer = getDisplayCustomer(customer);
+                  {paginatedCustomers.map((customer) => (
+                    <tr key={customer.id} className="nb-table-row">
+                      <Td>
+                        <b style={styles.cellMain}>{customer.name}</b>
+                        <small style={styles.cellSub}>
+                          {formatCustomerId(customer.id)}
+                        </small>
+                      </Td>
 
-                    return (
-                      <tr key={customer.id} className="nb-table-row">
-                        <Td>
-                          <b style={styles.cellMain}>{displayCustomer.name}</b>
-                          <small style={styles.cellSub}>
-                            {displayCustomer.id}
-                          </small>
-                        </Td>
+                      <Td>
+                        <b style={styles.cellMain}>{customer.mobile}</b>
+                        <small style={styles.cellSub}>
+                          {customer.email || "No email"}
+                        </small>
+                      </Td>
 
-                        <Td>
-                          <b style={styles.cellMain}>
-                            {displayCustomer.mobile}
-                          </b>
-                          <small style={styles.cellSub}>
-                            {displayCustomer.email || "No email"}
-                          </small>
-                        </Td>
+                      <Td>{formatTier(customer.tier)}</Td>
+                      <Td>{money(customer.totalSpentAmount)}</Td>
+                      <Td>{money(customer.creditLimit)}</Td>
+                      <Td>{money(customer.outstandingDebt)}</Td>
 
-                        <Td>
-                          <b style={styles.cellMain}>{displayCustomer.city}</b>
-                          <small style={styles.cellSub}>
-                            {displayCustomer.state}
-                          </small>
-                        </Td>
+                      <Td>
+                        <Badge text={formatStatus(customer.status)} />
+                      </Td>
 
-                        <Td>{displayCustomer.type}</Td>
-                        <Td>{displayCustomer.totalOrders}</Td>
-                        <Td>{money(displayCustomer.totalSpent)}</Td>
+                      <Td>
+                        <div style={styles.actionGroup}>
+                          <button
+                            type="button"
+                            className="nb-btn nb-view-btn"
+                            style={styles.actionBtn}
+                            onClick={() => openView(customer)}
+                          >
+                            View
+                          </button>
 
-                        <Td>
-                          <Badge text={displayCustomer.status} />
-                        </Td>
+                          <button
+                            type="button"
+                            className="nb-btn nb-edit-btn"
+                            style={styles.actionBtn}
+                            onClick={() => openEdit(customer)}
+                          >
+                            Edit
+                          </button>
 
-                        <Td>
-                          <div style={styles.actionGroup}>
-                            <button
-                              type="button"
-                              className="nb-btn nb-view-btn"
-                              style={styles.actionBtn}
-                              onClick={() => openView(customer)}
-                            >
-                              View
-                            </button>
-
-                            <button
-                              type="button"
-                              className="nb-btn nb-edit-btn"
-                              style={styles.actionBtn}
-                              onClick={() => openEdit(customer)}
-                            >
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              className="nb-btn nb-delete-btn"
-                              style={styles.deleteBtn}
-                              onClick={() => deleteCustomer(customer)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </Td>
-                      </tr>
-                    );
-                  })}
+                          <button
+                            type="button"
+                            className="nb-btn nb-delete-btn"
+                            style={styles.deleteBtn}
+                            onClick={() => deleteCustomer(customer)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </Td>
+                    </tr>
+                  ))}
 
                   {paginatedCustomers.length === 0 && (
                     <tr>
                       <td colSpan="8" style={styles.emptyCell}>
-                        No customers found. Click “Add Customer” to create a
-                        customer.
+                        {loading
+                          ? "Loading customers..."
+                          : "No customers found. Try name, mobile or email search."}
                       </td>
                     </tr>
                   )}
@@ -741,8 +901,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   {editingId ? "Edit Customer" : "Add Customer"}
                 </h2>
                 <p style={styles.muted}>
-                  Total Orders and Total Spent can be entered manually. Billing
-                  sales will override these values when available.
+                  Fill customer details supported by backend.
                 </p>
               </div>
 
@@ -785,120 +944,15 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               />
 
               <Input
-                label="City"
-                value={form.city}
-                onChange={(value) => setForm({ ...form, city: value })}
-              />
-
-              <Input
-                label="State"
-                value={form.state}
-                onChange={(value) => setForm({ ...form, state: value })}
-              />
-
-              <Input
-                label="Pincode"
-                value={form.pincode}
+                label="Credit Limit"
+                value={form.creditLimit}
                 onChange={(value) =>
                   setForm({
                     ...form,
-                    pincode: value.replace(/\D/g, "").slice(0, 6),
+                    creditLimit: value.replace(/[^\d.]/g, ""),
                   })
                 }
               />
-
-              <Input
-                label="Total Orders"
-                value={form.totalOrders}
-                onChange={(value) =>
-                  setForm({
-                    ...form,
-                    totalOrders: value.replace(/\D/g, ""),
-                  })
-                }
-              />
-
-              <Input
-                label="Total Spent"
-                value={form.totalSpent}
-                onChange={(value) =>
-                  setForm({
-                    ...form,
-                    totalSpent: value.replace(/[^\d.]/g, ""),
-                  })
-                }
-              />
-
-              <label style={styles.field}>
-                <span style={styles.fieldLabel}>Customer Type</span>
-                <select
-                  className="nb-input"
-                  value={form.type}
-                  onChange={(event) =>
-                    setForm({ ...form, type: event.target.value })
-                  }
-                  style={styles.input}
-                >
-                  <option>Regular</option>
-                  <option>Premium</option>
-                  <option>Wholesale</option>
-                </select>
-              </label>
-
-              <label style={styles.field}>
-                <span style={styles.fieldLabel}>Status</span>
-                <select
-                  className="nb-input"
-                  value={form.status}
-                  onChange={(event) =>
-                    setForm({ ...form, status: event.target.value })
-                  }
-                  style={styles.input}
-                >
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
-              </label>
-
-              <Input
-                label="GST Number"
-                value={form.gst}
-                onChange={(value) =>
-                  setForm({ ...form, gst: value.toUpperCase() })
-                }
-              />
-
-              <Input
-                label="Last Purchase"
-                value={form.lastPurchase}
-                onChange={(value) =>
-                  setForm({ ...form, lastPurchase: value })
-                }
-              />
-
-              <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
-                <span style={styles.fieldLabel}>Billing Address</span>
-                <textarea
-                  className="nb-input"
-                  value={form.address}
-                  onChange={(event) =>
-                    setForm({ ...form, address: event.target.value })
-                  }
-                  style={styles.textarea}
-                />
-              </label>
-
-              <label style={{ ...styles.field, gridColumn: "1 / -1" }}>
-                <span style={styles.fieldLabel}>Customer Notes</span>
-                <textarea
-                  className="nb-input"
-                  value={form.notes}
-                  onChange={(event) =>
-                    setForm({ ...form, notes: event.target.value })
-                  }
-                  style={styles.textarea}
-                />
-              </label>
 
               <div style={styles.formActions}>
                 <button
@@ -914,8 +968,9 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   type="submit"
                   className="nb-btn nb-primary"
                   style={styles.primaryBtn}
+                  disabled={loading}
                 >
-                  Save Customer
+                  {loading ? "Saving..." : "Save Customer"}
                 </button>
               </div>
             </form>
@@ -928,7 +983,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               <div>
                 <h2 style={styles.cardTitle}>Customer Details</h2>
                 <p style={styles.muted}>
-                  Complete customer profile and billing information.
+                  Customer profile, credit limit, outstanding debt and ledger.
                 </p>
               </div>
 
@@ -955,40 +1010,106 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
             <div style={styles.profileBox}>
               <div style={styles.avatarLarge}>
-                {selectedCustomer.name.slice(0, 2).toUpperCase()}
+                {selectedCustomer.name?.slice(0, 2).toUpperCase() || "CU"}
               </div>
 
               <div>
                 <h2 style={styles.profileTitle}>{selectedCustomer.name}</h2>
                 <p style={styles.muted}>
-                  {selectedCustomer.id} • {selectedCustomer.type} •{" "}
-                  {selectedCustomer.status}
+                  {formatCustomerId(selectedCustomer.id)} •{" "}
+                  {formatTier(selectedCustomer.tier)} •{" "}
+                  {formatStatus(selectedCustomer.status)}
                 </p>
               </div>
             </div>
 
             <div className="customer-info-grid" style={styles.infoGrid}>
-              <Info label="Mobile" value={selectedCustomer.mobile} />
+              <Info label="Mobile" value={selectedCustomer.mobile || "-"} />
               <Info label="Email" value={selectedCustomer.email || "-"} />
-              <Info label="GST Number" value={selectedCustomer.gst || "-"} />
-              <Info label="City" value={selectedCustomer.city} />
-              <Info label="State" value={selectedCustomer.state} />
-              <Info label="Pincode" value={selectedCustomer.pincode || "-"} />
-              <Info label="Total Orders" value={selectedCustomer.totalOrders} />
+              <Info label="Tier" value={formatTier(selectedCustomer.tier)} />
               <Info
                 label="Total Spent"
-                value={money(selectedCustomer.totalSpent)}
+                value={money(selectedCustomer.totalSpentAmount)}
               />
               <Info
-                label="Last Purchase"
-                value={selectedCustomer.lastPurchase || "-"}
+                label="Credit Limit"
+                value={money(selectedCustomer.creditLimit)}
               />
-              <Info label="Address" value={selectedCustomer.address} wide />
               <Info
-                label="Notes"
-                value={selectedCustomer.notes || "No notes added"}
-                wide
+                label="Outstanding Debt"
+                value={money(selectedCustomer.outstandingDebt)}
               />
+              <Info
+                label="Status"
+                value={formatStatus(selectedCustomer.status)}
+              />
+              <Info
+                label="Last Credit Date"
+                value={formatDateTime(selectedCustomer.lastCreditDateTime)}
+              />
+            </div>
+
+            <form onSubmit={updateLedger} style={styles.ledgerBox}>
+              <h3 style={styles.ledgerTitle}>Update Ledger</h3>
+
+              <div className="customer-form-grid" style={styles.ledgerGrid}>
+                <Input
+                  label="Bill Amount"
+                  value={form.billAmount}
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      billAmount: value.replace(/[^\d.]/g, ""),
+                    })
+                  }
+                />
+
+                <Input
+                  label="Paid Amount"
+                  value={form.paidAmount}
+                  onChange={(value) =>
+                    setForm({
+                      ...form,
+                      paidAmount: value.replace(/[^\d.]/g, ""),
+                    })
+                  }
+                />
+              </div>
+
+              <div className="ledger-actions" style={styles.ledgerActions}>
+                <button
+                  type="submit"
+                  className="nb-btn nb-primary"
+                  style={styles.primaryBtn}
+                  disabled={loading}
+                >
+                  Update Ledger
+                </button>
+              </div>
+            </form>
+
+            <div style={styles.statusBox}>
+              <button
+                type="button"
+                className="nb-btn nb-view-btn"
+                style={styles.statusActiveBtn}
+                onClick={() => changeCustomerStatus(selectedCustomer, "ACTIVE")}
+                disabled={loading}
+              >
+                Mark Active
+              </button>
+
+              <button
+                type="button"
+                className="nb-btn nb-delete-btn"
+                style={styles.statusInactiveBtn}
+                onClick={() =>
+                  changeCustomerStatus(selectedCustomer, "BLACKLISTED")
+                }
+                disabled={loading}
+              >
+                Mark Inactive
+              </button>
             </div>
           </div>
         )}
@@ -1142,6 +1263,18 @@ const styles = {
     fontSize: 13,
   },
 
+  searchBtn: {
+    minHeight: 40,
+    borderRadius: 10,
+    border: "1px solid #2D2D2D",
+    background: "#2D2D2D",
+    color: "#F8F5F2",
+    padding: "0 18px",
+    fontWeight: 600,
+    fontSize: 12,
+    whiteSpace: "nowrap",
+  },
+
   ghostBtn: {
     minHeight: 42,
     borderRadius: 10,
@@ -1261,7 +1394,7 @@ const styles = {
 
   table: {
     width: "100%",
-    minWidth: 920,
+    minWidth: 1000,
     borderCollapse: "collapse",
   },
 
@@ -1425,19 +1558,6 @@ const styles = {
     letterSpacing: "0.07em",
   },
 
-  textarea: {
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#3F3F46",
-    borderRadius: 10,
-    minHeight: 92,
-    padding: "10px 14px",
-    outline: "none",
-    resize: "vertical",
-    fontSize: 13,
-    fontWeight: 400,
-  },
-
   formActions: {
     gridColumn: "1 / -1",
     display: "flex",
@@ -1504,6 +1624,63 @@ const styles = {
     overflowWrap: "anywhere",
     fontSize: 13,
     fontWeight: 500,
+  },
+
+  ledgerBox: {
+    marginTop: 26,
+    padding: 22,
+    border: "1px solid #EFE7DE",
+    borderRadius: 14,
+    background: "#FFFDFB",
+  },
+
+  ledgerTitle: {
+    margin: "0 0 18px",
+    color: "#2D2D2D",
+    fontSize: 16,
+    fontWeight: 700,
+  },
+
+  ledgerGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 18,
+  },
+
+  ledgerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: 24,
+    paddingTop: 2,
+  },
+
+  statusBox: {
+    marginTop: 20,
+    display: "flex",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  statusActiveBtn: {
+    minHeight: 38,
+    borderRadius: 9,
+    border: "1px solid #2F5D3A",
+    background: "#2F5D3A",
+    color: "#FFFFFF",
+    padding: "0 14px",
+    fontWeight: 600,
+    fontSize: 12,
+  },
+
+  statusInactiveBtn: {
+    minHeight: 38,
+    borderRadius: 9,
+    border: "1px solid #7A1F1F",
+    background: "#7A1F1F",
+    color: "#FFFFFF",
+    padding: "0 14px",
+    fontWeight: 600,
+    fontSize: 12,
   },
 };
 
