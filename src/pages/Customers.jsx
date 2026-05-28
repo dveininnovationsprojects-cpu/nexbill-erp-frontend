@@ -13,6 +13,13 @@ const emptyCustomer = {
   paidAmount: "",
 };
 
+const tierOptions = [
+  { label: "All", value: "All" },
+  { label: "Regular", value: "REGULAR" },
+  { label: "VIP", value: "VIP" },
+  { label: "Corporate", value: "CORPORATE" },
+];
+
 function Customers({ role = "admin", initialCustomers = [] }) {
   const [customers, setCustomers] = useState(initialCustomers);
   const [view, setView] = useState("list");
@@ -102,7 +109,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
     for (const key of possibleKeys) {
       const value = localStorage.getItem(key);
-
       if (!value) continue;
 
       try {
@@ -163,10 +169,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
       setCustomers(Array.isArray(data) ? data : []);
     } catch (error) {
       setCustomers([]);
-      alert(
-        error.message ||
-          "Unable to load customers. Check backend server and login token."
-      );
+      alert(error.message || "Unable to load customers.");
     } finally {
       setLoading(false);
     }
@@ -571,6 +574,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           background: #FFFFFF !important;
         }
 
+        .nb-custom-option:hover {
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+        }
+
         @media (max-width: 900px) {
           .customer-toolbar {
             flex-direction: column !important;
@@ -579,10 +587,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
           .customer-filter-buttons {
             justify-content: flex-start !important;
-          }
-
-          .customer-toolbar select {
-            width: 100% !important;
           }
 
           .customer-kpi-grid {
@@ -628,29 +632,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         </div>
 
         <div className="customer-kpi-grid" style={styles.kpiGrid}>
-          <Kpi
-            title="Total Customers"
-            value={customers.length}
-            sub="Registered buyers"
-          />
-
-          <Kpi
-            title="Active Customers"
-            value={activeCustomers}
-            sub="Ready for billing"
-          />
-
-          <Kpi
-            title="Premium Customers"
-            value={premiumCustomers}
-            sub="VIP / Corporate"
-          />
-
-          <Kpi
-            title="Customer Value"
-            value={money(totalValue)}
-            sub="Total purchase value"
-          />
+          <Kpi title="Total Customers" value={customers.length} sub="Registered buyers" />
+          <Kpi title="Active Customers" value={activeCustomers} sub="Ready for billing" />
+          <Kpi title="Premium Customers" value={premiumCustomers} sub="VIP / Corporate" />
+          <Kpi title="Customer Value" value={money(totalValue)} sub="Total purchase value" />
         </div>
 
         {view === "list" && (
@@ -689,10 +674,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 Search
               </button>
 
-              <div
-                className="customer-filter-buttons"
-                style={styles.filterButtons}
-              >
+              <div className="customer-filter-buttons" style={styles.filterButtons}>
                 <button
                   type="button"
                   onClick={() => setStatusFilter("All")}
@@ -723,26 +705,18 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "BLACKLISTED"
-                      ? styles.inactiveBtn
-                      : {}),
+                    ...(statusFilter === "BLACKLISTED" ? styles.inactiveBtn : {}),
                   }}
                 >
                   Inactive
                 </button>
               </div>
 
-              <select
-                className="nb-input"
+              <CustomDropdown
                 value={tierFilter}
-                onChange={(event) => setTierFilter(event.target.value)}
-                style={styles.typeSelect}
-              >
-                <option value="All">All</option>
-                <option value="REGULAR">Regular</option>
-                <option value="VIP">VIP</option>
-                <option value="CORPORATE">Corporate</option>
-              </select>
+                options={tierOptions}
+                onChange={setTierFilter}
+              />
             </div>
 
             <div style={styles.tableWrap}>
@@ -880,9 +854,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                     onClick={() => setCurrentPage((page) => page + 1)}
                     style={{
                       ...styles.pageBtn,
-                      ...(currentPage === totalPages
-                        ? styles.pageBtnDisabled
-                        : {}),
+                      ...(currentPage === totalPages ? styles.pageBtnDisabled : {}),
                     }}
                   >
                     ›
@@ -1115,6 +1087,58 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         )}
       </section>
     </>
+  );
+}
+
+function CustomDropdown({ value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  return (
+    <div
+      style={styles.customSelectWrap}
+      tabIndex={0}
+      onBlur={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        style={{
+          ...styles.customSelectButton,
+          ...(open ? styles.customSelectButtonOpen : {}),
+        }}
+      >
+        <span>{selected.label}</span>
+        <span style={styles.customSelectArrow}>{open ? "⌃" : "⌄"}</span>
+      </button>
+
+      {open && (
+        <div style={styles.customSelectMenu}>
+          {options.map((option) => {
+            const isSelected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className="nb-custom-option"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                style={{
+                  ...styles.customSelectOption,
+                  ...(isSelected ? styles.customSelectOptionActive : {}),
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1361,17 +1385,73 @@ const styles = {
     color: "#FFFFFF",
   },
 
-  typeSelect: {
-    width: 125,
+  customSelectWrap: {
+    position: "relative",
+    width: 150,
+    flexShrink: 0,
+    outline: "none",
+  },
+
+  customSelectButton: {
+    width: "100%",
+    minHeight: 40,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
-    color: "#3F3F46",
-    borderRadius: 9,
-    minHeight: 40,
-    padding: "7px 9px",
+    color: "#2D2D2D",
+    borderRadius: 10,
+    padding: "0 12px",
     outline: "none",
     fontSize: 12,
     fontWeight: 500,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  customSelectButtonOpen: {
+    borderColor: "#C6A969",
+    boxShadow: "0 0 0 3px rgba(198,169,105,0.13)",
+  },
+
+  customSelectArrow: {
+    color: "#8B7355",
+    fontSize: 15,
+    fontWeight: 700,
+  },
+
+  customSelectMenu: {
+    position: "absolute",
+    top: "calc(100% + 6px)",
+    left: 0,
+    right: 0,
+    zIndex: 50,
+    background: "#FFFFFF",
+    border: "1px solid #D6D3D1",
+    borderRadius: 10,
+    boxShadow: "0 14px 28px rgba(45,45,45,0.12)",
+    padding: 6,
+    overflow: "hidden",
+  },
+
+  customSelectOption: {
+    width: "100%",
+    minHeight: 34,
+    border: "none",
+    borderRadius: 8,
+    background: "#FFFFFF",
+    color: "#2D2D2D",
+    textAlign: "left",
+    padding: "0 10px",
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+  },
+
+  customSelectOptionActive: {
+    background: "#2D2D2D",
+    color: "#F8F5F2",
   },
 
   input: {
