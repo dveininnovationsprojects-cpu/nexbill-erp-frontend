@@ -25,7 +25,8 @@ const adminNav = [
   { icon: Receipt,         label: 'Billing',   to: '/admin/billing' },
   { icon: CreditCard,      label: 'Payments',  to: '/admin/payments' },
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
-  { icon: BarChart2,       label: 'Reports',   to: '/admin/reports' },
+  { icon: BarChart2,       label: 'Reports',   to: '/admin/reports'  },
+  { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
   { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
   { icon: UserCircle,      label: 'Profile',   to: '/admin/profile'  },
 ];
