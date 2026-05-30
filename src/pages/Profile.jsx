@@ -696,7 +696,6 @@ function CashierDetailsTab({ profileData }) {
     branch:      profileData?.branch        || '—',
     counter:     profileData?.counterNumber ? `Counter ${profileData.counterNumber}` : '—',
     shift:       profileData?.shiftTiming   || '—',
-    employeeId:  `NB-CSH-${String(profileData?.id || '').padStart(3, '0')}`,
     status:      profileData?.status        || 'ACTIVE',
     email:       profileData?.email         || '—',
     basicSalary: profileData?.basicSalary != null ? `₹${Number(profileData.basicSalary).toLocaleString('en-IN')}` : '—',
@@ -709,7 +708,7 @@ function CashierDetailsTab({ profileData }) {
         <div className="pr-card-head">
           <div>
             <div className="pr-card-title"><Briefcase size={15} /> Cashier Details</div>
-            <div className="pr-card-sub">Employee ID, branch, counter and shift information</div>
+            <div className="pr-card-sub">Branch, counter and shift information</div>
           </div>
           <span style={{ fontSize:10, fontWeight:700, padding:'4px 10px', borderRadius:10, background: data.status==='ACTIVE' ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)', color: data.status==='ACTIVE' ? '#22c55e' : '#f59e0b', border:`1px solid ${data.status==='ACTIVE' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`, whiteSpace:'nowrap' }}>
             {data.status==='ACTIVE' ? '● Active' : '○ Pending'}
@@ -717,7 +716,6 @@ function CashierDetailsTab({ profileData }) {
         </div>
         <div className="pr-card-body">
           {[
-            { icon:Hash,        label:'Employee ID',  val:data.employeeId,  copy:true  },
             { icon:Mail,        label:'Email',        val:data.email,       copy:true  },
             { icon:Building2,   label:'Branch',       val:data.branch,      copy:false },
             { icon:Briefcase,   label:'Counter',      val:data.counter,     copy:false },
