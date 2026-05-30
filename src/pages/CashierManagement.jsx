@@ -94,9 +94,15 @@ export default function CashierManagement() {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        counterNumber: editForm.counterNumber || null,
+        shiftTiming:   editForm.shiftTiming   || null,
+        basicSalary:   editForm.basicSalary   ? parseFloat(editForm.basicSalary) : null,
+        status:        String(editForm.status),
+      };
       await axios.put(
         `/api/profile/admin/staff/${editTarget.id}`,
-        { ...editForm, basicSalary: parseFloat(editForm.basicSalary) },
+        payload,
         { headers, withCredentials: true }
       );
       showToast(`${editTarget.name || editTarget.email} updated successfully!`);
@@ -106,6 +112,24 @@ export default function CashierManagement() {
     finally   { setSaving(false); }
   };
 
+  /* ── reactivate ── */
+  const handleReactivate = async (cashier) => {
+    try {
+      await axios.put(
+        `/api/profile/admin/staff/${cashier.id}`,
+        {
+          counterNumber: cashier.counterNumber || null,
+          shiftTiming:   cashier.shiftTiming   || null,
+          basicSalary:   cashier.basicSalary   ? parseFloat(cashier.basicSalary) : null,
+          status:        'ACTIVE',
+        },
+        { headers, withCredentials: true }
+      );
+      showToast(`${cashier.name || cashier.email} re-activated successfully!`);
+      fetchAll();
+    } catch { showToast('Re-activation failed. Try again.', 'error'); }
+  };
+
   /* ── deactivate ── */
   const handleDeactivate = async () => {
     setDeactivating(true);
@@ -113,9 +137,9 @@ export default function CashierManagement() {
       await axios.put(
         `/api/profile/admin/staff/${deactivateTarget.id}`,
         {
-          counterNumber: deactivateTarget.counterNumber,
-          shiftTiming:   deactivateTarget.shiftTiming,
-          basicSalary:   deactivateTarget.basicSalary,
+          counterNumber: deactivateTarget.counterNumber || null,
+          shiftTiming:   deactivateTarget.shiftTiming   || null,
+          basicSalary:   deactivateTarget.basicSalary   ? parseFloat(deactivateTarget.basicSalary) : null,
           status:        'SUSPENDED',
         },
         { headers, withCredentials: true }
@@ -589,7 +613,7 @@ export default function CashierManagement() {
                               </button>
                             )}
                             {c.status === 'SUSPENDED' && (
-                              <button className="cm-edit-btn" onClick={() => openEdit(c)}
+                              <button className="cm-edit-btn" onClick={() => handleReactivate(c)}
                                 style={{ borderColor: '#BBF7D0', color: '#065F46', background: '#F0FDF4' }}>
                                 <UserCheck size={13} /> Re-activate
                               </button>
