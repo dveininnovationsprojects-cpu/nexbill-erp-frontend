@@ -1,29 +1,142 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
-function SalesAnalytics({ role = "admin", sales = [] }) {
+const API_BASE_URL = "/api/analytics/mega-dashboard";
+
+function SalesAnalytics({ role = "admin" }) {
+  const { user } = useAuth();
+
   const [periodFilter, setPeriodFilter] = useState("Today");
-  const [categoryFilter, setCategoryFilter] = useState("All Categories");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const isAdmin = role === "admin" || role === "ADMIN";
+  const isAdmin =
+    role === "admin" ||
+    role === "ADMIN" ||
+    user?.role === "ADMIN" ||
+    user?.role === "admin";
+
   const today = getTodayISO();
 
-  const categories = [
-    "All Categories",
-    ...new Set(sales.map((sale) => sale.category).filter(Boolean)),
-  ];
+  const dateRange = useMemo(() => {
+    return getDateRange(periodFilter, fromDate, toDate);
+  }, [periodFilter, fromDate, toDate]);
 
-  const filteredSales = useMemo(() => {
-    return sales.filter((sale) => {
-      const matchCategory =
-        categoryFilter === "All Categories" || sale.category === categoryFilter;
+  useEffect(() => {
+    if (isAdmin) {
+      fetchDashboardData();
+    }
+  }, [isAdmin, dateRange.startDate, dateRange.endDate]);
 
-      const matchPeriod = dateMatches(sale.date, periodFilter, fromDate, toDate);
+  function getAuthToken() {
+    if (user?.token) return user.token;
+    if (user?.accessToken) return user.accessToken;
+    if (user?.jwt) return user.jwt;
+    if (user?.user?.token) return user.user.token;
+    if (user?.user?.accessToken) return user.user.accessToken;
 
-      return matchCategory && matchPeriod;
-    });
-  }, [sales, categoryFilter, periodFilter, fromDate, toDate]);
+    const possibleKeys = [
+      "user",
+      "auth",
+      "token",
+      "authToken",
+      "accessToken",
+      "jwt",
+      "nexbill_user",
+      "nexbill_auth_user",
+    ];
+
+    for (const key of possibleKeys) {
+      const value = localStorage.getItem(key);
+
+      if (!value) continue;
+
+      try {
+        const parsed = JSON.parse(value);
+
+        if (parsed?.token) return parsed.token;
+        if (parsed?.accessToken) return parsed.accessToken;
+        if (parsed?.jwt) return parsed.jwt;
+        if (parsed?.user?.token) return parsed.user.token;
+        if (parsed?.user?.accessToken) return parsed.user.accessToken;
+        if (parsed?.data?.token) return parsed.data.token;
+        if (parsed?.data?.accessToken) return parsed.data.accessToken;
+      } catch {
+        if (value.startsWith("eyJ") || value.length > 40) {
+          return value;
+        }
+      }
+    }
+
+    return "";
+  }
+
+  function getHeaders() {
+    const token = getAuthToken();
+
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  }
+
+  async function readResponse(response) {
+    const contentType = response.headers.get("content-type");
+    const isJson = contentType && contentType.includes("application/json");
+    const data = isJson ? await response.json() : await response.text();
+
+    if (!response.ok) {
+      const message =
+        data?.message ||
+        data?.error ||
+        data ||
+        `Request failed. Status: ${response.status}`;
+
+      throw new Error(message);
+    }
+
+    return data;
+  }
+
+  async function fetchDashboardData() {
+    if (!dateRange.startDate || !dateRange.endDate) return;
+
+    const token = getAuthToken();
+
+    if (!token) {
+      setDashboardData(null);
+      setErrorMessage("Login token not found. Please logout and login again as ADMIN.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const url = `${API_BASE_URL}?startDate=${encodeURIComponent(
+        dateRange.startDate
+      )}&endDate=${encodeURIComponent(dateRange.endDate)}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: getHeaders(),
+      });
+
+      const data = await readResponse(response);
+      setDashboardData(data || {});
+    } catch (error) {
+      setDashboardData(null);
+      setErrorMessage(
+        error.message ||
+          "Unable to load sales analytics. Check backend server and admin token."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (!isAdmin) {
     return (
@@ -38,44 +151,71 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
     );
   }
 
-  const totalRevenue = filteredSales.reduce(
-    (sum, sale) =>
-      sum + Number(sale.revenue || sale.totalAmount || sale.amount || 0),
-    0
-  );
+  const grossRevenue = Number(dashboardData?.grossRevenue || 0);
+  const netProfit = Number(dashboardData?.netProfitMargin || 0);
+  const averageTicketSize = Number(dashboardData?.averageTicketSize || 0);
+  const totalDiscountsGiven = Number(dashboardData?.totalDiscountsGiven || 0);
+  const outOfStockCount = Number(dashboardData?.outOfStockCount || 0);
+  const deadStockCount = Number(dashboardData?.deadStockCount || 0);
+  const newCustomersAcquired = Number(dashboardData?.newCustomersAcquired || 0);
 
-  const totalCost = filteredSales.reduce(
-    (sum, sale) => sum + Number(sale.cost || 0),
-    0
-  );
+  const categoryValuations = Array.isArray(dashboardData?.categoryValuations)
+    ? dashboardData.categoryValuations
+    : [];
 
-  const totalQuantity = filteredSales.reduce(
-    (sum, sale) => sum + Number(sale.quantity || sale.qty || 0),
-    0
-  );
+  const topCashiers = Array.isArray(dashboardData?.topCashiers)
+    ? dashboardData.topCashiers
+    : [];
 
-  const totalGst = filteredSales.reduce(
-    (sum, sale) => sum + Number(sale.gst || sale.gstAmount || 0),
-    0
-  );
+  const topSpenders = Array.isArray(dashboardData?.topSpenders)
+    ? dashboardData.topSpenders
+    : [];
 
-  const grossProfit = totalRevenue - totalCost;
+  const fastMovingProducts = Array.isArray(dashboardData?.fastMovingProducts)
+    ? dashboardData.fastMovingProducts
+    : [];
 
-  const profitMargin =
-    totalRevenue > 0 ? Math.round((grossProfit / totalRevenue) * 100) : 0;
+  const highRevenueProducts = Array.isArray(dashboardData?.highRevenueProducts)
+    ? dashboardData.highRevenueProducts
+    : [];
 
-  const averageOrderValue =
-    filteredSales.length > 0 ? totalRevenue / filteredSales.length : 0;
+  const categoryChart = categoryValuations.map((item, index) => ({
+    label:
+      getTextValue(item, [
+        "category",
+        "categoryName",
+        "name",
+        "productCategory",
+      ]) || `Category ${index + 1}`,
+    value: getNumberValue(item, [
+      "valuation",
+      "totalValue",
+      "stockValue",
+      "value",
+      "amount",
+    ]),
+  }));
 
-  const pendingPayments = filteredSales.filter(
-    (sale) =>
-      String(sale.payment || sale.paymentStatus || "").toLowerCase() ===
-      "pending"
-  ).length;
+  const fastMovingChart = fastMovingProducts.map((item, index) => ({
+    label:
+      getTextValue(item, [
+        "productName",
+        "name",
+        "product",
+        "itemName",
+        "sku",
+      ]) || `Product ${index + 1}`,
+    value: getNumberValue(item, [
+      "quantity",
+      "totalQuantity",
+      "soldQuantity",
+      "units",
+      "count",
+    ]),
+  }));
 
-  const revenueChart = groupByDate(filteredSales, "revenue");
-  const salesGraph = groupByDate(filteredSales, "quantity");
-  const topProducts = groupByProduct(filteredSales).slice(0, 5);
+  const productsTable =
+    highRevenueProducts.length > 0 ? highRevenueProducts : fastMovingProducts;
 
   function getShowingText() {
     if (periodFilter === "Range") {
@@ -141,15 +281,42 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
           border-color: #C6A969 !important;
           background: #FFFFFF !important;
         }
+
+        .nb-error-box {
+          background: #FDF0F0;
+          border: 1px solid #F0D0D0;
+          color: #9B4444;
+          border-radius: 12px;
+          padding: 12px 14px;
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        @media (max-width: 900px) {
+          .sales-title-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .sales-filters {
+            width: 100% !important;
+          }
+
+          .sales-kpi-grid,
+          .sales-chart-grid,
+          .sales-bottom-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
       `}</style>
 
       <section style={styles.page}>
-        <div style={styles.pageTitleRow}>
+        <div className="sales-title-row" style={styles.pageTitleRow}>
           <div>
             <h1 style={styles.pageTitle}>Sales Dashboard & Analytics</h1>
           </div>
 
-          <div style={styles.filters}>
+          <div className="sales-filters" style={styles.filters}>
             <label style={styles.filterField}>
               <span style={styles.filterLabel}>Time Period</span>
               <select
@@ -201,81 +368,69 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
                 </label>
               </>
             )}
-
-            <label style={styles.filterField}>
-              <span style={styles.filterLabel}>Category</span>
-              <select
-                className="nb-input"
-                value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-                style={styles.select}
-              >
-                {categories.map((category) => (
-                  <option key={category}>{category}</option>
-                ))}
-              </select>
-            </label>
           </div>
         </div>
 
         <div style={styles.filterSummary}>
-          Showing: <strong>{getShowingText()}</strong> sales
-          {categoryFilter !== "All Categories" && (
+          Showing: <strong>{getShowingText()}</strong> analytics
+          {loading && (
             <>
               {" "}
-              for <strong>{categoryFilter}</strong>
+              • <strong>Loading...</strong>
             </>
           )}
         </div>
 
-        <div style={styles.kpiGrid}>
+        {errorMessage && <div className="nb-error-box">{errorMessage}</div>}
+
+        <div className="sales-kpi-grid" style={styles.kpiGrid}>
           <Kpi
-            title="Total Revenue"
-            value={money(totalRevenue)}
-            sub="Filtered revenue"
+            title="Gross Revenue"
+            value={money(grossRevenue)}
+            sub="Total revenue"
           />
 
           <Kpi
-            title="Total Orders"
-            value={filteredSales.length}
-            sub="Completed invoices"
+            title="Net Profit"
+            value={money(netProfit)}
+            sub="Backend net profit value"
           />
 
           <Kpi
-            title="Products Sold"
-            value={totalQuantity}
-            sub="Total quantity"
+            title="Average Ticket Size"
+            value={money(averageTicketSize)}
+            sub="Average invoice value"
           />
 
           <Kpi
-            title="Profit Margin"
-            value={`${profitMargin}%`}
-            sub={money(grossProfit)}
+            title="Total Discounts"
+            value={money(totalDiscountsGiven)}
+            sub="Discounts given"
           />
         </div>
 
-        <div style={styles.chartGrid}>
+        <div className="sales-chart-grid" style={styles.chartGrid}>
           <Chart
-            title="Revenue Chart"
-            subtitle={`${getShowingText()} revenue performance`}
-            data={revenueChart}
+            title="Category Valuation"
+            subtitle={`${getShowingText()} inventory category valuation`}
+            data={categoryChart}
             moneyMode
           />
 
           <Chart
-            title="Sales Graph"
-            subtitle={`${getShowingText()} product sales quantity`}
-            data={salesGraph}
+            title="Fast Moving Products"
+            subtitle={`${getShowingText()} product movement quantity`}
+            data={fastMovingChart}
           />
         </div>
 
-        <div style={styles.bottomGrid}>
+        <div className="sales-bottom-grid" style={styles.bottomGrid}>
           <div className="nb-card" style={styles.card}>
             <div style={styles.cardHead}>
               <div>
                 <h2 style={styles.cardTitle}>Top Products</h2>
                 <p style={styles.muted}>
-                  Best selling products ranked by revenue.
+                  Products ranked by backend analytics.
                 </p>
               </div>
             </div>
@@ -293,20 +448,66 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
                 </thead>
 
                 <tbody>
-                  {topProducts.map((product) => (
-                    <tr key={product.productName} className="nb-table-row">
-                      <Td>{product.productName}</Td>
-                      <Td>{product.category}</Td>
-                      <Td>{product.quantity}</Td>
-                      <Td>{money(product.revenue)}</Td>
-                      <Td>{money(product.revenue - product.cost)}</Td>
-                    </tr>
-                  ))}
+                  {productsTable.map((product, index) => {
+                    const productName =
+                      getTextValue(product, [
+                        "productName",
+                        "name",
+                        "product",
+                        "itemName",
+                        "sku",
+                      ]) || `Product ${index + 1}`;
 
-                  {topProducts.length === 0 && (
+                    const category =
+                      getTextValue(product, [
+                        "category",
+                        "categoryName",
+                        "productCategory",
+                      ]) || "-";
+
+                    const units = getNumberValue(product, [
+                      "quantity",
+                      "totalQuantity",
+                      "soldQuantity",
+                      "units",
+                      "count",
+                    ]);
+
+                    const revenue = getNumberValue(product, [
+                      "revenue",
+                      "totalRevenue",
+                      "amount",
+                      "totalAmount",
+                      "salesAmount",
+                    ]);
+
+                    const profit = getNumberValue(product, [
+                      "profit",
+                      "netProfit",
+                      "margin",
+                      "profitAmount",
+                    ]);
+
+                    return (
+                      <tr
+                        key={`${productName}-${index}`}
+                        className="nb-table-row"
+                      >
+                        <Td>{productName}</Td>
+                        <Td>{category}</Td>
+                        <Td>{units}</Td>
+                        <Td>{money(revenue)}</Td>
+                        <Td>{money(profit)}</Td>
+                      </tr>
+                    );
+                  })}
+
+                  {productsTable.length === 0 && (
                     <tr>
                       <td colSpan="5" style={styles.emptyCell}>
-                        No sales data found for selected filter.
+                        {loading
+                          ? "Loading product analytics..."
+                          : "No product analytics found for selected period."}
                       </td>
                     </tr>
                   )}
@@ -324,14 +525,144 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
             </div>
 
             <div style={styles.infoGridOne}>
-              <Info label="Total Cost" value={money(totalCost)} />
-              <Info label="Gross Profit" value={money(grossProfit)} />
-              <Info
-                label="Average Order Value"
-                value={money(averageOrderValue)}
-              />
-              <Info label="GST Collected" value={money(totalGst)} />
-              <Info label="Pending Payments" value={pendingPayments} />
+              <Info label="Out of Stock Items" value={outOfStockCount} />
+              <Info label="Dead Stock Items" value={deadStockCount} />
+              <Info label="New Customers" value={newCustomersAcquired} />
+              <Info label="Top Cashiers" value={topCashiers.length} />
+              <Info label="Top Spenders" value={topSpenders.length} />
+            </div>
+          </div>
+        </div>
+
+        <div className="sales-bottom-grid" style={styles.bottomGrid}>
+          <div className="nb-card" style={styles.card}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>Top Cashiers</h2>
+                <p style={styles.muted}>
+                  Cashier performance from backend analytics.
+                </p>
+              </div>
+            </div>
+
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <Th>Cashier</Th>
+                    <Th>Invoices</Th>
+                    <Th>Revenue</Th>
+                    <Th>Discount</Th>
+                    <Th>Performance</Th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {topCashiers.map((cashier, index) => {
+                    const cashierName =
+                      getTextValue(cashier, [
+                        "cashierName",
+                        "name",
+                        "username",
+                        "email",
+                      ]) || `Cashier ${index + 1}`;
+
+                    const invoices = getNumberValue(cashier, [
+                      "invoiceCount",
+                      "totalInvoices",
+                      "orders",
+                      "count",
+                    ]);
+
+                    const revenue = getNumberValue(cashier, [
+                      "revenue",
+                      "totalRevenue",
+                      "salesAmount",
+                      "amount",
+                    ]);
+
+                    const discount = getNumberValue(cashier, [
+                      "discount",
+                      "totalDiscount",
+                      "discountAmount",
+                    ]);
+
+                    const performance =
+                      getTextValue(cashier, [
+                        "performance",
+                        "rating",
+                        "status",
+                      ]) || "-";
+
+                    return (
+                      <tr
+                        key={`${cashierName}-${index}`}
+                        className="nb-table-row"
+                      >
+                        <Td>{cashierName}</Td>
+                        <Td>{invoices}</Td>
+                        <Td>{money(revenue)}</Td>
+                        <Td>{money(discount)}</Td>
+                        <Td>{performance}</Td>
+                      </tr>
+                    );
+                  })}
+
+                  {topCashiers.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={styles.emptyCell}>
+                        {loading
+                          ? "Loading cashier analytics..."
+                          : "No cashier analytics found for selected period."}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="nb-card" style={styles.insightsCard}>
+            <div style={styles.cardHead}>
+              <div>
+                <h2 style={styles.cardTitle}>Top Spenders</h2>
+                <p style={styles.muted}>Customer insights summary.</p>
+              </div>
+            </div>
+
+            <div style={styles.infoGridOne}>
+              {topSpenders.map((customer, index) => {
+                const customerName =
+                  getTextValue(customer, [
+                    "customerName",
+                    "name",
+                    "mobile",
+                    "email",
+                  ]) || `Customer ${index + 1}`;
+
+                const spentAmount = getNumberValue(customer, [
+                  "totalSpent",
+                  "totalSpentAmount",
+                  "amount",
+                  "revenue",
+                  "totalAmount",
+                ]);
+
+                return (
+                  <Info
+                    key={`${customerName}-${index}`}
+                    label={customerName}
+                    value={money(spentAmount)}
+                  />
+                );
+              })}
+
+              {topSpenders.length === 0 && (
+                <Info
+                  label="Top Spenders"
+                  value={loading ? "Loading..." : "No data"}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -340,69 +671,70 @@ function SalesAnalytics({ role = "admin", sales = [] }) {
   );
 }
 
-function money(value) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
-}
-
-function dateMatches(date, filter, fromDate, toDate) {
-  if (!date) return false;
-
-  const selectedDate = new Date(date);
+function getDateRange(periodFilter, fromDate, toDate) {
   const now = new Date();
 
-  if (Number.isNaN(selectedDate.getTime())) return false;
-
-  if (filter === "Today") {
-    return isSameDay(selectedDate, now);
+  if (periodFilter === "Today") {
+    return {
+      startDate: toBackendDateTime(startOfDay(now)),
+      endDate: toBackendDateTime(endOfDay(now)),
+    };
   }
 
-  if (filter === "This Week") {
-    const start = startOfWeek(now);
-    const end = endOfWeek(now);
-
-    return selectedDate >= start && selectedDate <= end;
+  if (periodFilter === "This Week") {
+    return {
+      startDate: toBackendDateTime(startOfWeek(now)),
+      endDate: toBackendDateTime(endOfWeek(now)),
+    };
   }
 
-  if (filter === "This Month") {
-    return (
-      selectedDate.getMonth() === now.getMonth() &&
-      selectedDate.getFullYear() === now.getFullYear()
-    );
+  if (periodFilter === "This Month") {
+    return {
+      startDate: toBackendDateTime(
+        new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
+      ),
+      endDate: toBackendDateTime(
+        new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+      ),
+    };
   }
 
-  if (filter === "This Year") {
-    return selectedDate.getFullYear() === now.getFullYear();
+  if (periodFilter === "This Year") {
+    return {
+      startDate: toBackendDateTime(
+        new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0)
+      ),
+      endDate: toBackendDateTime(
+        new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+      ),
+    };
   }
 
-  if (filter === "Range") {
-    const selectedStart = startOfDay(selectedDate);
+  if (periodFilter === "Range") {
+    const start = fromDate ? startOfDay(new Date(fromDate)) : startOfDay(now);
+    const end = toDate ? endOfDay(new Date(toDate)) : endOfDay(now);
 
-    if (fromDate) {
-      const from = startOfDay(new Date(fromDate));
-      if (selectedStart < from) return false;
-    }
-
-    if (toDate) {
-      const to = endOfDay(new Date(toDate));
-      if (selectedStart > to) return false;
-    }
-
-    return true;
+    return {
+      startDate: toBackendDateTime(start),
+      endDate: toBackendDateTime(end),
+    };
   }
 
-  return true;
+  return {
+    startDate: toBackendDateTime(startOfDay(now)),
+    endDate: toBackendDateTime(endOfDay(now)),
+  };
 }
 
-function isSameDay(dateOne, dateTwo) {
-  return (
-    dateOne.getFullYear() === dateTwo.getFullYear() &&
-    dateOne.getMonth() === dateTwo.getMonth() &&
-    dateOne.getDate() === dateTwo.getDate()
-  );
+function toBackendDateTime(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
 function getTodayISO() {
@@ -444,62 +776,37 @@ function endOfWeek(date) {
   return result;
 }
 
-function getSaleValue(sale, key) {
-  if (key === "revenue") {
-    return Number(sale.revenue || sale.totalAmount || sale.amount || 0);
-  }
+function getNumberValue(item, keys) {
+  if (!item || typeof item !== "object") return 0;
 
-  if (key === "quantity") {
-    return Number(sale.quantity || sale.qty || 0);
-  }
-
-  return Number(sale[key] || 0);
-}
-
-function groupByDate(data, key) {
-  const map = {};
-
-  data.forEach((sale) => {
-    const label = sale.date || "No Date";
-    map[label] = (map[label] || 0) + getSaleValue(sale, key);
-  });
-
-  return Object.entries(map)
-    .map(([label, value]) => ({
-      label: label === "No Date" ? label : label.slice(5),
-      value,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-}
-
-function groupByProduct(data) {
-  const map = {};
-
-  data.forEach((sale) => {
-    const productName =
-      sale.productName || sale.product || sale.itemName || "Unnamed Product";
-
-    const category = sale.category || "General";
-    const quantity = Number(sale.quantity || sale.qty || 0);
-    const revenue = Number(sale.revenue || sale.totalAmount || sale.amount || 0);
-    const cost = Number(sale.cost || 0);
-
-    if (!map[productName]) {
-      map[productName] = {
-        productName,
-        category,
-        quantity: 0,
-        revenue: 0,
-        cost: 0,
-      };
+  for (const key of keys) {
+    if (item[key] !== undefined && item[key] !== null) {
+      const value = Number(item[key]);
+      return Number.isNaN(value) ? 0 : value;
     }
+  }
 
-    map[productName].quantity += quantity;
-    map[productName].revenue += revenue;
-    map[productName].cost += cost;
-  });
+  return 0;
+}
 
-  return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+function getTextValue(item, keys) {
+  if (!item || typeof item !== "object") return "";
+
+  for (const key of keys) {
+    if (item[key] !== undefined && item[key] !== null) {
+      return String(item[key]);
+    }
+  }
+
+  return "";
+}
+
+function money(value) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
 function Kpi({ title, value, sub }) {
@@ -513,7 +820,7 @@ function Kpi({ title, value, sub }) {
 }
 
 function Chart({ title, subtitle, data, moneyMode }) {
-  const max = Math.max(...data.map((item) => item.value), 1);
+  const max = Math.max(...data.map((item) => Number(item.value || 0)), 1);
 
   return (
     <div className="nb-card" style={styles.card}>
@@ -536,7 +843,10 @@ function Chart({ title, subtitle, data, moneyMode }) {
                 className="nb-bar-fill"
                 style={{
                   ...styles.barFill,
-                  height: `${Math.max((item.value / max) * 100, 8)}%`,
+                  height: `${Math.max(
+                    (Number(item.value || 0) / max) * 100,
+                    8
+                  )}%`,
                 }}
               />
             </div>
