@@ -49,12 +49,12 @@ export default function CashierManagement() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [pendRes, actRes] = await Promise.allSettled([
-        axios.get('/api/admin/pending-cashiers', { headers, withCredentials: true }),
-        axios.get('/api/admin/active-cashiers',  { headers, withCredentials: true }),
+      const [allRes] = await Promise.allSettled([
+        axios.get('/api/admin/all-cashiers', { headers, withCredentials: true }),
       ]);
-      setPending(pendRes.status === 'fulfilled' ? pendRes.value.data : []);
-      setActive(actRes.status  === 'fulfilled' ? actRes.value.data  : []);
+      const all = allRes.status === 'fulfilled' ? allRes.value.data : [];
+      setPending(all.filter(c => c.status === 'PENDING'));
+      setActive(all.filter(c => c.status !== 'PENDING'));
     } finally {
       setLoading(false);
     }
