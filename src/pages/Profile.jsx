@@ -395,8 +395,8 @@ function ChangePasswordModal({ onClose, onSave, userToken }) {
     setSaving(true);
     try {
       await axios.put(
-        '/api/profile/change-password',
-        { currentPassword: form.current, newPassword: form.newPw },
+        '/api/profile/update',
+        { password: form.newPw },
         { headers: { Authorization: `Bearer ${userToken}` }, withCredentials: true }
       );
       onSave('Password updated successfully!');
