@@ -116,7 +116,7 @@ export default function CashierManagement() {
           counterNumber: deactivateTarget.counterNumber,
           shiftTiming:   deactivateTarget.shiftTiming,
           basicSalary:   deactivateTarget.basicSalary,
-          status:        'INACTIVE',
+          status:        'SUSPENDED',
         },
         { headers, withCredentials: true }
       );
@@ -145,7 +145,7 @@ export default function CashierManagement() {
   const StatusBadge = ({ status }) => {
     const map = {
       ACTIVE:   { bg: '#D1FAE5', color: '#065F46', label: 'Active'   },
-      INACTIVE: { bg: '#FEE2E2', color: '#991B1B', label: 'Inactive' },
+      SUSPENDED: { bg: '#FEE2E2', color: '#991B1B', label: 'Suspended' },
       PENDING:  { bg: '#FEF3C7', color: '#92400E', label: 'Pending'  },
     };
     const s = map[status] || map.PENDING;
@@ -396,7 +396,7 @@ export default function CashierManagement() {
                     <select value={editForm.status}
                       onChange={e => setEditForm({...editForm, status: e.target.value})}>
                       <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
+                      <option value="SUSPENDED">Suspended</option>
                     </select>
                   </div>
                 </div>
@@ -462,7 +462,7 @@ export default function CashierManagement() {
             },
             {
               label: 'Inactive Cashiers',
-              value: loading ? '—' : active.filter(c => c.status === 'INACTIVE').length,
+              value: loading ? '—' : active.filter(c => c.status === 'SUSPENDED').length,
               icon: UserX,
               iconBg: '#FEE2E2', iconColor: '#991B1B',
             },
@@ -588,7 +588,7 @@ export default function CashierManagement() {
                                 <UserX size={13} /> Deactivate
                               </button>
                             )}
-                            {c.status === 'INACTIVE' && (
+                            {c.status === 'SUSPENDED' && (
                               <button className="cm-edit-btn" onClick={() => openEdit(c)}
                                 style={{ borderColor: '#BBF7D0', color: '#065F46', background: '#F0FDF4' }}>
                                 <UserCheck size={13} /> Re-activate
