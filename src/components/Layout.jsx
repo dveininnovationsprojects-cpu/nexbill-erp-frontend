@@ -26,6 +26,7 @@ const adminNav = [
   { icon: Receipt,         label: 'Billing',   to: '/admin/billing' },
   { icon: CreditCard,      label: 'Payments',  to: '/admin/payments' },
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
+<<<<<<< HEAD
   {
     icon: BarChart2, label: 'Reports', dropdown: [
       { icon: BarChart2, label: 'Sales Analytics', to: '/admin/sales-analytics' },
@@ -60,6 +61,12 @@ const adminNav = [
     ]
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
+=======
+  { icon: BarChart2,       label: 'Reports',   to: '/admin/reports'  },
+  { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
+  { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
+  { icon: UserCircle,      label: 'Profile',   to: '/admin/profile'  },
+>>>>>>> 380f0bd3248fdf45f09c0860da1c465640ce5e18
 ];
 
 const cashierNav = [
@@ -69,6 +76,7 @@ const cashierNav = [
   { icon: Users,           label: 'Customers', to: '/cashier/customers' },
   { icon: FileText,        label: 'Invoices',  to: '/cashier/invoices' },
   { icon: CreditCard,      label: 'Payments',  to: '/cashier/payments' },
+  { icon: Settings,        label: 'Settings',  to: '/cashier/settings' },
   { icon: UserCircle,      label: 'Profile',   to: '/cashier/profile'  },
 ];
 
@@ -591,18 +599,34 @@ export default function Layout({ children }) {
                 <div className={styles.avatar}>{user?.email?.[0]?.toUpperCase()}</div>
                 <div className={styles.profileInfo}>
                   <span className={styles.profileEmail}>{user?.email}</span>
-                  <span className={styles.profileRole}>{user?.role}</span>
+                  <span className={styles.profileRole}>{isAdmin ? 'Administrator' : 'Cashier'}</span>
                 </div>
-                <ChevronDown size={14} />
+                <ChevronDown size={14} style={{ color: '#8B7355', flexShrink: 0 }} />
               </button>
               {profileOpen && (
                 <div className={styles.dropdown}>
+                  {/* User identity row */}
+                  <div style={{ padding: '10px 12px 8px', borderBottom: '1px solid #EFE7DE', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#C6A969,#8B7355)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#2D2D2D', flexShrink: 0 }}>
+                        {user?.email?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#2D2D2D', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                          {isAdmin ? 'NexBill Admin' : 'Ahamed Yasik'}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#8B7355', fontWeight: 500, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
+                          {user?.email}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <button onClick={() => { setProfileOpen(false); navigate(isAdmin ? '/admin/profile' : '/cashier/profile'); }}>
                     <UserCircle size={14} /> Profile
                   </button>
                   <hr />
                   <button onClick={handleLogout} className={styles.dropLogout}>
-                    <LogOut size={14} /> Logout
+                    <LogOut size={14} /> Sign Out
                   </button>
                 </div>
               )}

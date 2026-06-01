@@ -4,7 +4,8 @@ import Layout from './components/Layout';
 import Login            from './pages/Login';
 import Register         from './pages/Register';
 import ForgotPassword   from './pages/ForgotPassword';
-import AdminDashboard   from './pages/AdminDashboard';
+import AdminDashboard      from './pages/AdminDashboard';
+import CashierManagement  from './pages/CashierManagement';
 import CashierDashboard from './pages/CashierDashboard';
 import Products         from './pages/Products';
 import Suppliers        from './pages/Suppliers';
@@ -67,7 +68,12 @@ export default function App() {
           <Route path="/admin/settings/preferences/notifications"       element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
           <Route path="/admin/settings/preferences/security"            element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
           <Route path="/admin/settings/preferences/system"              element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
+          <Route path="/admin/cashiers"  element={<RoleRoute role="ADMIN"><CashierManagement /></RoleRoute>} />
           <Route path="/admin/profile"   element={<RoleRoute role="ADMIN"><Profile /></RoleRoute>} />
+
+          <Route path="/cashier/settings"                                    element={<RoleRoute role="CASHIER"><Settings /></RoleRoute>} />
+          <Route path="/cashier/settings/preferences/notifications"         element={<RoleRoute role="CASHIER"><Settings /></RoleRoute>} />
+          <Route path="/cashier/settings/preferences/security"              element={<RoleRoute role="CASHIER"><Settings /></RoleRoute>} />
 
           <Route path="/cashier/dashboard" element={<RoleRoute role="CASHIER"><CashierDashboard /></RoleRoute>} />
           <Route path="/cashier/billing"   element={<RoleRoute role="CASHIER"><CashierBilling /></RoleRoute>} />

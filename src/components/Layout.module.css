@@ -466,16 +466,13 @@
 .profileBtn:hover { background: #EFE7DE; }
 
 .avatar {
-  width: 28px;
-  height: 28px;
-  background: #2D2D2D;
-  color: #C6A969;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #C6A969 0%, #8B7355 100%);
+  color: #2D2D2D;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
 }
 
 .profileInfo {
@@ -504,16 +501,10 @@
 }
 
 .dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: #FFFFFF;
-  border: 1px solid #EFE7DE;
-  border-radius: 12px;
-  padding: 6px;
-  min-width: 160px;
-  box-shadow: 0 8px 24px rgba(45,45,45,0.1);
-  z-index: 100;
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: #FFFFFF; border: 1px solid #EFE7DE; border-radius: 14px;
+  padding: 6px; min-width: 210px; box-shadow: 0 8px 28px rgba(45,45,45,0.12); z-index: 100;
+  overflow: hidden;
 }
 
 .dropdown button {

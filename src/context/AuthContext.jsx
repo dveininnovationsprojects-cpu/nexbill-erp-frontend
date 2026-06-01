@@ -24,7 +24,10 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const res = await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
     if (!res.data.token) {
-      throw { isPending: true, message: res.data.message || 'Your account is awaiting admin approval.' };
+      if (res.data.pending) {
+        throw { isPending: true, message: res.data.message };
+      }
+      throw { response: { data: { message: res.data.message || 'Invalid credentials. Please try again.' } } };
     }
     // Backend doesn't return role & JWT has no role claim
     // Probe admin-only endpoint to determine role
