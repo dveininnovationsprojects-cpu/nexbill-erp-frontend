@@ -849,28 +849,30 @@ export default function AdminInvoices() {
 
   const fetchInvoices = async () => {
     try {
-      const res = await api.get('/api/invoices/all');
+      const res = await api.get('/api/billing/history');
       const data = (res.data || []).map(inv => ({
-        id: inv.invoiceNumber || inv.id,
-        customer: inv.customerName || inv.cashierId || 'Walk-in Customer',
-        email: inv.customerEmail || '',
-        phone: inv.customerPhone || '',
-        address: inv.customerAddress || '',
-        gstNo: inv.customerGst || '',
+        id:         inv.invoiceNumber || String(inv.id),
+        customer:   inv.cashierId     || 'Walk-in Customer',
+        email:      '',
+        phone:      '',
+        address:    '',
+        gstNo:      '',
         items: (inv.items || []).map(it => ({
           name: it.productName,
-          qty: parseFloat(it.quantity),
-          rate: parseFloat(it.unitPrice),
-          gst: parseFloat(it.gstPercentage || 0),
+          qty:  parseFloat(it.quantity      || 0),
+          rate: parseFloat(it.unitPrice     || 0),
+          gst:  parseFloat(it.gstPercentage || 0),
         })),
-        discount: parseFloat(inv.discountTotal || 0),
-        status: 'Paid',
-        date: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        dueDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        cashier: inv.cashierId || '',
-        counter: 'Counter 1',
-        payment: inv.paymentMethod || 'CASH',
-        grandTotal: parseFloat(inv.grandTotal || 0),
+        subtotal:   parseFloat(inv.subtotal      || 0),
+        gstTotal:   parseFloat(inv.gstTotal      || 0),
+        discount:   parseFloat(inv.discountTotal || 0),
+        grandTotal: parseFloat(inv.grandTotal    || 0),
+        totalItems: inv.totalItems || 0,
+        status:     'Paid',
+        date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        cashier:    inv.cashierId    || '—',
+        payment:    inv.paymentMethod || 'CASH',
       }));
       setInvoices(data);
     } catch {
