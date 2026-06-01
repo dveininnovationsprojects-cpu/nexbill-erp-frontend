@@ -1,15 +1,7 @@
 import { useState } from 'react';
-import { Search, TrendingUp, CreditCard, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, TrendingUp, CreditCard, CheckCircle, XCircle, Clock, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const MOCK_PAYMENTS = [
-  { id: 'PAY001', invoice: 'INV001', cashier: 'Ravi Kumar',  customer: 'Priya S',    amount: 1176, method: 'UPI',         status: 'SUCCESS', date: '2025-05-22 10:30' },
-  { id: 'PAY002', invoice: 'INV002', cashier: 'Meena R',    customer: 'Arjun M',    amount: 2430, method: 'Cash',        status: 'SUCCESS', date: '2025-05-22 11:15' },
-  { id: 'PAY003', invoice: 'INV003', cashier: 'Ravi Kumar',  customer: 'Karthik V',  amount: 846,  method: 'Card',        status: 'PENDING', date: '2025-05-22 12:00' },
-  { id: 'PAY004', invoice: 'INV004', cashier: 'Divya P',    customer: 'Meena R',    amount: 1680, method: 'UPI',         status: 'SUCCESS', date: '2025-05-22 13:45' },
-  { id: 'PAY005', invoice: 'INV005', cashier: 'Meena R',    customer: 'Suresh K',   amount: 706,  method: 'Cash',        status: 'SUCCESS', date: '2025-05-21 09:20' },
-  { id: 'PAY006', invoice: 'INV006', cashier: 'Divya P',    customer: 'Lakshmi T',  amount: 3384, method: 'Card',        status: 'FAILED',  date: '2025-05-21 14:30' },
-  { id: 'PAY007', invoice: 'INV007', cashier: 'Ravi Kumar',  customer: 'Anand P',    amount: 560,  method: 'Net Banking', status: 'SUCCESS', date: '2025-05-21 16:00' },
-];
+const MOCK_PAYMENTS = [];
 
 const STATUS_CONFIG = {
   SUCCESS: { icon: CheckCircle, color: '#5A7A5A', bg: '#F0F7F0', border: '#C8DFC8' },
@@ -23,8 +15,10 @@ export default function Payments() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [cashierFilter, setCashierFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
 
-  const cashiers = [...new Set(MOCK_PAYMENTS.map(p => p.cashier))];
+  const cashiers = [];
 
   const filtered = MOCK_PAYMENTS.filter(p => {
     const matchSearch = p.invoice.toLowerCase().includes(search.toLowerCase()) ||
@@ -37,13 +31,22 @@ export default function Payments() {
   });
 
   const totalCollected = MOCK_PAYMENTS.filter(p => p.status === 'SUCCESS').reduce((s, p) => s + p.amount, 0);
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
   const totalPending   = MOCK_PAYMENTS.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
   const totalFailed    = MOCK_PAYMENTS.filter(p => p.status === 'FAILED').reduce((s, p) => s + p.amount, 0);
 
-  const methodBreakdown = MOCK_PAYMENTS.filter(p => p.status === 'SUCCESS').reduce((acc, p) => {
-    acc[p.method] = (acc[p.method] || 0) + p.amount;
+  const methodBreakdown = MOCK_PAYMENTS.reduce((acc, p) => {
+    if (!acc[p.method]) acc[p.method] = { count: 0, amount: 0 };
+    acc[p.method].count += 1;
+    acc[p.method].amount += p.amount;
     return acc;
   }, {});
+
+  const totalTxn = MOCK_PAYMENTS.length;
+  const paidCount = MOCK_PAYMENTS.filter(p => p.status === 'SUCCESS').length;
+  const pendingCount = MOCK_PAYMENTS.filter(p => p.status === 'PENDING').length;
+  const failedCount = MOCK_PAYMENTS.filter(p => p.status === 'FAILED').length;
 
   return (
     <>
@@ -54,8 +57,9 @@ export default function Payments() {
         .ap-kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
         .ap-kpi-val{font-size:20px;font-weight:700;color:#2D2D2D;line-height:1;margin-bottom:3px}
         .ap-kpi-label{font-size:12px;color:#8B7355;font-weight:500}
-        .ap-grid2{display:grid;grid-template-columns:1fr 280px;gap:20px}
-        .ap-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .ap-grid2{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start;width:100%}
+        .ap-right-col{display:flex;flex-direction:column;gap:16px;width:280px}
+        .ap-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05);width:100%}
         .ap-card-header{padding:16px 20px;border-bottom:1px solid #EFE7DE;font-size:14px;font-weight:600;color:#2D2D2D;display:flex;align-items:center;gap:8px}
         .ap-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
         .ap-search-wrap{position:relative;flex:1;min-width:200px}
@@ -79,6 +83,13 @@ export default function Payments() {
         .ap-amount{font-weight:700;color:#2D2D2D}
         .ap-date{font-size:11px;color:#8B7355}
         .ap-empty{padding:48px;text-align:center;color:#D6D3D1;font-size:14px}
+        .ap-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid #EFE7DE}
+        .ap-page-info{font-size:12px;color:#8B7355}
+        .ap-page-btns{display:flex;gap:5px}
+        .ap-page-btn{min-width:30px;height:30px;padding:0 6px;display:flex;align-items:center;justify-content:center;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#8B7355;transition:all 0.15s}
+        .ap-page-btn:hover{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .ap-page-btn.active{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .ap-page-btn:disabled{opacity:0.4;cursor:not-allowed}
         /* Method breakdown */
         .ap-method-list{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
         .ap-method-row{display:flex;align-items:center;justify-content:space-between;font-size:13px}
@@ -115,7 +126,7 @@ export default function Payments() {
             <div className="ap-topbar" style={{marginBottom:16}}>
               <div className="ap-search-wrap">
                 <Search size={15} className="ap-search-icon" />
-                <input placeholder="Search by ID, invoice, customer..." value={search} onChange={e => setSearch(e.target.value)} />
+                <input placeholder="Search by ID, invoice, customer..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
               </div>
               <select className="ap-select" value={cashierFilter} onChange={e => setCashierFilter(e.target.value)}>
                 <option value="">All Cashiers</option>
@@ -137,7 +148,7 @@ export default function Payments() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr><td colSpan={8} className="ap-empty">No payments found.</td></tr>
-                  ) : filtered.map(p => {
+                  ) : paginated.map(p => {
                     const s = STATUS_CONFIG[p.status];
                     const Icon = s.icon;
                     return (
@@ -155,24 +166,52 @@ export default function Payments() {
                   })}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* Method Breakdown */}
-          <div className="ap-card" style={{alignSelf:'start'}}>
-            <div className="ap-card-header"><CreditCard size={15} /> Payment Methods</div>
-            <div className="ap-method-list">
-              {Object.entries(methodBreakdown).map(([method, amt]) => (
-                <div key={method}>
-                  <div className="ap-method-row">
-                    <span className="ap-method-label">{method}</span>
-                    <span className="ap-method-val">₹{amt.toLocaleString()}</span>
-                  </div>
-                  <div className="ap-method-bar-wrap">
-                    <div className="ap-method-bar" style={{width:`${(amt/totalCollected*100).toFixed(0)}%`}} />
+              {totalPages > 1 && (
+                <div className="ap-pagination">
+                  <span className="ap-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} payments</span>
+                  <div className="ap-page-btns">
+                    <button className="ap-page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={14}/></button>
+                    {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                      <button key={p} className={`ap-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
+                    ))}
+                    <button className="ap-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
                   </div>
                 </div>
-              ))}
+              )}
+            </div>
+          </div>
+          <div className="ap-right-col">
+            <div className="ap-card">
+              <div className="ap-card-header"><CreditCard size={15} /> Payment Methods</div>
+              <div className="ap-method-list">
+                {Object.entries(methodBreakdown).map(([method, data]) => (
+                  <div key={method}>
+                    <div className="ap-method-row">
+                      <span className="ap-method-label">{method}</span>
+                      <span className="ap-method-val">₹{data.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="ap-method-bar-wrap">
+                      <div className="ap-method-bar" style={{width:`${(data.count/totalTxn*100).toFixed(0)}%`}} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="ap-card">
+              <div className="ap-card-header"><BarChart2 size={15} /> Status Summary</div>
+              <div className="ap-method-list">
+                {[{label:'Paid',count:paidCount,color:'#5A7A5A',bar:'#5A7A5A'},{label:'Pending',count:pendingCount,color:'#9A7030',bar:'#C6A969'},{label:'Failed',count:failedCount,color:'#9B4444',bar:'#9B4444'}].map(s => (
+                  <div key={s.label}>
+                    <div className="ap-method-row">
+                      <span className="ap-method-label">{s.label}</span>
+                      <span className="ap-method-val" style={{color:s.color}}>{s.count}</span>
+                    </div>
+                    <div className="ap-method-bar-wrap">
+                      <div className="ap-method-bar" style={{width:`${(s.count/totalTxn*100).toFixed(0)}%`,background:s.bar}} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

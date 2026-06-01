@@ -4,7 +4,7 @@
 // ║   All CSS, all components, all logic — ONE FILE                     ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, Eye, Download, FileText, X,
   ChevronLeft, ChevronRight, Printer, CheckCircle,
@@ -248,99 +248,7 @@ const STYLES = `
   @keyframes invSpin { to{transform:rotate(360deg)} }
 `;
 
-/* ══════════════════════════════════════════════════════════════════════
-   MOCK DATA
-══════════════════════════════════════════════════════════════════════ */
-const MOCK_INVOICES = [
-  {
-    id: 'INV-2026-001', customer: 'Ahamed Yasik', email: 'ahamed@gmail.com',
-    phone: '+91 9876543210', address: '12 MG Road, Chennai, Tamil Nadu 600001',
-    gstNo: '33AABCC1234K1Z5',
-    items: [
-      { name: 'MacBook Pro 14"', qty: 1, rate: 125000, gst: 18 },
-      { name: 'Magic Mouse', qty: 2, rate: 4500, gst: 18 },
-    ],
-    discount: 5000, status: 'Paid', date: '22 May 2026', dueDate: '29 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'UPI',
-  },
-  {
-    id: 'INV-2026-002', customer: 'DVein Innovations', email: 'billing@dvein.in',
-    phone: '+91 9012345678', address: '45 Tech Park, Bangalore, Karnataka 560001',
-    gstNo: '29AABCD5678M1Z9',
-    items: [
-      { name: 'Office Chair Pro', qty: 10, rate: 8500, gst: 18 },
-      { name: 'Standing Desk', qty: 5, rate: 15000, gst: 28 },
-    ],
-    discount: 10000, status: 'Pending', date: '21 May 2026', dueDate: '28 May 2026',
-    cashier: 'Priya Sharma', counter: 'Counter 2', payment: 'Bank Transfer',
-  },
-  {
-    id: 'INV-2026-003', customer: 'Tech Solutions Ltd', email: 'accounts@techsol.com',
-    phone: '+91 8765432109', address: '78 IT Hub, Hyderabad, Telangana 500001',
-    gstNo: '36AABCE9012P1Z3',
-    items: [
-      { name: 'Dell Monitor 27"', qty: 5, rate: 28000, gst: 18 },
-      { name: 'Keyboard & Mouse Combo', qty: 5, rate: 3500, gst: 18 },
-    ],
-    discount: 8000, status: 'Paid', date: '20 May 2026', dueDate: '27 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Card',
-  },
-  {
-    id: 'INV-2026-004', customer: 'Retail Partners Co.', email: 'ap@retailco.in',
-    phone: '+91 7654321098', address: '23 Commerce St, Mumbai, Maharashtra 400001',
-    gstNo: '27AABCF3456Q1Z7',
-    items: [
-      { name: 'Samsung TV 55"', qty: 2, rate: 65000, gst: 28 },
-      { name: 'Wall Mount Kit', qty: 2, rate: 2500, gst: 18 },
-    ],
-    discount: 0, status: 'Overdue', date: '10 May 2026', dueDate: '17 May 2026',
-    cashier: 'Meena Raj', counter: 'Counter 3', payment: 'Pending',
-  },
-  {
-    id: 'INV-2026-005', customer: 'Global Traders', email: 'info@globaltraders.net',
-    phone: '+91 6543210987', address: '67 Export Zone, Pune, Maharashtra 411001',
-    gstNo: '27AABCG7890R1Z1',
-    items: [
-      { name: 'Industrial Printer', qty: 3, rate: 45000, gst: 18 },
-      { name: 'Ink Cartridges (Box)', qty: 10, rate: 2200, gst: 12 },
-    ],
-    discount: 15000, status: 'Draft', date: '23 May 2026', dueDate: '30 May 2026',
-    cashier: 'Priya Sharma', counter: 'Counter 2', payment: 'Pending',
-  },
-  {
-    id: 'INV-2026-006', customer: 'City Supermart', email: 'manager@citymart.in',
-    phone: '+91 5432109876', address: '34 Market St, Coimbatore, Tamil Nadu 641001',
-    gstNo: '33AABCH2345S1Z5',
-    items: [
-      { name: 'POS Terminal', qty: 5, rate: 18000, gst: 18 },
-      { name: 'Receipt Paper Roll (100pcs)', qty: 20, rate: 450, gst: 5 },
-    ],
-    discount: 5000, status: 'Paid', date: '19 May 2026', dueDate: '26 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Cheque',
-  },
-  {
-    id: 'INV-2026-007', customer: 'NextGen Retail', email: 'finance@nextgen.in',
-    phone: '+91 4321098765', address: '12 Broad St, Ahmedabad, Gujarat 380001',
-    gstNo: '24AABCI6789T1Z9',
-    items: [
-      { name: 'Barcode Scanner', qty: 8, rate: 6500, gst: 18 },
-      { name: 'Cash Drawer', qty: 4, rate: 4800, gst: 18 },
-    ],
-    discount: 3000, status: 'Pending', date: '18 May 2026', dueDate: '25 May 2026',
-    cashier: 'Meena Raj', counter: 'Counter 3', payment: 'Pending',
-  },
-  {
-    id: 'INV-2026-008', customer: 'Star Electronics', email: 'billing@starelectro.in',
-    phone: '+91 3210987654', address: '56 Tech Ave, Delhi, Delhi 110001',
-    gstNo: '07AABCJ0123U1Z3',
-    items: [
-      { name: 'iPhone 15 Pro', qty: 3, rate: 134900, gst: 18 },
-      { name: 'AirPods Pro', qty: 3, rate: 24900, gst: 18 },
-    ],
-    discount: 10000, status: 'Paid', date: '17 May 2026', dueDate: '24 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Card',
-  },
-];
+import api from '../api';
 
 const EMPTY_ITEM = { name: '', qty: '', rate: '', gst: 18 };
 
@@ -927,16 +835,52 @@ function CreateInvoiceModal({ onClose, onCreate }) {
 /* ══════════════════════════════════════════════════════════════════════
    ADMIN INVOICES — DEFAULT EXPORT
 ══════════════════════════════════════════════════════════════════════ */
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 5;
 
 export default function AdminInvoices() {
-  const [invoices, setInvoices]     = useState(MOCK_INVOICES);
+  const [invoices, setInvoices]     = useState([]);
+  const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatus]   = useState('All');
   const [page, setPage]             = useState(1);
   const [previewInv, setPreview]    = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast]           = useState(null);
+
+  const fetchInvoices = async () => {
+    try {
+      const res = await api.get('/api/invoices/all');
+      const data = (res.data || []).map(inv => ({
+        id: inv.invoiceNumber || inv.id,
+        customer: inv.customerName || inv.cashierId || 'Walk-in Customer',
+        email: inv.customerEmail || '',
+        phone: inv.customerPhone || '',
+        address: inv.customerAddress || '',
+        gstNo: inv.customerGst || '',
+        items: (inv.items || []).map(it => ({
+          name: it.productName,
+          qty: parseFloat(it.quantity),
+          rate: parseFloat(it.unitPrice),
+          gst: parseFloat(it.gstPercentage || 0),
+        })),
+        discount: parseFloat(inv.discountTotal || 0),
+        status: 'Paid',
+        date: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        dueDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        cashier: inv.cashierId || '',
+        counter: 'Counter 1',
+        payment: inv.paymentMethod || 'CASH',
+        grandTotal: parseFloat(inv.grandTotal || 0),
+      }));
+      setInvoices(data);
+    } catch {
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchInvoices(); }, []);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });

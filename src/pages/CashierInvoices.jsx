@@ -4,13 +4,15 @@
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, Eye, Download, FileText, X,
   ChevronLeft, ChevronRight, Printer, CheckCircle,
   AlertCircle, Receipt, TrendingUp, Clock, Filter,
   Send, User, Calendar, Monitor, ArrowUpRight,
 } from 'lucide-react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 /* ══════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — NexBill Color Palette (matches project)
@@ -594,6 +596,10 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
 const PAGE_SIZE = 5;
 
 export default function CashierInvoices() {
+  const { user } = useAuth();
+  const headers = () => ({ Authorization: `Bearer ${user.token}` });
+
+  const [invoices, setInvoices]   = useState([]);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState('All');
   const [page, setPage]           = useState(1);
@@ -609,7 +615,7 @@ export default function CashierInvoices() {
     showToast(`Email sent to ${inv.email}`);
   };
 
-  const filtered = CASHIER_INVOICES.filter(inv => {
+  const filtered = invoices.filter(inv => {
     const q = search.toLowerCase();
     const matchSearch = inv.id.toLowerCase().includes(q) || inv.customer.toLowerCase().includes(q);
     const matchStatus = statusFilter === 'All' || inv.status === statusFilter;

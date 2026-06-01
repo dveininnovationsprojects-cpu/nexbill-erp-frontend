@@ -1,17 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Search, Pencil, X, CheckCircle, AlertTriangle, Package, TrendingDown, TrendingUp, History, Plus, Minus } from 'lucide-react';
-import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { Search, Pencil, X, CheckCircle, AlertTriangle, Package, TrendingDown, TrendingUp, History, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
+import api from '../api';
 
-const MOCK_INVENTORY = [
-  { id: 1, sku: 'SKU001', name: 'Wireless Mouse',    category: 'Electronics', stock: 45,  minStock: 10, unit: 'pcs',  lastUpdated: '2025-05-20', supplier: 'Tech Distributors', history: [{date:'2025-05-20',type:'in',qty:50,reason:'New stock',by:'Admin'}] },
-  { id: 2, sku: 'SKU002', name: 'Rice 5kg',          category: 'Groceries',   stock: 8,   minStock: 20, unit: 'bags', lastUpdated: '2025-05-21', supplier: 'Agro Suppliers', history: [{date:'2025-05-21',type:'out',qty:12,reason:'Sold',by:'Cashier 1'}] },
-  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack',     category: 'Stationery',  stock: 300, minStock: 50, unit: 'pcs',  lastUpdated: '2025-05-19', supplier: 'Stationery Hub', history: [{date:'2025-05-19',type:'in',qty:300,reason:'Bulk order',by:'Admin'}] },
-  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt',    category: 'Clothing',    stock: 5,   minStock: 15, unit: 'pcs',  lastUpdated: '2025-05-22', supplier: 'Fashion Wholesale', history: [{date:'2025-05-22',type:'out',qty:10,reason:'Sold',by:'Cashier 2'}] },
-  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L',  category: 'Beverages',   stock: 500, minStock: 100,unit: 'btls', lastUpdated: '2025-05-18', supplier: 'Aqua Traders', history: [{date:'2025-05-18',type:'in',qty:500,reason:'Weekly supply',by:'Admin'}] },
-  { id: 6, sku: 'SKU006', name: 'Notebook A4',       category: 'Stationery',  stock: 12,  minStock: 30, unit: 'pcs',  lastUpdated: '2025-05-20', supplier: 'Stationery Hub', history: [{date:'2025-05-20',type:'adjustment',qty:-5,reason:'Damaged',by:'Admin'}] },
-  { id: 7, sku: 'SKU007', name: 'USB-C Cable',       category: 'Electronics', stock: 0,   minStock: 10, unit: 'pcs',  lastUpdated: '2025-05-17', supplier: 'Tech Distributors', history: [{date:'2025-05-17',type:'out',qty:25,reason:'Sold out',by:'Cashier 1'}] },
-];
+
 
 function getStatus(stock, minStock) {
   if (stock === 0) return 'out';
@@ -20,15 +11,44 @@ function getStatus(stock, minStock) {
 }
 
 export default function Inventory() {
-  const { user } = useAuth();
-  const [inventory, setInventory] = useState(MOCK_INVENTORY);
-  const headers = () => ({ Authorization: `Bearer ${user.token}` });
+  const [inventory, setInventory] = useState([]);
+  const [reorderModal, setReorderModal] = useState(null);
+  const [reorderLevel, setReorderLevel] = useState('');
 
-  useEffect(() => {
-    axios.get('/api/products/all', { headers: headers(), withCredentials: true })
-      .then(res => { if (res.data?.length) setInventory(res.data); })
-      .catch(() => {});
-  }, []);
+  const fetchInventory = async () => {
+    try {
+      const prodRes = await api.get('/api/products/all');
+      const products = prodRes.data || [];
+      if (products.length) {
+        const invData = await Promise.allSettled(
+          products.map(p => api.get(`/api/inventory/product/${p.id}`))
+        );
+        const merged = products.map((p, i) => {
+          const inv = invData[i].status === 'fulfilled' ? invData[i].value.data : null;
+          return {
+            id: p.id,
+            sku: p.sku || `SKU${String(p.id).padStart(3,'0')}`,
+            name: p.name || p.productName,
+            category: p.categoryName || p.category?.name || p.category || '—',
+            supplier: p.supplier?.companyName || p.supplier || '—',
+            stock: parseFloat(inv?.availableQuantity ?? p.stock ?? 0),
+            minStock: parseFloat(inv?.reorderLevel ?? p.minStock ?? 10),
+            unit: p.unit || 'pcs',
+            lastUpdated: inv?.updatedAt ? inv.updatedAt.split('T')[0] : (p.lastUpdated || '—'),
+            inventoryId: inv?.inventoryId,
+            history: [],
+          };
+        });
+        setInventory(merged);
+      } else {
+        setInventory([]);
+      }
+    } catch {
+      setInventory([]);
+    }
+  };
+
+  useEffect(() => { fetchInventory(); }, []);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all | low | out
   const [modal, setModal] = useState(null); // item object
@@ -37,15 +57,19 @@ export default function Inventory() {
   const [reason, setReason] = useState('');
   const [toast, setToast] = useState(null);
   const [historyModal, setHistoryModal] = useState(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   const filtered = inventory.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) || i.sku.toLowerCase().includes(search.toLowerCase());
     const status = getStatus(i.stock, i.minStock);
-    const matchFilter = filter === 'all' ? true : filter === 'low' ? status === 'low' : status === 'out';
+    const matchFilter = filter === 'all' ? true : filter === 'low' ? status === 'low' : filter === 'out' ? status === 'out' : status === 'ok';
     return matchSearch && matchFilter;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const lowCount = inventory.filter(i => getStatus(i.stock, i.minStock) === 'low').length;
   const outCount = inventory.filter(i => getStatus(i.stock, i.minStock) === 'out').length;
@@ -59,45 +83,42 @@ export default function Inventory() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    const qtyNum = parseInt(qty);
+    const qtyNum = parseFloat(qty);
     let newStock = modal.stock;
-    let historyType = 'adjustment';
-
-    if (adjustmentType === 'set') {
-      newStock = qtyNum;
-      historyType = qtyNum > modal.stock ? 'in' : qtyNum < modal.stock ? 'out' : 'adjustment';
-    } else if (adjustmentType === 'add') {
-      newStock = modal.stock + qtyNum;
-      historyType = 'in';
-    } else {
-      newStock = Math.max(0, modal.stock - qtyNum);
-      historyType = 'out';
-    }
-
-    const historyEntry = {
-      date: new Date().toISOString().split('T')[0],
-      type: historyType,
-      qty: adjustmentType === 'set' ? newStock - modal.stock : adjustmentType === 'add' ? qtyNum : -qtyNum,
-      reason: reason || 'Manual adjustment',
-      by: 'Admin',
-      oldStock: modal.stock,
-      newStock,
-    };
 
     try {
-      await axios.put(
-        `/api/products/update/${modal.id}`,
-        { ...modal, stock: newStock },
-        { headers: headers(), withCredentials: true }
-      );
-    } catch { /* fallback to local update */ }
+      if (adjustmentType === 'add') {
+        await api.post(`/api/inventory/add/${modal.id}`, null, { params: { quantity: qtyNum } });
+        newStock = modal.stock + qtyNum;
+      } else if (adjustmentType === 'subtract') {
+        await api.post(`/api/inventory/reduce/${modal.id}`, null, { params: { quantity: qtyNum } });
+        newStock = Math.max(0, modal.stock - qtyNum);
+      } else {
+        const diff = qtyNum - modal.stock;
+        if (diff > 0) await api.post(`/api/inventory/add/${modal.id}`, null, { params: { quantity: diff } });
+        else if (diff < 0) await api.post(`/api/inventory/reduce/${modal.id}`, null, { params: { quantity: Math.abs(diff) } });
+        newStock = qtyNum;
+      }
+      showToast(`${modal.name}: ${modal.stock} → ${newStock}`);
+      closeModal();
+      await fetchInventory();
+    } catch (err) {
+      showToast(err?.response?.data || 'Stock update failed!');
+      closeModal();
+    }
+  };
 
-    setInventory(prev => prev.map(i => i.id === modal.id
-      ? { ...i, stock: newStock, lastUpdated: new Date().toISOString().split('T')[0], history: [historyEntry, ...(i.history || [])] }
-      : i
-    ));
-    showToast(`${modal.name} stock updated: ${modal.stock} → ${newStock}`);
-    closeModal();
+  const handleReorderSave = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/api/inventory/reorder-level/${reorderModal.id}`, null, { params: { newLevel: parseFloat(reorderLevel) } });
+      showToast('Reorder level updated!');
+      fetchInventory();
+    } catch {
+      setInventory(prev => prev.map(i => i.id === reorderModal.id ? { ...i, minStock: parseFloat(reorderLevel) } : i));
+      showToast('Reorder level updated (offline)!');
+    }
+    setReorderModal(null); setReorderLevel('');
   };
 
   const statusBadge = (stock, minStock) => {
@@ -131,14 +152,22 @@ export default function Inventory() {
         .inv-filter-btn.active{background:#2D2D2D;color:#F8F5F2;border-color:#2D2D2D}
         .inv-filter-btn.warn.active{background:#C6A969;color:#2D2D2D;border-color:#C6A969}
         .inv-filter-btn.danger.active{background:#9B4444;color:#FFFFFF;border-color:#9B4444}
+        .inv-pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-top:1px solid #EFE7DE; }
+        .inv-page-info { font-size:12px; color:#8B7355; }
+        .inv-page-btns { display:flex; gap:5px; }
+        .inv-page-btn { min-width:30px; height:30px; padding:0 6px; display:flex; align-items:center; justify-content:center; background:#F8F5F2; border:1px solid #EFE7DE; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; color:#8B7355; transition:all 0.15s; }
+        .inv-page-btn:hover { background:#2D2D2D; color:#C6A969; border-color:#2D2D2D; }
+        .inv-page-btn.active { background:#2D2D2D; color:#C6A969; border-color:#2D2D2D; }
+        .inv-page-btn:disabled { opacity:0.4; cursor:not-allowed; }
         .inv-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
-        .inv-table{width:100%;border-collapse:collapse;font-size:13px}
+        .inv-table-scroll{overflow-x:auto}
+        .inv-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1200px}
         .inv-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;background:#F8F5F2;border-bottom:1px solid #EFE7DE}
         .inv-table td{padding:13px 16px;border-bottom:1px solid #F8F5F2;color:#3F3F46;vertical-align:middle}
         .inv-table tr:last-child td{border-bottom:none}
         .inv-table tr:hover td{background:#FDFCFB}
         .inv-sku{font-size:11px;color:#8B7355;background:#EFE7DE;padding:2px 8px;border-radius:20px;font-weight:600}
-        .inv-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+        .inv-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;display:inline-block;min-width:90px;text-align:center}
         .inv-badge-ok{background:#F0F7F0;color:#5A7A5A}
         .inv-badge-low{background:#FDF8EE;color:#9A7030}
         .inv-badge-out{background:#FDF0F0;color:#9B4444}
@@ -146,7 +175,7 @@ export default function Inventory() {
         .inv-stock-ok{color:#2D2D2D}
         .inv-stock-low{color:#C6A969}
         .inv-stock-out{color:#9B4444}
-        .inv-update-btn{padding:6px 14px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:7px;font-size:12px;font-weight:500;color:#3F3F46;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all 0.2s}
+        .inv-update-btn{padding:6px 10px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:7px;font-size:12px;font-weight:500;color:#3F3F46;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all 0.2s;white-space:nowrap}
         .inv-update-btn:hover{background:#2D2D2D;color:#F8F5F2;border-color:#2D2D2D}
         .inv-empty{padding:48px;text-align:center;color:#D6D3D1;font-size:14px}
         .inv-date{font-size:11px;color:#D6D3D1}
@@ -178,7 +207,7 @@ export default function Inventory() {
         .inv-adj-btn.active{background:#2D2D2D;color:#F8F5F2;border-color:#2D2D2D}
         .inv-field textarea{padding:10px 12px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;color:#2D2D2D;background:#F8F5F2;outline:none;font-family:inherit;transition:border-color 0.2s;width:100%;box-sizing:border-box;resize:vertical;min-height:60px}
         .inv-field textarea:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12);background:#FFFFFF}
-        .inv-history-btn{padding:6px 14px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:7px;font-size:12px;font-weight:500;color:#3F3F46;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all 0.2s}
+        .inv-history-btn{padding:6px 10px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:7px;font-size:12px;font-weight:500;color:#3F3F46;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all 0.2s;white-space:nowrap}
         .inv-history-btn:hover{background:#DBEAFE;color:#2563eb;border-color:#93C5FD}
         .inv-history-list{max-height:300px;overflow-y:auto}
         .inv-history-item{padding:12px;border-bottom:1px solid #F8F5F2;display:flex;gap:10px}
@@ -197,6 +226,34 @@ export default function Inventory() {
       `}</style>
 
       {toast && <div className="inv-toast"><CheckCircle size={14} />{toast}</div>}
+
+      {/* Reorder Level Modal */}
+      {reorderModal && (
+        <div className="inv-overlay" onClick={() => setReorderModal(null)}>
+          <div className="inv-modal" onClick={e => e.stopPropagation()} style={{maxWidth:360}}>
+            <div className="inv-modal-header">
+              <h3>Update Reorder Level</h3>
+              <button className="inv-modal-close" onClick={() => setReorderModal(null)}><X size={16} /></button>
+            </div>
+            <div className="inv-modal-body">
+              <div className="inv-modal-meta">
+                <div style={{fontWeight:600,marginBottom:4}}>{reorderModal.name}</div>
+                <span>Current Reorder Level: {reorderModal.minStock} {reorderModal.unit}</span>
+              </div>
+              <form onSubmit={handleReorderSave}>
+                <div className="inv-field">
+                  <label>New Reorder Level ({reorderModal.unit})</label>
+                  <input type="number" min="0" required value={reorderLevel} onChange={e => setReorderLevel(e.target.value)} autoFocus />
+                </div>
+                <div className="inv-modal-actions">
+                  <button type="button" className="inv-cancel-btn" onClick={() => setReorderModal(null)}>Cancel</button>
+                  <button type="submit" className="inv-save-btn">Update</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Update Stock Modal */}
       {modal && (
@@ -314,17 +371,19 @@ export default function Inventory() {
         <div className="inv-topbar">
           <div className="inv-search-wrap">
             <Search size={15} className="inv-search-icon" />
-            <input placeholder="Search by name or SKU..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input placeholder="Search by name or SKU..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <div className="inv-filter-btns">
-            <button className={`inv-filter-btn ${filter==='all'?'active':''}`} onClick={() => setFilter('all')}>All</button>
-            <button className={`inv-filter-btn warn ${filter==='low'?'active':''}`} onClick={() => setFilter('low')}>Low Stock {lowCount > 0 && `(${lowCount})`}</button>
-            <button className={`inv-filter-btn danger ${filter==='out'?'active':''}`} onClick={() => setFilter('out')}>Out of Stock {outCount > 0 && `(${outCount})`}</button>
+            <button className={`inv-filter-btn ${filter==='all'?'active':''}`} onClick={() => { setFilter('all'); setPage(1); }}>All</button>
+            <button className={`inv-filter-btn ok ${filter==='ok'?'active':''}`} onClick={() => { setFilter('ok'); setPage(1); }}>In Stock {healthyCount > 0 && `(${healthyCount})`}</button>
+            <button className={`inv-filter-btn warn ${filter==='low'?'active':''}`} onClick={() => { setFilter('low'); setPage(1); }}>Low Stock {lowCount > 0 && `(${lowCount})`}</button>
+            <button className={`inv-filter-btn danger ${filter==='out'?'active':''}`} onClick={() => { setFilter('out'); setPage(1); }}>Out of Stock {outCount > 0 && `(${outCount})`}</button>
           </div>
         </div>
 
         {/* Table */}
         <div className="inv-card">
+          <div className="inv-table-scroll">
           <table className="inv-table">
             <thead>
               <tr>
@@ -334,16 +393,16 @@ export default function Inventory() {
                 <th>Supplier</th>
                 <th>Current Stock</th>
                 <th>Min Stock</th>
-                <th>Status</th>
+                <th style={{textAlign:'center'}}>Status</th>
                 <th>Last Updated</th>
-                <th>Actions</th>
+                <th style={{minWidth:'220px'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <tr><td colSpan={9} className="inv-empty">No items found.</td></tr>
               ) : (
-                filtered.map(item => {
+                paginated.map(item => {
                   const s = getStatus(item.stock, item.minStock);
                   return (
                     <tr key={item.id}>
@@ -357,15 +416,22 @@ export default function Inventory() {
                         </span>
                       </td>
                       <td style={{color:'#8B7355'}}>{item.minStock} {item.unit}</td>
-                      <td>{statusBadge(item.stock, item.minStock)}</td>
-                      <td><span className="inv-date">{item.lastUpdated}</span></td>
+                      <td style={{textAlign:'center'}}>{statusBadge(item.stock, item.minStock)}</td>
                       <td>
-                        <div style={{display:'flex',gap:6}}>
-                          <button className="inv-update-btn" onClick={() => openUpdate(item)}>
+                        <span className="inv-date">
+                          {item.lastUpdated === '—' ? '—' : new Date(item.lastUpdated).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{display:'flex',gap:5,flexWrap:'nowrap'}}>
+                          <button className="inv-update-btn" onClick={() => openUpdate(item)} title="Adjust Stock">
                             <Pencil size={13} /> Adjust
                           </button>
-                          <button className="inv-history-btn" onClick={() => openHistory(item)}>
+                          <button className="inv-history-btn" onClick={() => openHistory(item)} title="View History">
                             <History size={13} /> History
+                          </button>
+                          <button className="inv-history-btn" style={{color:'#C6A969'}} onClick={() => { setReorderModal(item); setReorderLevel(String(item.minStock)); }} title="Set Reorder Level">
+                            <AlertTriangle size={13} /> Reorder
                           </button>
                         </div>
                       </td>
@@ -375,6 +441,19 @@ export default function Inventory() {
               )}
             </tbody>
           </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="inv-pagination">
+              <span className="inv-page-info">{(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length}</span>
+              <div className="inv-page-btns">
+                <button className="inv-page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={14}/></button>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                  <button key={p} className={`inv-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
+                ))}
+                <button className="inv-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

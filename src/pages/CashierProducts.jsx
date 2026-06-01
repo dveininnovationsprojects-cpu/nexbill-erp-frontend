@@ -3,19 +3,10 @@ import { Search } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const FALLBACK = [
-  { id: 1, sku: 'SKU001', name: 'Wireless Mouse',   category: 'Electronics', sellingPrice: 599,  stock: 45,  gstRate: 18 },
-  { id: 2, sku: 'SKU002', name: 'Rice 5kg',          category: 'Groceries',   sellingPrice: 280,  stock: 8,   gstRate: 5  },
-  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack',     category: 'Stationery',  sellingPrice: 45,   stock: 300, gstRate: 12 },
-  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt',    category: 'Clothing',    sellingPrice: 399,  stock: 5,   gstRate: 5  },
-  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L',  category: 'Beverages',   sellingPrice: 20,   stock: 500, gstRate: 0  },
-  { id: 6, sku: 'SKU006', name: 'Notebook A4',       category: 'Stationery',  sellingPrice: 85,   stock: 12,  gstRate: 12 },
-  { id: 7, sku: 'SKU007', name: 'USB-C Cable',       category: 'Electronics', sellingPrice: 249,  stock: 0,   gstRate: 18 },
-];
-
 export default function CashierProducts() {
   const { user } = useAuth();
-  const [products, setProducts] = useState(FALLBACK);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
 
@@ -23,15 +14,36 @@ export default function CashierProducts() {
     axios.get('/api/products/all', {
       headers: { Authorization: `Bearer ${user.token}` },
       withCredentials: true,
-    }).then(res => { if (res.data?.length) setProducts(res.data); })
-      .catch(() => {});
+    }).then(async res => {
+      const prods = res.data || [];
+      if (prods.length) {
+        const invData = await Promise.allSettled(
+          prods.map(p => axios.get(`/api/inventory/product/${p.id}`, {
+            headers: { Authorization: `Bearer ${user.token}` },
+            withCredentials: true,
+          }))
+        );
+        const merged = prods.map((p, i) => ({
+          ...p,
+          stock: invData[i].status === 'fulfilled' ? parseFloat(invData[i].value.data.availableQuantity ?? 0) : 0,
+          minStock: invData[i].status === 'fulfilled' ? parseFloat(invData[i].value.data.reorderLevel ?? 0) : 0,
+          gstRate: p.gstPercentage ?? p.gstRate ?? 0,
+          category: p.category?.name || p.category || '',
+        }));
+        setProducts(merged);
+      } else {
+        setProducts([]);
+      }
+    }).catch(() => setProducts([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  const categories = [...new Set(products.map(p => p.category))];
+  const categories = [...new Set(products.map(p => p.category?.name || p.category).filter(Boolean))];
 
   const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
-    const matchCat = catFilter ? p.category === catFilter : true;
+    const catName = p.category?.name || p.category || '';
+    const matchSearch = p.name?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase());
+    const matchCat = catFilter ? catName === catFilter : true;
     return matchSearch && matchCat;
   });
 
@@ -77,8 +89,16 @@ export default function CashierProducts() {
               <tr><th>SKU</th><th>Product Name</th><th>Category</th><th>Price</th><th>GST</th><th>Stock</th></tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="cp-empty">No products found.</td></tr>
+              {loading ? (
+                [...Array(4)].map((_, i) => (
+                  <tr key={i}>
+                    {[...Array(6)].map((_, j) => (
+                      <td key={j}><span style={{display:'inline-block',height:12,width:j===1?120:70,background:'#EFE7DE',borderRadius:4,animation:'pulse 1.5s ease-in-out infinite'}} /></td>
+                    ))}
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} className="cp-empty">{products.length === 0 ? 'No products found.' : 'No products match search.'}</td></tr>
               ) : filtered.map(p => {
                 const stockClass = p.stock === 0 ? 'cp-stock-out' : p.stock < 20 ? 'cp-stock-low' : 'cp-stock-ok';
                 const stockLabel = p.stock === 0 ? 'Out of Stock' : p.stock < 20 ? `${p.stock} ⚠` : p.stock;
@@ -86,7 +106,7 @@ export default function CashierProducts() {
                   <tr key={p.id}>
                     <td><span className="cp-sku">{p.sku}</span></td>
                     <td style={{fontWeight:500,color:'#2D2D2D'}}>{p.name}</td>
-                    <td><span className="cp-cat">{p.category}</span></td>
+                    <td><span className="cp-cat">{p.category?.name || p.category}</span></td>
                     <td>₹{p.sellingPrice?.toLocaleString()}</td>
                     <td>{p.gstRate}%</td>
                     <td><span className={stockClass}>{stockLabel}</span></td>

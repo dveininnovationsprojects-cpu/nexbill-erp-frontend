@@ -23,6 +23,10 @@ export default function CashierManagement() {
   /* ── search ── */
   const [search, setSearch] = useState('');
 
+  /* ── pagination ── */
+  const PAGE_SIZE = 5;
+  const [page, setPage] = useState(1);
+
   /* ── approve modal ── */
   const [approveTarget, setApproveTarget] = useState(null);
   const [approveForm,   setApproveForm]   = useState(EMPTY_APPROVE_FORM);
@@ -155,6 +159,13 @@ export default function CashierManagement() {
     (c.name  || '').toLowerCase().includes(q) ||
     (c.email || '').toLowerCase().includes(q)
   );
+
+  /* ── paginated active list ── */
+  const totalPages  = Math.ceil(filteredActive.length / PAGE_SIZE);
+  const pagedActive = filteredActive.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  /* reset page when search changes */
+  useEffect(() => { setPage(1); }, [search, tab]);
 
   const initials = (c) => (c.name || c.email || '?')[0].toUpperCase();
 
@@ -559,7 +570,7 @@ export default function CashierManagement() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredActive.map(c => (
+                    {pagedActive.map(c => (
                       <tr key={c.id}>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -617,6 +628,43 @@ export default function CashierManagement() {
                     ))}
                   </tbody>
                 </table>
+                {totalPages > 1 && (
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                    padding:'12px 16px', borderTop:'1px solid #EFE7DE', background:'#FAFAF9' }}>
+                    <span style={{ fontSize:12, color:'#8B7355' }}>
+                      Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredActive.length)} of {filteredActive.length} cashiers
+                    </span>
+                    <div style={{ display:'flex', gap:4 }}>
+                      <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        style={{ padding:'6px 12px', border:'1.5px solid #EFE7DE', borderRadius:8,
+                          background: page === 1 ? '#F8F5F2' : '#FFFFFF', color: page === 1 ? '#D6D3D1' : '#3F3F46',
+                          fontSize:12, fontWeight:600, cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily:'inherit' }}>
+                        ← Prev
+                      </button>
+                      {[...Array(totalPages)].map((_, i) => (
+                        <button key={i} onClick={() => setPage(i + 1)}
+                          style={{ padding:'6px 10px', border:'1.5px solid', borderRadius:8,
+                            borderColor: page === i+1 ? '#2D2D2D' : '#EFE7DE',
+                            background: page === i+1 ? '#2D2D2D' : '#FFFFFF',
+                            color: page === i+1 ? '#F8F5F2' : '#3F3F46',
+                            fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', minWidth:32 }}>
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        style={{ padding:'6px 12px', border:'1.5px solid #EFE7DE', borderRadius:8,
+                          background: page === totalPages ? '#F8F5F2' : '#FFFFFF',
+                          color: page === totalPages ? '#D6D3D1' : '#3F3F46',
+                          fontSize:12, fontWeight:600, cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily:'inherit' }}>
+                        Next →
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

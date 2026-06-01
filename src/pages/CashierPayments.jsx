@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { Search, CreditCard, CheckCircle, Clock, XCircle } from 'lucide-react';
 
-const MOCK_PAYMENTS = [
-  { id: 'PAY001', invoice: 'INV001', customer: 'Ravi Kumar',    amount: 1250.00, method: 'UPI',        status: 'SUCCESS',    date: '2025-05-22 10:30' },
-  { id: 'PAY002', invoice: 'INV002', customer: 'Priya S',       amount: 450.50,  method: 'Cash',       status: 'SUCCESS',    date: '2025-05-22 11:15' },
-  { id: 'PAY003', invoice: 'INV003', customer: 'Arjun M',       amount: 3200.00, method: 'Card',       status: 'FAILED',     date: '2025-05-22 12:00' },
-  { id: 'PAY004', invoice: 'INV004', customer: 'Meena R',       amount: 780.00,  method: 'Net Banking', status: 'PENDING',   date: '2025-05-22 13:45' },
-  { id: 'PAY005', invoice: 'INV005', customer: 'Karthik V',     amount: 560.00,  method: 'UPI',        status: 'SUCCESS',    date: '2025-05-21 09:20' },
-  { id: 'PAY006', invoice: 'INV006', customer: 'Divya P',       amount: 2100.00, method: 'Card',       status: 'SUCCESS',    date: '2025-05-21 14:30' },
-];
+const MOCK_PAYMENTS = [];
 
 const STATUS_CONFIG = {
   SUCCESS: { label: 'Success',  icon: CheckCircle, color: '#5A7A5A', bg: '#F0F7F0', border: '#C8DFC8' },

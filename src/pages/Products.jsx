@@ -1,31 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2, X, CheckCircle, Package, TrendingUp, AlertTriangle, Tag } from 'lucide-react';
-import axios from 'axios';
+import { Plus, Search, Pencil, Trash2, X, CheckCircle, Package, TrendingUp, AlertTriangle, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
-const DUMMY_PRODUCTS = [
-  { id: 1, sku: 'SKU001', name: 'Wireless Mouse',   category: 'Electronics', sellingPrice: 599,  purchasePrice: 350, stock: 45,  minStock: 10, gstRate: 18, barcode: '8901234567890', supplier: 'Tech Distributors', expiryDate: '', description: 'Ergonomic wireless mouse with USB receiver', imageUrl: '' },
-  { id: 2, sku: 'SKU002', name: 'Rice 5kg',          category: 'Groceries',   sellingPrice: 280,  purchasePrice: 210, stock: 8,   minStock: 20, gstRate: 5,  barcode: '8902345678901', supplier: 'Agro Suppliers',    expiryDate: '2025-12-31', description: 'Premium basmati rice 5kg pack', imageUrl: '' },
-  { id: 3, sku: 'SKU003', name: 'Blue Pen Pack',     category: 'Stationery',  sellingPrice: 45,   purchasePrice: 25,  stock: 300, minStock: 50, gstRate: 12, barcode: '8903456789012', supplier: 'Stationery Hub',    expiryDate: '', description: 'Pack of 10 blue ballpoint pens', imageUrl: '' },
-  { id: 4, sku: 'SKU004', name: 'Cotton T-Shirt',    category: 'Clothing',    sellingPrice: 399,  purchasePrice: 200, stock: 5,   minStock: 15, gstRate: 5,  barcode: '8904567890123', supplier: 'Fashion Wholesale', expiryDate: '', description: '100% cotton round neck t-shirt', imageUrl: '' },
-  { id: 5, sku: 'SKU005', name: 'Mineral Water 1L',  category: 'Beverages',   sellingPrice: 20,   purchasePrice: 10,  stock: 500, minStock: 100,gstRate: 0,  barcode: '8905678901234', supplier: 'Aqua Traders',      expiryDate: '2025-06-30', description: 'Packaged drinking water 1 litre', imageUrl: '' },
-];
+
 
 const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', minStock: '', gstRate: '0', barcode: '', supplier: '', expiryDate: '', description: '', imageUrl: '' };
 
 export default function Products() {
   const { user } = useAuth();
-  const [products, setProducts] = useState(DUMMY_PRODUCTS);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([
-    { id: 1, name: 'Electronics' },
-    { id: 2, name: 'Groceries' },
-    { id: 3, name: 'Clothing' },
-    { id: 4, name: 'Stationery' },
-    { id: 5, name: 'Beverages' },
-  ]);
+  const [categories, setCategories] = useState([]);
+  const [suppliersList, setSuppliersList] = useState([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editId, setEditId] = useState(null);
@@ -33,21 +24,44 @@ export default function Products() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const getHeaders = () => ({ Authorization: `Bearer ${user.token}` });
-
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('/api/products/all', { headers: getHeaders(), withCredentials: true });
-      if (res.data?.length) setProducts(res.data);
-    } catch { /* keep dummy data */ }
+      const res = await api.get('/api/products/all');
+      const prods = res.data || [];
+      if (prods.length) {
+        const invData = await Promise.allSettled(
+          prods.map(p => api.get(`/api/inventory/product/${p.id}`))
+        );
+        const merged = prods.map((p, i) => ({
+          ...p,
+          stock: invData[i].status === 'fulfilled' ? parseFloat(invData[i].value.data.availableQuantity ?? 0) : 0,
+          minStock: invData[i].status === 'fulfilled' ? parseFloat(invData[i].value.data.reorderLevel ?? 0) : 0,
+        }));
+        setProducts(merged);
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.error('Fetch products error:', err);
+      setProducts([]);
+    }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
     fetchProducts();
-    axios.get('/api/categories/all', { headers: getHeaders(), withCredentials: true })
-      .then(res => { if (res.data?.length) setCategories(res.data.map(c => ({ id: c.id, name: c.name }))); })
-      .catch(() => {});
+    api.get('/api/categories/all')
+      .then(res => { 
+        console.log('Categories:', res.data);
+        if (res.data?.length) setCategories(res.data.map(c => ({ id: c.id, name: c.name }))); 
+      })
+      .catch(err => console.error('Categories fetch error:', err));
+    api.get('/api/suppliers/active')
+      .then(res => { 
+        console.log('Suppliers:', res.data);
+        if (res.data?.length) setSuppliersList(res.data.map(s => ({ id: s.id, name: s.companyName }))); 
+      })
+      .catch(err => console.error('Suppliers fetch error:', err));
   }, []);
 
   const showToast = (msg, type = 'success') => {
@@ -61,6 +75,9 @@ export default function Products() {
     return matchSearch && matchCat;
   });
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const openAdd = () => { setForm(EMPTY_FORM); setEditId(null); setModal('add'); };
   const openEdit = (p) => {
     setForm({
@@ -71,9 +88,9 @@ export default function Products() {
       purchasePrice: String(p.purchasePrice || ''),
       stock: String(p.stock || ''),
       minStock: String(p.minStock || ''),
-      gstRate: String(p.gstRate || '0'),
+      gstRate: String(p.gstPercentage || p.gstRate || '0'),
       barcode: p.barcode || '',
-      supplier: p.supplier || '',
+      supplier: p.supplier?.companyName || p.supplier || '',
       expiryDate: p.expiryDate || '',
       description: p.description || '',
       imageUrl: p.imageUrl || '',
@@ -85,44 +102,61 @@ export default function Products() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    console.log('Form data before save:', form);
     setSaving(true);
+    // Find category object from categories list
+    const categoryObj = categories.find(c => c.name === form.category);
+    const supplierObj = suppliersList.find(s => s.name === form.supplier);
     const payload = {
-      ...form,
+      sku: form.sku,
+      name: form.name,
+      category: categoryObj ? { id: categoryObj.id, name: categoryObj.name } : { name: form.category },
       sellingPrice: parseFloat(form.sellingPrice),
       purchasePrice: parseFloat(form.purchasePrice),
-      stock: parseInt(form.stock),
-      minStock: parseInt(form.minStock) || 0,
-      gstRate: parseFloat(form.gstRate),
+      gstPercentage: parseFloat(form.gstRate) || 0,
+      barcode: form.barcode || null,
+      supplier: supplierObj ? { id: supplierObj.id } : null,
+      expiryDate: form.expiryDate || null,
+      description: form.description || null,
+      imageUrl: form.imageUrl || null,
     };
+    console.log('Product payload:', JSON.stringify(payload, null, 2));
     try {
       if (modal === 'add') {
-        try {
-          const res = await axios.post('/api/products/add', payload, { headers: getHeaders(), withCredentials: true });
-          setProducts(prev => [...prev, res.data]);
-        } catch {
-          setProducts(prev => [...prev, { ...payload, id: Date.now() }]);
+        const res = await api.post('/api/products/add', payload);
+        // Stock inventory-la set pannanum
+        if (form.stock && parseInt(form.stock) > 0) {
+          await api.post(`/api/inventory/add/${res.data.id}`, null, { params: { quantity: parseInt(form.stock) } });
         }
         showToast('Product added successfully!');
+        await fetchProducts();
       } else {
-        try {
-          const res = await axios.put(`/api/products/update/${editId}`, payload, { headers: getHeaders(), withCredentials: true });
-          setProducts(prev => prev.map(p => p.id === editId ? res.data : p));
-        } catch {
-          setProducts(prev => prev.map(p => p.id === editId ? { ...payload, id: editId } : p));
-        }
+        const res = await api.put(`/api/products/update/${editId}`, payload);
+        console.log('Product updated - Response:', res.data);
         showToast('Product updated successfully!');
+        await fetchProducts();
       }
       closeModal();
+    } catch (err) {
+      console.error('Product save error:', err);
+      console.error('Error response:', err?.response?.data);
+      console.error('Error status:', err?.response?.status);
+      console.error('Error headers:', err?.response?.headers);
+      const msg = err?.response?.data?.message || err?.response?.data || err?.message || 'Unknown error';
+      const status = err?.response?.status || '';
+      showToast(`Failed (${status}): ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`, 'error');
     } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/products/delete/${deleteId}`, { headers: getHeaders(), withCredentials: true });
-    } catch { /* ignore */ }
-    setProducts(prev => prev.filter(p => p.id !== deleteId));
+      await api.delete(`/api/products/delete/${deleteId}`);
+      setProducts(prev => prev.filter(p => p.id !== deleteId));
+      showToast('Product deleted!');
+    } catch {
+      showToast('Failed to delete.', 'error');
+    }
     setDeleteId(null);
-    showToast('Product deleted!');
   };
 
   return (
@@ -147,7 +181,8 @@ export default function Products() {
         .pr-select:focus{border-color:#C6A969}
         .pr-add-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;white-space:nowrap}
         .pr-add-btn:hover{background:#C6A969;color:#2D2D2D}
-        .pr-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow-x:auto;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .pr-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .pr-table-scroll{overflow-x:auto}
         .pr-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
         .pr-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;background:#F8F5F2;border-bottom:1px solid #EFE7DE}
         .pr-table td{padding:13px 16px;border-bottom:1px solid #F8F5F2;color:#3F3F46;vertical-align:middle}
@@ -203,6 +238,13 @@ export default function Products() {
         .pr-expiry-warn{color:#9B4444;font-weight:600}
         .pr-expiry-ok{color:#3F3F46}
         .pr-profit{font-size:11px;color:#5A7A5A;font-weight:600}
+        .pr-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid #EFE7DE}
+        .pr-page-info{font-size:12px;color:#8B7355}
+        .pr-page-btns{display:flex;gap:5px}
+        .pr-page-btn{min-width:30px;height:30px;padding:0 6px;display:flex;align-items:center;justify-content:center;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#8B7355;transition:all 0.15s}
+        .pr-page-btn:hover{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .pr-page-btn.active{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .pr-page-btn:disabled{opacity:0.4;cursor:not-allowed}
       `}</style>
 
       {/* Toast */}
@@ -240,6 +282,17 @@ export default function Products() {
                       {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
+                  <div className="pr-field">
+                    <label>Supplier</label>
+                    <select value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })}>
+                      <option value="">Select supplier</option>
+                      {suppliersList.length > 0 ? (
+                        suppliersList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)
+                      ) : (
+                        <option disabled>No suppliers available</option>
+                      )}
+                    </select>
+                  </div>
                   <div className="pr-field full">
                     <label>Description</label>
                     <textarea placeholder="Short product description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
@@ -247,10 +300,6 @@ export default function Products() {
                   <div className="pr-field full">
                     <label>Image URL</label>
                     <input placeholder="https://example.com/image.jpg" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} />
-                  </div>
-                  <div className="pr-field full">
-                    <label>Supplier</label>
-                    <input placeholder="Supplier name" value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })} />
                   </div>
                 </div>
 
@@ -325,7 +374,7 @@ export default function Products() {
           const totalValue = products.reduce((s, p) => s + (p.sellingPrice || 0) * (p.stock || 0), 0);
           const lowStock   = products.filter(p => p.stock <= (p.minStock || 0) && p.stock > 0).length;
           const outStock   = products.filter(p => p.stock === 0).length;
-          const cats       = new Set(products.map(p => p.category?.name || p.category)).size;
+          const cats = categories.length;
           return (
             <div className="pr-kpi-grid">
               <div className="pr-kpi">
@@ -351,9 +400,9 @@ export default function Products() {
         <div className="pr-topbar">
           <div className="pr-search-wrap">
             <Search size={15} className="pr-search-icon" />
-            <input placeholder="Search by name or SKU..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input placeholder="Search by name or SKU..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
-          <select className="pr-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+          <select className="pr-select" value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}>
             <option value="">All Categories</option>
             {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
@@ -362,12 +411,14 @@ export default function Products() {
 
         {/* Table */}
         <div className="pr-card">
+          <div className="pr-table-scroll">
           <table className="pr-table">
             <thead>
               <tr>
                 <th>SKU</th>
                 <th>Product Name</th>
                 <th>Category</th>
+                <th>Supplier</th>
                 <th>Selling Price</th>
                 <th>Purchase Price</th>
                 <th>Profit</th>
@@ -381,13 +432,13 @@ export default function Products() {
               {loading ? (
                 [...Array(4)].map((_, i) => (
                   <tr key={i}>
-                    {[...Array(8)].map((_, j) => <td key={j}><span className="pr-skeleton" style={{width:j===1?120:70}} /></td>)}
+                    {[...Array(11)].map((_, j) => <td key={j}><span className="pr-skeleton" style={{width:j===1?120:70}} /></td>)}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={10} className="pr-empty">No products found.</td></tr>
+                <tr><td colSpan={11} className="pr-empty">No products found.</td></tr>
               ) : (
-                filtered.map(p => {
+                paginated.map(p => {
                   const profit = (p.sellingPrice || 0) - (p.purchasePrice || 0);
                   const isLowStock = p.stock <= (p.minStock || 20);
                   const isExpired = p.expiryDate && new Date(p.expiryDate) < new Date();
@@ -401,11 +452,12 @@ export default function Products() {
                       {p.barcode && <div style={{fontSize:10,color:'#D6D3D1',marginTop:1}}>#{p.barcode}</div>}
                     </td>
                     <td><span className="pr-cat-badge">{p.category?.name || p.category}</span></td>
+                    <td>{p.supplier ? <span style={{fontSize:12,color:'#5A7A5A',fontWeight:500}}>{p.supplier?.companyName || p.supplier}</span> : <span style={{color:'#D6D3D1'}}>—</span>}</td>
                     <td>₹{(p.sellingPrice || 0).toLocaleString()}</td>
                     <td>₹{(p.purchasePrice || 0).toLocaleString()}</td>
                     <td><span className="pr-profit">₹{profit.toLocaleString()}</span></td>
-                    <td><span className={isLowStock ? 'pr-stock-low' : 'pr-stock-ok'}>{p.stock} {isLowStock ? '⚠' : ''}</span></td>
-                    <td>{p.gstRate}%</td>
+                    <td><span className={isLowStock ? 'pr-stock-low' : 'pr-stock-ok'}>{p.stock || 0} {isLowStock ? '⚠' : ''}</span></td>
+                    <td>{p.gstPercentage || p.gstRate || 0}%</td>
                     <td>
                       {p.expiryDate
                         ? <span className={isExpired ? 'pr-expiry-warn' : isExpiringSoon ? 'pr-expiry-warn' : 'pr-expiry-ok'}>
@@ -426,7 +478,23 @@ export default function Products() {
               )}
             </tbody>
           </table>
+          </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="pr-pagination">
+              <span className="pr-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} products</span>
+              <div className="pr-page-btns">
+                <button className="pr-page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={14}/></button>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                  <button key={p} className={`pr-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
+                ))}
+                <button className="pr-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* OLD Pagination removed */}
       </div>
     </>
   );
