@@ -8,12 +8,13 @@ const EMPTY_FORM = { phone: '', branch: '', counterNumber: '', shiftTiming: '', 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [pending, setPending]           = useState([]);
+  const [activeCashiers, setActiveCashiers] = useState([]);
   const [loadingPending, setLoading]    = useState(true);
   const [modal, setModal]               = useState(null);
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [approving, setApproving]       = useState(false);
   const [toast, setToast]               = useState(null);
-  const [kpis, setKpis]                 = useState({ revenue: '₹0', products: '0', cashiers: '0', lowStock: '0' });
+  const [kpis, setKpis] = useState({ revenue: '₹0', products: 0, cashiers: 0, lowStock: 0 });
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -31,22 +32,28 @@ export default function AdminDashboard() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchPending(); fetchKpis(); }, []);
-
   const fetchKpis = async () => {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
-      const [cashiersRes, inventoryRes] = await Promise.allSettled([
+      const [productsRes, lowStockRes, cashiersRes] = await Promise.allSettled([
+        axios.get('/api/products/all', { headers, withCredentials: true }),
+        axios.get('/api/inventory/low-stock', { headers, withCredentials: true }),
         axios.get('/api/admin/active-cashiers', { headers, withCredentials: true }),
-        axios.get('/api/inventory/all', { headers, withCredentials: true }),
       ]);
-      const cashiers = cashiersRes.status === 'fulfilled' ? cashiersRes.value.data.length : 0;
-      const inventory = inventoryRes.status === 'fulfilled' ? inventoryRes.value.data : [];
-      const lowStock = inventory.filter(i => i.stock < i.minStock).length;
-      const totalProducts = inventory.length;
-      setKpis(k => ({ ...k, cashiers, products: totalProducts, lowStock }));
+      const products = productsRes.status === 'fulfilled' ? productsRes.value.data : [];
+      const lowStock = lowStockRes.status === 'fulfilled' ? lowStockRes.value.data.length : 0;
+      const cashiersList = cashiersRes.status === 'fulfilled' ? cashiersRes.value.data : [];
+      setActiveCashiers(cashiersList);
+      setKpis(k => ({ ...k, products: products.length, lowStock, cashiers: cashiersList.length }));
     } catch { /* ignore */ }
   };
+
+  useEffect(() => { fetchPending(); fetchKpis(); }, []);
+
+  // Only use pending count as cashiers fallback if no active-cashiers endpoint
+  useEffect(() => {
+    setKpis(k => ({ ...k }));
+  }, [pending]);
 
   const handleApprove = async (e) => {
     e.preventDefault();
@@ -137,7 +144,20 @@ export default function AdminDashboard() {
                 <div className="ad-form-grid">
                   <div className="ad-field">
                     <label>Phone</label>
-                    <input placeholder="9876543210" required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+                    <input
+                      type="tel"
+                      placeholder="9876543210"
+                      required
+                      maxLength={10}
+                      pattern="[0-9]{10}"
+                      value={form.phone}
+                      onKeyDown={e => {
+                        const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'];
+                        if (!allowed.includes(e.key) && !/^[0-9]$/.test(e.key)) e.preventDefault();
+                        if (/^[0-9]$/.test(e.key) && form.phone.length >= 10) e.preventDefault();
+                      }}
+                      onChange={e => setForm({...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10)})}
+                    />
                   </div>
                   <div className="ad-field">
                     <label>Branch</label>
@@ -212,9 +232,7 @@ export default function AdminDashboard() {
                       <span className="ad-pending-name">{c.name || '—'}</span>
                       <span className="ad-pending-email">{c.email}</span>
                     </div>
-                    <button className="ad-approve-btn" onClick={() => { setModal(c); setForm(EMPTY_FORM); }}>
-                      Approve
-                    </button>
+                    <button className="ad-approve-btn" onClick={() => { setModal(c); setForm(EMPTY_FORM); }}>Approve</button>
                   </div>
                 ))}
               </div>
@@ -223,10 +241,36 @@ export default function AdminDashboard() {
 
           <div className="ad-card">
             <div className="ad-card-header">
-              <div className="ad-card-title"><TrendingUp size={16} />Monthly Sales</div>
+              <div className="ad-card-title"><Users size={16} />Active Cashiers</div>
+              <span className="ad-count-badge">{activeCashiers.length}</span>
             </div>
-            <BarChartMock />
+            {activeCashiers.length === 0 ? (
+              <div className="ad-empty"><Users size={32} /><p>No active cashiers</p></div>
+            ) : (
+              <div className="ad-pending-list">
+                {activeCashiers.map(c => (
+                  <div key={c.email} className="ad-pending-item">
+                    <div className="ad-pending-avatar" style={{background:'#5A7A5A',color:'#DCFCE7'}}>{(c.name || c.email)[0].toUpperCase()}</div>
+                    <div className="ad-pending-info">
+                      <span className="ad-pending-name">{c.name || '—'}</span>
+                      <span className="ad-pending-email">{c.email}</span>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
+                      {c.branch && <span style={{fontSize:11,color:'#8B7355',background:'#F8F5F2',padding:'2px 8px',borderRadius:20}}>{c.branch}</span>}
+                      {c.counterNumber && <span style={{fontSize:11,color:'#8B7355'}}>{c.counterNumber}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+
+        <div className="ad-card">
+          <div className="ad-card-header">
+            <div className="ad-card-title"><TrendingUp size={16} />Monthly Sales</div>
+          </div>
+          <BarChartMock />
         </div>
 
         <div className="ad-card">

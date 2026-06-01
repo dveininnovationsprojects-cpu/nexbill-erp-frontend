@@ -4,13 +4,15 @@
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, Eye, Download, Mail, FileText, X,
   ChevronLeft, ChevronRight, Printer, CheckCircle,
   AlertCircle, Receipt, TrendingUp, Clock, Filter,
   Send, Package,
 } from 'lucide-react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 /* ══════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — NexBill Color Palette (matches project)
@@ -539,15 +541,36 @@ function PDFPreviewModal({ invoice, onClose }) {
 const PAGE_SIZE = 5;
 
 export default function CashierInvoices() {
+  const { user } = useAuth();
+  const headers = () => ({ Authorization: `Bearer ${user.token}` });
+
+  const [invoices, setInvoices]   = useState([]);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState('All');
   const [page, setPage]           = useState(1);
   const [previewInv, setPreview]  = useState(null);
   const [toast, setToast]         = useState(null);
 
+  const loadInvoices = () => {
+    // Try backend first, fallback to localStorage
+    axios.get('/api/orders/my', { headers: headers(), withCredentials: true })
+      .then(res => { if (res.data?.length) setInvoices(res.data); })
+      .catch(() => {
+        const local = JSON.parse(localStorage.getItem('nexbill_invoices') || '[]');
+        setInvoices(local.length ? local : CASHIER_INVOICES);
+      });
+  };
+
+  useEffect(() => {
+    loadInvoices();
+    // Reload when tab gets focus (after billing)
+    window.addEventListener('focus', loadInvoices);
+    return () => window.removeEventListener('focus', loadInvoices);
+  }, []);
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-  const filtered = CASHIER_INVOICES.filter(inv => {
+  const filtered = invoices.filter(inv => {
     const q = search.toLowerCase();
     const matchSearch = inv.id.toLowerCase().includes(q) || inv.customer.toLowerCase().includes(q);
     const matchStatus = statusFilter === 'All' || inv.status === statusFilter;
@@ -558,8 +581,8 @@ export default function CashierInvoices() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // KPI
-  const paidInvs    = CASHIER_INVOICES.filter(i => i.status === 'Paid');
-  const pendingInvs = CASHIER_INVOICES.filter(i => i.status === 'Pending');
+  const paidInvs    = invoices.filter(i => i.status === 'Paid');
+  const pendingInvs = invoices.filter(i => i.status === 'Pending');
   const todayRev    = paidInvs.reduce((s, i) => s + calcInvoice(i).total, 0);
 
   return (
@@ -588,7 +611,7 @@ export default function CashierInvoices() {
           <div className="ci-kpi-card">
             <div className="ci-kpi-icon ci-icon-gold"><Receipt size={20} /></div>
             <div>
-              <div className="ci-kpi-value">{CASHIER_INVOICES.length}</div>
+              <div className="ci-kpi-value">{invoices.length}</div>
               <div className="ci-kpi-label">My Invoices</div>
               <div className="ci-kpi-sub">This billing cycle</div>
             </div>

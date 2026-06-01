@@ -14,6 +14,8 @@ import Billing          from './pages/Billing';
 import Payments         from './pages/Payments';
 import Invoices         from './pages/Invoices';
 import Reports          from './pages/Reports';
+import Categories      from './pages/Categories';
+import ReportsExport    from './pages/ReportsExport';
 import SalesAnalytics   from './pages/SalesAnalytics';
 import Settings         from './pages/Settings';
 import CashierBilling   from './pages/CashierBilling';
@@ -48,13 +50,15 @@ export default function App() {
 
           <Route path="/admin/dashboard" element={<RoleRoute role="ADMIN"><AdminDashboard /></RoleRoute>} />
           <Route path="/admin/products"  element={<RoleRoute role="ADMIN"><Products /></RoleRoute>} />
+          <Route path="/admin/categories" element={<RoleRoute role="ADMIN"><Categories /></RoleRoute>} />
           <Route path="/admin/suppliers" element={<RoleRoute role="ADMIN"><Suppliers /></RoleRoute>} />
           <Route path="/admin/inventory" element={<RoleRoute role="ADMIN"><Inventory /></RoleRoute>} />
           <Route path="/admin/customers" element={<RoleRoute role="ADMIN"><Customers /></RoleRoute>} />
           <Route path="/admin/billing"   element={<RoleRoute role="ADMIN"><Billing /></RoleRoute>} />
           <Route path="/admin/payments"  element={<RoleRoute role="ADMIN"><Payments /></RoleRoute>} />
           <Route path="/admin/invoices"  element={<RoleRoute role="ADMIN"><Invoices /></RoleRoute>} />
-          <Route path="/admin/reports"   element={<RoleRoute role="ADMIN"><Reports /></RoleRoute>} />
+          <Route path="/admin/reports"         element={<RoleRoute role="ADMIN"><Reports /></RoleRoute>} />
+          <Route path="/admin/reports/export"   element={<RoleRoute role="ADMIN"><ReportsExport /></RoleRoute>} />
           <Route path="/admin/sales-analytics" element={<RoleRoute role="ADMIN"><SalesAnalytics /></RoleRoute>} />
           <Route path="/admin/settings"                                  element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />
           <Route path="/admin/settings/accounts/business-profile"       element={<RoleRoute role="ADMIN"><Settings /></RoleRoute>} />

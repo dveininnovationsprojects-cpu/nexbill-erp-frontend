@@ -1,14 +1,8 @@
-import { useState } from 'react';
-import { Search, Receipt, TrendingUp, Users, Calendar, CheckCircle, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Receipt, TrendingUp, Users, Calendar, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import api from '../api';
 
-const MOCK_BILLS = [
-  { id: 'BILL001', invoice: 'INV001', cashier: 'Ravi Kumar',  customer: 'Priya S',    items: 3, subtotal: 1050, gst: 126, discount: 0,   total: 1176, status: 'PAID',    date: '2025-05-22 10:30', method: 'UPI' },
-  { id: 'BILL002', invoice: 'INV002', cashier: 'Meena R',    customer: 'Arjun M',    items: 5, subtotal: 2300, gst: 230, discount: 100, total: 2430, status: 'PAID',    date: '2025-05-22 11:15', method: 'Cash' },
-  { id: 'BILL003', invoice: 'INV003', cashier: 'Ravi Kumar',  customer: 'Karthik V',  items: 2, subtotal: 800,  gst: 96,  discount: 50,  total: 846,  status: 'PENDING', date: '2025-05-22 12:00', method: 'Card' },
-  { id: 'BILL004', invoice: 'INV004', cashier: 'Divya P',    customer: 'Meena R',    items: 4, subtotal: 1500, gst: 180, discount: 0,   total: 1680, status: 'PAID',    date: '2025-05-22 13:45', method: 'UPI' },
-  { id: 'BILL005', invoice: 'INV005', cashier: 'Meena R',    customer: 'Suresh K',   items: 1, subtotal: 599,  gst: 107, discount: 0,   total: 706,  status: 'PAID',    date: '2025-05-21 09:20', method: 'Cash' },
-  { id: 'BILL006', invoice: 'INV006', cashier: 'Divya P',    customer: 'Lakshmi T',  items: 6, subtotal: 3200, gst: 384, discount: 200, total: 3384, status: 'CANCELLED',date: '2025-05-21 14:30', method: 'Card' },
-];
+const MOCK_BILLS = [];
 
 const STATUS_STYLE = {
   PAID:      { color: '#5A7A5A', bg: '#F0F7F0', border: '#C8DFC8' },
@@ -16,26 +10,39 @@ const STATUS_STYLE = {
   CANCELLED: { color: '#9B4444', bg: '#FDF0F0', border: '#F0D0D0' },
 };
 
+const PAGE_SIZE = 5;
+
 export default function Billing() {
+  const [bills, setBills] = useState([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [cashierFilter, setCashierFilter] = useState('');
+  const [page, setPage] = useState(1);
 
-  const cashiers = [...new Set(MOCK_BILLS.map(b => b.cashier))];
+  useEffect(() => {
+    api.get('/api/billing/all').then(res => setBills(res.data || [])).catch(() => setBills([]));
+  }, []);
 
-  const filtered = MOCK_BILLS.filter(b => {
-    const matchSearch = b.invoice.toLowerCase().includes(search.toLowerCase()) ||
-      b.customer.toLowerCase().includes(search.toLowerCase()) ||
-      b.cashier.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'ALL' ? true : b.status === statusFilter;
-    const matchCashier = cashierFilter ? b.cashier === cashierFilter : true;
+  const cashiers = [...new Set(bills.map(b => b.cashierId || b.cashier).filter(Boolean))];
+
+  const filtered = bills.filter(b => {
+    const inv = b.invoiceNumber || b.invoice || '';
+    const cust = b.customerName || b.customer || '';
+    const cash = b.cashierId || b.cashier || '';
+    const matchSearch = inv.toLowerCase().includes(search.toLowerCase()) ||
+      cust.toLowerCase().includes(search.toLowerCase()) ||
+      cash.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'ALL' ? true : (b.status || b.paymentStatus) === statusFilter;
+    const matchCashier = cashierFilter ? cash === cashierFilter : true;
     return matchSearch && matchStatus && matchCashier;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const totalRevenue = MOCK_BILLS.filter(b => b.status === 'PAID').reduce((s, b) => s + b.total, 0);
-  const totalBills = MOCK_BILLS.length;
-  const paidBills = MOCK_BILLS.filter(b => b.status === 'PAID').length;
-  const pendingBills = MOCK_BILLS.filter(b => b.status === 'PENDING').length;
+  const totalRevenue = bills.filter(b => (b.status || b.paymentStatus) === 'PAID').reduce((s, b) => s + (b.grandTotal || b.total || 0), 0);
+  const totalBills = bills.length;
+  const paidBills = bills.filter(b => (b.status || b.paymentStatus) === 'PAID').length;
+  const pendingBills = bills.filter(b => (b.status || b.paymentStatus) === 'PENDING').length;
 
   return (
     <>
@@ -69,6 +76,13 @@ export default function Billing() {
         .ab-total{font-weight:700;color:#2D2D2D}
         .ab-date{font-size:11px;color:#8B7355}
         .ab-empty{padding:48px;text-align:center;color:#D6D3D1;font-size:14px}
+        .ab-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid #EFE7DE}
+        .ab-page-info{font-size:12px;color:#8B7355}
+        .ab-page-btns{display:flex;gap:5px}
+        .ab-page-btn{min-width:30px;height:30px;padding:0 6px;display:flex;align-items:center;justify-content:center;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#8B7355;transition:all 0.15s}
+        .ab-page-btn:hover{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .ab-page-btn.active{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .ab-page-btn:disabled{opacity:0.4;cursor:not-allowed}
       `}</style>
 
       <div className="ab-page">
@@ -96,7 +110,7 @@ export default function Billing() {
         <div className="ab-topbar">
           <div className="ab-search-wrap">
             <Search size={15} className="ab-search-icon" />
-            <input placeholder="Search invoice, customer, cashier..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input placeholder="Search invoice, customer, cashier..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <select className="ab-select" value={cashierFilter} onChange={e => setCashierFilter(e.target.value)}>
             <option value="">All Cashiers</option>
@@ -104,7 +118,7 @@ export default function Billing() {
           </select>
           <div className="ab-filter-btns">
             {['ALL','PAID','PENDING','CANCELLED'].map(s => (
-              <button key={s} className={`ab-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>
+              <button key={s} className={`ab-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => { setStatusFilter(s); setPage(1); }}>
                 {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
               </button>
             ))}
@@ -118,32 +132,53 @@ export default function Billing() {
               <tr><th>Invoice</th><th>Cashier</th><th>Customer</th><th>Items</th><th>GST</th><th>Discount</th><th>Total</th><th>Method</th><th>Status</th><th>Date</th></tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {paginated.length === 0 ? (
                 <tr><td colSpan={10} className="ab-empty">No bills found.</td></tr>
-              ) : filtered.map(b => {
-                const s = STATUS_STYLE[b.status];
+              ) : paginated.map(b => {
+                const status = b.status || b.paymentStatus || 'PENDING';
+                const s = STATUS_STYLE[status] || STATUS_STYLE.PENDING;
+                const cashier = b.cashierId || b.cashier || '—';
+                const invoice = b.invoiceNumber || b.invoice || '—';
+                const total = b.grandTotal || b.total || 0;
+                const gst = b.gstTotal || b.gst || 0;
+                const discount = b.discountTotal || b.discount || 0;
+                const items = b.totalItems || b.items || 0;
+                const method = b.paymentMethod || b.method || '—';
+                const date = b.timestamp ? new Date(b.timestamp).toLocaleString('en-IN') : (b.date || '—');
                 return (
-                  <tr key={b.id}>
-                    <td><span className="ab-inv">{b.invoice}</span></td>
+                  <tr key={b.id || b.invoiceNumber}>
+                    <td><span className="ab-inv">{invoice}</span></td>
                     <td>
                       <div className="ab-cashier">
-                        <div className="ab-avatar">{b.cashier[0]}</div>
-                        {b.cashier}
+                        <div className="ab-avatar">{cashier[0]}</div>
+                        {cashier}
                       </div>
                     </td>
-                    <td>{b.customer}</td>
-                    <td style={{color:'#8B7355'}}>{b.items} items</td>
-                    <td style={{color:'#8B7355'}}>₹{b.gst}</td>
-                    <td style={{color:'#5A7A5A'}}>{b.discount > 0 ? `-₹${b.discount}` : '—'}</td>
-                    <td><span className="ab-total">₹{b.total.toLocaleString()}</span></td>
-                    <td><span className="ab-method">{b.method}</span></td>
-                    <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{b.status}</span></td>
-                    <td><span className="ab-date">{b.date}</span></td>
+                    <td>{b.customerName || b.customer || 'Walk-in'}</td>
+                    <td style={{color:'#8B7355'}}>{items} items</td>
+                    <td style={{color:'#8B7355'}}>₹{gst}</td>
+                    <td style={{color:'#5A7A5A'}}>{discount > 0 ? `-₹${discount}` : '—'}</td>
+                    <td><span className="ab-total">₹{Number(total).toLocaleString()}</span></td>
+                    <td><span className="ab-method">{method}</span></td>
+                    <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{status}</span></td>
+                    <td><span className="ab-date">{date}</span></td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+          {totalPages > 1 && (
+            <div className="ab-pagination">
+              <span className="ab-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} bills</span>
+              <div className="ab-page-btns">
+                <button className="ab-page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={14}/></button>
+                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                  <button key={p} className={`ab-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
+                ))}
+                <button className="ab-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

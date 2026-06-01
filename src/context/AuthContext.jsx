@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await axios.post('/api/auth/logout', {}, { withCredentials: true });
+    try { await axios.post('/api/auth/logout', {}, { withCredentials: true }); } catch {}
     setUser(null);
     localStorage.removeItem('nexbill_user');
   };

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, Warehouse, Users, Receipt,
   CreditCard, FileText, BarChart2, Settings, LogOut,
   Bell, ChevronDown, ChevronRight, Menu, X, CheckCircle, UserCircle, Truck,
-  Building2, Percent, Shield, Settings2, BellRing
+  Building2, Percent, Shield, Settings2, BellRing, Tag
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -16,8 +16,9 @@ const adminNav = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/admin/dashboard' },
   {
     icon: Package, label: 'Products', dropdown: [
-      { icon: Package, label: 'Products',  to: '/admin/products' },
-      { icon: Truck,   label: 'Suppliers', to: '/admin/suppliers' },
+      { icon: Package, label: 'Products',   to: '/admin/products' },
+      { icon: Tag,     label: 'Categories', to: '/admin/categories' },
+      { icon: Truck,   label: 'Suppliers',  to: '/admin/suppliers' },
     ]
   },
   { icon: Warehouse,       label: 'Inventory', to: '/admin/inventory' },
@@ -25,8 +26,12 @@ const adminNav = [
   { icon: Receipt,         label: 'Billing',   to: '/admin/billing' },
   { icon: CreditCard,      label: 'Payments',  to: '/admin/payments' },
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
-  { icon: BarChart2,       label: 'Reports',   to: '/admin/reports' },
-<<<<<<< HEAD
+  {
+    icon: BarChart2, label: 'Reports', dropdown: [
+      { icon: BarChart2, label: 'Sales Analytics', to: '/admin/sales-analytics' },
+      { icon: FileText,  label: 'Export',          to: '/admin/reports/export' },
+    ]
+  },
   {
     icon: Settings, label: 'Settings', dropdown: [
       { 
@@ -50,16 +55,11 @@ const adminNav = [
         nested: [
           { icon: BellRing, label: 'Notifications', to: '/admin/settings/preferences/notifications' },
           { icon: Shield, label: 'Security', to: '/admin/settings/preferences/security' },
-          { icon: Settings2, label: 'System', to: '/admin/settings/preferences/system' },
         ]
       },
     ]
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
-=======
-  { icon: BarChart2,       label: 'Sales Analytics',  to: '/admin/sales-analytics' },
-  { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
->>>>>>> c23f4d7995b71619be1ce8df64e5cab8d8d011af
 ];
 
 const cashierNav = [

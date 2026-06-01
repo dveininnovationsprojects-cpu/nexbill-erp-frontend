@@ -18,6 +18,8 @@ const emptyCustomer = {
   notes: "",
 };
 
+const CUSTOMERS_PER_PAGE = 5;
+
 function Customers({ role = "admin", initialCustomers = [] }) {
   const [customers, setCustomers] = useState(() => {
     try {
@@ -44,6 +46,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyCustomer);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const canAccess =
     role === "admin" ||
@@ -99,6 +102,27 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         return aNumber - bNumber;
       });
   }, [customers, search, statusFilter, typeFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCustomers.length / CUSTOMERS_PER_PAGE)
+  );
+
+  const paginatedCustomers = useMemo(() => {
+    const startIndex = (currentPage - 1) * CUSTOMERS_PER_PAGE;
+    const endIndex = startIndex + CUSTOMERS_PER_PAGE;
+    return filteredCustomers.slice(startIndex, endIndex);
+  }, [filteredCustomers, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   function saveCustomers(updatedCustomers) {
     setCustomers(updatedCustomers);
@@ -283,8 +307,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
       totalSpent: Number(form.totalSpent || 0),
     };
 
-    saveCustomers([newCustomer, ...customers]);
+    const updatedCustomers = [...customers, newCustomer];
+
+    saveCustomers(updatedCustomers);
     setSelectedCustomer(getDisplayCustomer(newCustomer));
+    setCurrentPage(Math.ceil(updatedCustomers.length / CUSTOMERS_PER_PAGE));
     setView("details");
   }
 
@@ -315,6 +342,16 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   const premiumCustomers = customers.filter(
     (customer) => customer.type !== "Regular"
   ).length;
+
+  const startCustomerNumber =
+    filteredCustomers.length === 0
+      ? 0
+      : (currentPage - 1) * CUSTOMERS_PER_PAGE + 1;
+
+  const endCustomerNumber = Math.min(
+    currentPage * CUSTOMERS_PER_PAGE,
+    filteredCustomers.length
+  );
 
   return (
     <>
@@ -357,6 +394,28 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           transform: translateY(-1px);
         }
 
+        .nb-filter-btn {
+          transition: all 0.2s ease;
+        }
+
+        .nb-filter-btn:hover {
+          background: #2D2D2D !important;
+          color: #F8F5F2 !important;
+          border-color: #2D2D2D !important;
+          transform: translateY(-1px);
+        }
+
+        .nb-page-btn {
+          transition: all 0.2s ease;
+        }
+
+        .nb-page-btn:hover:not(:disabled) {
+          background: #2D2D2D !important;
+          color: #F8F5F2 !important;
+          border-color: #2D2D2D !important;
+          transform: translateY(-1px);
+        }
+
         .nb-table-row:hover td {
           background: #FFFDFB;
         }
@@ -365,6 +424,44 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           border-color: #C6A969 !important;
           box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
           background: #FFFFFF !important;
+        }
+
+        .nb-customer-search:focus-within {
+          border-color: #C6A969 !important;
+          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
+          background: #FFFFFF !important;
+        }
+
+        @media (max-width: 900px) {
+          .customer-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .customer-filter-buttons {
+            justify-content: flex-start !important;
+          }
+
+          .customer-toolbar select {
+            width: 100% !important;
+          }
+
+          .customer-kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .customer-form-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .customer-info-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .customer-pagination {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
         }
       `}</style>
 
@@ -386,7 +483,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           )}
         </div>
 
-        <div style={styles.kpiGrid}>
+        <div className="customer-kpi-grid" style={styles.kpiGrid}>
           <Kpi
             title="Total Customers"
             value={customers.length}
@@ -414,34 +511,75 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             <div style={styles.cardHead}>
               <div>
                 <h2 style={styles.cardTitle}>Customer List</h2>
+                <p style={styles.muted}>
+                  Showing {startCustomerNumber} - {endCustomerNumber} of{" "}
+                  {filteredCustomers.length} customers
+                </p>
               </div>
             </div>
 
-            <div style={styles.toolbar}>
-              <input
-                className="nb-input"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search customer, mobile,"
-                style={styles.input}
-              />
+            <div className="customer-toolbar" style={styles.toolbar}>
+              <div className="nb-customer-search" style={styles.searchBar}>
+                <span style={styles.searchIcon}>⌕</span>
 
-              <select
-                className="nb-input"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-                style={styles.select}
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search customer, mobile..."
+                  style={styles.searchInput}
+                />
+              </div>
+
+              <div
+                className="customer-filter-buttons"
+                style={styles.filterButtons}
               >
-                <option>All</option>
-                <option>Active</option>
-                <option>Inactive</option>
-              </select>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("All")}
+                  className="nb-filter-btn"
+                  style={{
+                    ...styles.filterBtn,
+                    ...(statusFilter === "All" ? styles.filterBtnActive : {}),
+                  }}
+                >
+                  All
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("Active")}
+                  className="nb-filter-btn"
+                  style={{
+                    ...styles.filterBtn,
+                    ...(statusFilter === "Active"
+                      ? styles.filterBtnActive
+                      : {}),
+                  }}
+                >
+                  Active
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("Inactive")}
+                  className="nb-filter-btn"
+                  style={{
+                    ...styles.filterBtn,
+                    ...(statusFilter === "Inactive"
+                      ? styles.filterBtnActive
+                      : {}),
+                  }}
+                >
+                  Inactive
+                </button>
+              </div>
 
               <select
                 className="nb-input"
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value)}
-                style={styles.select}
+                style={styles.typeSelect}
               >
                 <option>All</option>
                 <option>Regular</option>
@@ -466,7 +604,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 </thead>
 
                 <tbody>
-                  {filteredCustomers.map((customer) => {
+                  {paginatedCustomers.map((customer) => {
                     const displayCustomer = getDisplayCustomer(customer);
 
                     return (
@@ -536,7 +674,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                     );
                   })}
 
-                  {filteredCustomers.length === 0 && (
+                  {paginatedCustomers.length === 0 && (
                     <tr>
                       <td colSpan="8" style={styles.emptyCell}>
                         No customers found. Click “Add Customer” to create a
@@ -547,6 +685,65 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 </tbody>
               </table>
             </div>
+
+            {filteredCustomers.length > 0 && (
+              <div className="customer-pagination" style={styles.pagination}>
+                <div style={styles.pageInfo}>
+                  Page {currentPage} of {totalPages} • 5 customers per page
+                </div>
+
+                <div style={styles.pageControls}>
+                  <button
+                    type="button"
+                    className="nb-page-btn"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((page) => page - 1)}
+                    style={{
+                      ...styles.pageBtn,
+                      ...(currentPage === 1 ? styles.pageBtnDisabled : {}),
+                    }}
+                  >
+                    {"<"}
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, index) => {
+                    const pageNumber = index + 1;
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        type="button"
+                        className="nb-page-btn"
+                        onClick={() => setCurrentPage(pageNumber)}
+                        style={{
+                          ...styles.numberBtn,
+                          ...(currentPage === pageNumber
+                            ? styles.numberBtnActive
+                            : {}),
+                        }}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    className="nb-page-btn"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((page) => page + 1)}
+                    style={{
+                      ...styles.pageBtn,
+                      ...(currentPage === totalPages
+                        ? styles.pageBtnDisabled
+                        : {}),
+                    }}
+                  >
+                    {">"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -573,7 +770,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               </button>
             </div>
 
-            <form onSubmit={saveCustomer} style={styles.formGrid}>
+            <form
+              onSubmit={saveCustomer}
+              className="customer-form-grid"
+              style={styles.formGrid}
+            >
               <Input
                 label="Customer Name"
                 value={form.name}
@@ -780,7 +981,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               </div>
             </div>
 
-            <div style={styles.infoGrid}>
+            <div className="customer-info-grid" style={styles.infoGrid}>
               <Info label="Mobile" value={selectedCustomer.mobile} />
               <Info label="Email" value={selectedCustomer.email || "-"} />
               <Info label="GST Number" value={selectedCustomer.gst || "-"} />
@@ -967,25 +1168,81 @@ const styles = {
   },
 
   toolbar: {
+    width: "100%",
     display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 18,
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
   },
 
-  input: {
+  searchBar: {
+    flex: 1,
+    minHeight: 40,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
-    color: "#3F3F46",
     borderRadius: 10,
-    minHeight: 42,
-    padding: "10px 14px",
+    padding: "0 12px",
+  },
+
+  searchIcon: {
+    color: "#8B7355",
+    fontSize: 15,
+    fontWeight: 500,
+    flexShrink: 0,
+  },
+
+  searchInput: {
+    width: "100%",
+    border: "none",
+    background: "transparent",
+    color: "#3F3F46",
+    minHeight: 38,
     outline: "none",
     fontSize: 13,
     fontWeight: 400,
   },
 
-  select: {
+  filterButtons: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
+  },
+
+  filterBtn: {
+    minHeight: 40,
+    borderRadius: 9,
+    border: "1px solid #EFE7DE",
+    background: "#FFFFFF",
+    color: "#8B7355",
+    padding: "0 14px",
+    fontWeight: 600,
+    fontSize: 12,
+  },
+
+  filterBtnActive: {
+    background: "#2D2D2D",
+    borderColor: "#2D2D2D",
+    color: "#F8F5F2",
+  },
+
+  typeSelect: {
+    width: 125,
+    border: "1px solid #D6D3D1",
+    background: "#FFFFFF",
+    color: "#3F3F46",
+    borderRadius: 9,
+    minHeight: 40,
+    padding: "7px 9px",
+    outline: "none",
+    fontSize: 12,
+    fontWeight: 500,
+  },
+
+  input: {
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
     color: "#3F3F46",
@@ -1089,6 +1346,62 @@ const styles = {
     padding: "0 12px",
     fontWeight: 500,
     fontSize: 12,
+  },
+
+  pagination: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 14,
+    paddingTop: 18,
+  },
+
+  pageInfo: {
+    color: "#8B7355",
+    fontSize: 12,
+    fontWeight: 500,
+  },
+
+  pageControls: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+
+  pageBtn: {
+    minWidth: 36,
+    minHeight: 36,
+    borderRadius: 9,
+    border: "1px solid #D6D3D1",
+    background: "#FFFFFF",
+    color: "#2D2D2D",
+    padding: "0 10px",
+    fontWeight: 700,
+    fontSize: 14,
+  },
+
+  pageBtnDisabled: {
+    opacity: 0.45,
+    cursor: "not-allowed",
+  },
+
+  numberBtn: {
+    minWidth: 36,
+    minHeight: 36,
+    borderRadius: 9,
+    border: "1px solid #D6D3D1",
+    background: "#FFFFFF",
+    color: "#2D2D2D",
+    padding: "0 10px",
+    fontWeight: 600,
+    fontSize: 12,
+  },
+
+  numberBtnActive: {
+    background: "#2D2D2D",
+    borderColor: "#2D2D2D",
+    color: "#F8F5F2",
   },
 
   formGrid: {

@@ -767,7 +767,7 @@ function CreateInvoiceModal({ onClose, onCreate }) {
 /* ══════════════════════════════════════════════════════════════════════
    ADMIN INVOICES — DEFAULT EXPORT
 ══════════════════════════════════════════════════════════════════════ */
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 5;
 
 export default function AdminInvoices() {
   const [invoices, setInvoices]     = useState(MOCK_INVOICES);
