@@ -598,15 +598,9 @@ const PAGE_SIZE = 5;
 
 export default function CashierInvoices() {
   const { user } = useAuth();
-<<<<<<< HEAD
 
   const [invoices, setInvoices]   = useState([]);
   const [loading, setLoading]     = useState(true);
-=======
-  const headers = () => ({ Authorization: `Bearer ${user.token}` });
-
-  const [invoices, setInvoices]   = useState([]);
->>>>>>> 17eb261dce49ec7de2a4ee2522b189b2f1ae9ea1
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState('All');
   const [page, setPage]           = useState(1);
@@ -654,15 +648,13 @@ export default function CashierInvoices() {
     }
   };
 
-<<<<<<< HEAD
   useEffect(() => { fetchInvoices(); }, []);
 
   const handleEmail = (inv) => {
     showToast(`Email sent to ${inv.cashier}`);
   };
 
-=======
->>>>>>> 17eb261dce49ec7de2a4ee2522b189b2f1ae9ea1
+
   const filtered = invoices.filter(inv => {
     const q = search.toLowerCase();
     const matchSearch = inv.id.toLowerCase().includes(q) || inv.customer.toLowerCase().includes(q);
