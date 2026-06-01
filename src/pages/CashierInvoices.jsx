@@ -736,9 +736,6 @@ export default function CashierInvoices() {
                           <button className="ci-act-btn" title="Download PDF" onClick={() => printInvoice(inv)}>
                             <Download size={14} />
                           </button>
-                          <button className="ci-act-btn btn-blue" title="Send Email" onClick={() => handleEmail(inv)}>
-                            <Send size={14} />
-                          </button>
                         </div>
                       </td>
                     </tr>

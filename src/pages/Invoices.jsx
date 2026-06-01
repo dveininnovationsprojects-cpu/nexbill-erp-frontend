@@ -1081,12 +1081,6 @@ export default function AdminInvoices() {
                           <button className="inv-act-btn" title="Download PDF" onClick={() => printInvoice(inv)}>
                             <Download size={14} />
                           </button>
-                          <button className="inv-act-btn btn-blue" title="Send Email" onClick={() => handleEmail(inv)}>
-                            <Send size={14} />
-                          </button>
-                          <button className="inv-act-btn btn-amber" title="Duplicate Invoice" onClick={() => handleDuplicate(inv)}>
-                            <Copy size={14} />
-                          </button>
                           {inv.status !== 'Paid' && (
                             <button className="inv-act-btn btn-green" title="Mark as Paid" onClick={() => handleMarkPaid(inv.id)}>
                               <CheckCircle size={14} />
