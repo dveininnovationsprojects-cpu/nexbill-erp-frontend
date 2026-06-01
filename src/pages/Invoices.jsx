@@ -432,7 +432,7 @@ function printInvoice(inv) {
   </div>
 
   <div class="thankyou">
-    <div class="ty-title">Thank you for your business! 🙏</div>
+    <div class="ty-title">Thank you for your business!</div>
     <div class="ty-sub">For queries: billing@nexbill.in &nbsp;|&nbsp; +91 9876 543 210</div>
   </div>
 
@@ -596,7 +596,7 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
 
             {/* Thank You */}
             <div className="inv-doc-thankyou">
-              <div className="inv-doc-thankyou-title">Thank you for your business! 🙏</div>
+              <div className="inv-doc-thankyou-title">Thank you for your business!</div>
               <div className="inv-doc-thankyou-sub">For queries: billing@nexbill.in &nbsp;|&nbsp; +91 9876 543 210</div>
             </div>
           </div>
@@ -917,7 +917,7 @@ export default function AdminInvoices() {
   };
 
   const handleEmail = (inv) => {
-    showToast(`Email sent to ${inv.email}`);
+    showToast(`Email sent for invoice ${inv.id}`);
   };
 
   const handleDuplicate = (inv) => {
