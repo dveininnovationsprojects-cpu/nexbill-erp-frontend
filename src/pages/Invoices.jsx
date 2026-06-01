@@ -849,6 +849,7 @@ export default function AdminInvoices() {
 
   const fetchInvoices = async () => {
     try {
+<<<<<<< HEAD
       const res = await api.get('/api/billing/history');
       const data = (res.data || []).map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
@@ -873,6 +874,30 @@ export default function AdminInvoices() {
         dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         cashier:    inv.cashierId    || '—',
         payment:    inv.paymentMethod || 'CASH',
+=======
+      const res = await api.get('/api/invoices/all');
+      const data = (res.data || []).map(inv => ({
+        id: inv.invoiceNumber || inv.id,
+        customer: inv.customerName || inv.cashierId || 'Walk-in Customer',
+        email: inv.customerEmail || '',
+        phone: inv.customerPhone || '',
+        address: inv.customerAddress || '',
+        gstNo: inv.customerGst || '',
+        items: (inv.items || []).map(it => ({
+          name: it.productName,
+          qty: parseFloat(it.quantity),
+          rate: parseFloat(it.unitPrice),
+          gst: parseFloat(it.gstPercentage || 0),
+        })),
+        discount: parseFloat(inv.discountTotal || 0),
+        status: 'Paid',
+        date: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        dueDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        cashier: inv.cashierId || '',
+        counter: 'Counter 1',
+        payment: inv.paymentMethod || 'CASH',
+        grandTotal: parseFloat(inv.grandTotal || 0),
+>>>>>>> 17eb261dce49ec7de2a4ee2522b189b2f1ae9ea1
       }));
       setInvoices(data);
     } catch {
