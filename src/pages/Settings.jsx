@@ -25,7 +25,7 @@ const STYLES = `
 
   .st-shell {
     display: flex;
-    gap: 24px;
+    gap: 0;
     font-family: 'Inter', system-ui, sans-serif;
     min-height: calc(100vh - 120px);
     align-items: flex-start;
@@ -1375,29 +1375,6 @@ export default function Settings() {
       )}
 
       <div className="st-shell">
-
-        {/* ── Sidebar ── */}
-        <div className="st-sidebar">
-          {groups.map(group => {
-            const groupTabs = visibleTabs.filter(t => t.group === group);
-            if (groupTabs.length === 0) return null;
-            return (
-              <div key={group}>
-                <div className="st-sidebar-section">{group}</div>
-                {groupTabs.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    className={`st-tab ${activeTab === id ? 'active' : ''}`}
-                    onClick={() => setActiveTab(id)}
-                  >
-                    <Icon size={15} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            );
-          })}
-        </div>
 
         {/* ── Content ── */}
         <div className="st-content">
