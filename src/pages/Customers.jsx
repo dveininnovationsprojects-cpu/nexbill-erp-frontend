@@ -8,20 +8,17 @@ const emptyCustomer = {
   name: "",
   mobile: "",
   email: "",
-  city: "",
-  state: "",
-  pincode: "",
-  gst: "",
-  type: "Regular",
-  status: "Active",
-  address: "",
-  totalOrders: 0,
-  totalSpent: 0,
-  lastPurchase: "",
-  notes: "",
+  creditLimit: "",
+  billAmount: "",
+  paidAmount: "",
 };
 
-const CUSTOMERS_PER_PAGE = 5;
+const tierOptions = [
+  { label: "All", value: "All" },
+  { label: "Regular", value: "REGULAR" },
+  { label: "VIP", value: "VIP" },
+  { label: "Corporate", value: "CORPORATE" },
+];
 
 function Customers({ role = "admin", initialCustomers = [] }) {
   const [customers, setCustomers] = useState(initialCustomers);
@@ -33,6 +30,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyCustomer);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const canAccess =
     role === "admin" ||
@@ -195,70 +193,112 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         ${customer.status || ""}
       `.toLowerCase();
 
-        return (
-          text.includes(search.toLowerCase()) &&
-          (statusFilter === "All" || customer.status === statusFilter) &&
-          (typeFilter === "All" || customer.type === typeFilter)
-        );
-      })
-      .sort((a, b) => {
-        const aNumber = Number(String(a.id || "").replace("CUS-", "")) || 0;
-        const bNumber = Number(String(b.id || "").replace("CUS-", "")) || 0;
-        return aNumber - bNumber;
-      });
-  }, [customers, search, statusFilter, typeFilter]);
+      return customerText.includes(searchText);
+    });
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredCustomers.length / CUSTOMERS_PER_PAGE)
-  );
-
-  const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * CUSTOMERS_PER_PAGE;
-    const endIndex = startIndex + CUSTOMERS_PER_PAGE;
-    return filteredCustomers.slice(startIndex, endIndex);
-  }, [filteredCustomers, currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter, typeFilter]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+    if (!matchedCustomer) {
+      alert("No customer found for this search.");
+      return;
     }
-  }, [currentPage, totalPages]);
 
-  function saveCustomers(updatedCustomers) {
-    setCustomers(updatedCustomers);
-    localStorage.setItem("nexbill_customers", JSON.stringify(updatedCustomers));
+    setCurrentPage(1);
   }
 
-  function money(value) {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(Number(value || 0));
+  async function saveCustomer(event) {
+    event.preventDefault();
+
+    if (!form.name.trim()) {
+      alert("Customer name is required.");
+      return;
+    }
+
+    if (!form.mobile.trim()) {
+      alert("Mobile number is required.");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.mobile)) {
+      alert("Mobile number must be 10 digits.");
+      return;
+    }
+
+    const payload = {
+      name: form.name.trim(),
+      mobile: form.mobile.trim(),
+      email: form.email.trim(),
+      creditLimit: Number(form.creditLimit || 0),
+    };
+
+    try {
+      setLoading(true);
+
+      if (editingId) {
+        const response = await fetch(`${API_BASE_URL}/${editingId}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        const updatedCustomer = await readResponse(response);
+
+        setCustomers((previous) =>
+          previous.map((customer) =>
+            customer.id === editingId ? updatedCustomer : customer
+          )
+        );
+
+        setSelectedCustomer(updatedCustomer);
+        setView("details");
+      } else {
+        const response = await fetch(API_BASE_URL, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        const newCustomer = await readResponse(response);
+
+        setCustomers((previous) => [...previous, newCustomer]);
+        setSelectedCustomer(newCustomer);
+        setCurrentPage(Math.ceil((customers.length + 1) / CUSTOMERS_PER_PAGE));
+        setView("details");
+      }
+    } catch (error) {
+      alert(error.message || "Unable to save customer.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function nextCustomerId() {
-    const max = customers.reduce((largest, customer) => {
-      const number = Number(String(customer.id || "").replace("CUS-", "")) || 0;
-      return Math.max(largest, number);
-    }, 0);
+  async function deleteCustomer(customer) {
+    if (!window.confirm(`Delete ${customer.name}?`)) return;
 
-    return `CUS-${String(max + 1).padStart(4, "0")}`;
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_BASE_URL}/${customer.id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+
+      await readResponse(response);
+
+      setCustomers((previous) =>
+        previous.filter((item) => item.id !== customer.id)
+      );
+
+      setSelectedCustomer(null);
+      setView("list");
+    } catch (error) {
+      alert(error.message || "Unable to delete customer.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function getCustomerSalesSummary(customer) {
-    const customerId = String(customer.id || "").toLowerCase();
-    const customerName = String(customer.name || "").toLowerCase().trim();
-    const customerMobile = String(customer.mobile || "").toLowerCase().trim();
-    const customerEmail = String(customer.email || "").toLowerCase().trim();
-
-    const matchedSales = salesRecords.filter((sale) => {
-      const saleCustomerId = String(sale.customerId || "").toLowerCase();
+  async function changeCustomerStatus(customer, status) {
+    try {
+      setLoading(true);
 
       const response = await fetch(
         `${API_BASE_URL}/${customer.id}/status?status=${encodeURIComponent(
@@ -388,60 +428,43 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     }).format(Number(value || 0));
   }
 
-  function saveCustomer(event) {
-    event.preventDefault();
+  function formatCustomerId(id) {
+    return `CUS-${String(id || 0).padStart(4, "0")}`;
+  }
 
-    if (
-      !form.name.trim() ||
-      !form.mobile.trim() ||
-      !form.city.trim() ||
-      !form.address.trim()
-    ) {
-      alert("Fill customer name, mobile, city and address.");
-      return;
+  function formatTier(tier) {
+    if (!tier) return "Regular";
+
+    const value = String(tier).toUpperCase();
+
+    if (value === "VIP") return "VIP";
+    if (value === "CORPORATE") return "Corporate";
+    return "Regular";
+  }
+
+  function formatStatus(status) {
+    const value = String(status || "").toUpperCase();
+
+    if (value === "BLACKLISTED") return "Inactive";
+    if (value === "ACTIVE") return "Active";
+
+    return "-";
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "-";
+
+    try {
+      return new Date(value).toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "-";
     }
-
-    if (!/^\d{10}$/.test(form.mobile)) {
-      alert("Mobile number must be 10 digits.");
-      return;
-    }
-
-    if (form.pincode && !/^\d{6}$/.test(form.pincode)) {
-      alert("Pincode must be 6 digits.");
-      return;
-    }
-
-    if (editingId) {
-      const updatedCustomer = {
-        ...form,
-        id: editingId,
-        totalOrders: Number(form.totalOrders || 0),
-        totalSpent: Number(form.totalSpent || 0),
-      };
-
-      const updated = customers.map((customer) =>
-        customer.id === editingId ? updatedCustomer : customer
-      );
-
-      saveCustomers(updated);
-      setSelectedCustomer(getDisplayCustomer(updatedCustomer));
-      setView("details");
-      return;
-    }
-
-    const newCustomer = {
-      ...form,
-      id: nextCustomerId(),
-      totalOrders: Number(form.totalOrders || 0),
-      totalSpent: Number(form.totalSpent || 0),
-    };
-
-    const updatedCustomers = [...customers, newCustomer];
-
-    saveCustomers(updatedCustomers);
-    setSelectedCustomer(getDisplayCustomer(newCustomer));
-    setCurrentPage(Math.ceil(updatedCustomers.length / CUSTOMERS_PER_PAGE));
-    setView("details");
   }
 
   if (!canAccess) {
@@ -466,19 +489,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
     (customer) => String(customer.status).toUpperCase() === "ACTIVE"
   ).length;
 
-  const premiumCustomers = customers.filter(
-    (customer) => customer.type !== "Regular"
-  ).length;
-
-  const startCustomerNumber =
-    filteredCustomers.length === 0
-      ? 0
-      : (currentPage - 1) * CUSTOMERS_PER_PAGE + 1;
-
-  const endCustomerNumber = Math.min(
-    currentPage * CUSTOMERS_PER_PAGE,
-    filteredCustomers.length
-  );
+  const premiumCustomers = customers.filter((customer) => {
+    const tier = String(customer.tier || "").toUpperCase();
+    return tier === "VIP" || tier === "CORPORATE";
+  }).length;
 
   return (
     <>
@@ -528,14 +542,8 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           transform: translateY(-1px);
         }
 
-        .nb-filter-btn {
-          transition: all 0.2s ease;
-        }
-
         .nb-filter-btn:hover {
-          background: #2D2D2D !important;
-          color: #F8F5F2 !important;
-          border-color: #2D2D2D !important;
+          border-color: #C6A969 !important;
           transform: translateY(-1px);
         }
 
@@ -544,9 +552,9 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         }
 
         .nb-page-btn:hover:not(:disabled) {
-          background: #2D2D2D !important;
-          color: #F8F5F2 !important;
-          border-color: #2D2D2D !important;
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+          border-color: #C6A969 !important;
           transform: translateY(-1px);
         }
 
@@ -566,6 +574,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           background: #FFFFFF !important;
         }
 
+        .nb-custom-option:hover {
+          background: #C6A969 !important;
+          color: #2D2D2D !important;
+        }
+
         @media (max-width: 900px) {
           .customer-toolbar {
             flex-direction: column !important;
@@ -574,10 +587,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
           .customer-filter-buttons {
             justify-content: flex-start !important;
-          }
-
-          .customer-toolbar select {
-            width: 100% !important;
           }
 
           .customer-kpi-grid {
@@ -595,6 +604,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
           .customer-pagination {
             flex-direction: column !important;
             align-items: flex-start !important;
+          }
+
+          .ledger-actions {
+            justify-content: flex-start !important;
           }
         }
       `}</style>
@@ -619,26 +632,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         </div>
 
         <div className="customer-kpi-grid" style={styles.kpiGrid}>
-          <Kpi
-            title="Total Customers"
-            value={customers.length}
-            sub="Registered buyers"
-          />
-          <Kpi
-            title="Active Customers"
-            value={activeCustomers}
-            sub="Ready for billing"
-          />
-          <Kpi
-            title="Premium Customers"
-            value={premiumCustomers}
-            sub="High value accounts"
-          />
-          <Kpi
-            title="Customer Value"
-            value={money(totalValue)}
-            sub="Total purchase value"
-          />
+          <Kpi title="Total Customers" value={customers.length} sub="Registered buyers" />
+          <Kpi title="Active Customers" value={activeCustomers} sub="Ready for billing" />
+          <Kpi title="Premium Customers" value={premiumCustomers} sub="VIP / Corporate" />
+          <Kpi title="Customer Value" value={money(totalValue)} sub="Total purchase value" />
         </div>
 
         {view === "list" && (
@@ -646,10 +643,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             <div style={styles.cardHead}>
               <div>
                 <h2 style={styles.cardTitle}>Customer List</h2>
-                <p style={styles.muted}>
-                  Showing {startCustomerNumber} - {endCustomerNumber} of{" "}
-                  {filteredCustomers.length} customers
-                </p>
+                {loading && <p style={styles.muted}>Loading customers...</p>}
               </div>
             </div>
 
@@ -660,22 +654,34 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search customer, mobile..."
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      handleFrontendSearch();
+                    }
+                  }}
+                  placeholder="Search by name, mobile or email..."
                   style={styles.searchInput}
                 />
               </div>
 
-              <div
-                className="customer-filter-buttons"
-                style={styles.filterButtons}
+              <button
+                type="button"
+                onClick={handleFrontendSearch}
+                className="nb-btn nb-primary"
+                style={styles.searchBtn}
+                disabled={loading}
               >
+                Search
+              </button>
+
+              <div className="customer-filter-buttons" style={styles.filterButtons}>
                 <button
                   type="button"
                   onClick={() => setStatusFilter("All")}
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "All" ? styles.filterBtnActive : {}),
+                    ...(statusFilter === "All" ? styles.allActiveBtn : {}),
                   }}
                 >
                   All
@@ -683,13 +689,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
                 <button
                   type="button"
-                  onClick={() => setStatusFilter("Active")}
+                  onClick={() => setStatusFilter("ACTIVE")}
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "Active"
-                      ? styles.filterBtnActive
-                      : {}),
+                    ...(statusFilter === "ACTIVE" ? styles.activeBtn : {}),
                   }}
                 >
                   Active
@@ -697,30 +701,22 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
                 <button
                   type="button"
-                  onClick={() => setStatusFilter("Inactive")}
+                  onClick={() => setStatusFilter("BLACKLISTED")}
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "Inactive"
-                      ? styles.filterBtnActive
-                      : {}),
+                    ...(statusFilter === "BLACKLISTED" ? styles.inactiveBtn : {}),
                   }}
                 >
                   Inactive
                 </button>
               </div>
 
-              <select
-                className="nb-input"
-                value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value)}
-                style={styles.typeSelect}
-              >
-                <option>All</option>
-                <option>Regular</option>
-                <option>Premium</option>
-                <option>Wholesale</option>
-              </select>
+              <CustomDropdown
+                value={tierFilter}
+                options={tierOptions}
+                onChange={setTierFilter}
+              />
             </div>
 
             <div style={styles.tableWrap}>
@@ -739,17 +735,14 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 </thead>
 
                 <tbody>
-                  {paginatedCustomers.map((customer) => {
-                    const displayCustomer = getDisplayCustomer(customer);
-
-                    return (
-                      <tr key={customer.id} className="nb-table-row">
-                        <Td>
-                          <b style={styles.cellMain}>{displayCustomer.name}</b>
-                          <small style={styles.cellSub}>
-                            {displayCustomer.id}
-                          </small>
-                        </Td>
+                  {paginatedCustomers.map((customer) => (
+                    <tr key={customer.id} className="nb-table-row">
+                      <Td>
+                        <b style={styles.cellMain}>{customer.name}</b>
+                        <small style={styles.cellSub}>
+                          {formatCustomerId(customer.id)}
+                        </small>
+                      </Td>
 
                       <Td>
                         <b style={styles.cellMain}>{customer.mobile}</b>
@@ -801,7 +794,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   ))}
 
                   {paginatedCustomers.length === 0 && (
-                  {paginatedCustomers.length === 0 && (
                     <tr>
                       <td colSpan="8" style={styles.emptyCell}>
                         {loading
@@ -817,7 +809,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             {filteredCustomers.length > 0 && (
               <div className="customer-pagination" style={styles.pagination}>
                 <div style={styles.pageInfo}>
-                  Page {currentPage} of {totalPages} • 5 customers per page
+                  Page {currentPage} of {totalPages}
                 </div>
 
                 <div style={styles.pageControls}>
@@ -831,7 +823,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                       ...(currentPage === 1 ? styles.pageBtnDisabled : {}),
                     }}
                   >
-                    {"<"}
+                    ‹
                   </button>
 
                   {Array.from({ length: totalPages }, (_, index) => {
@@ -862,12 +854,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                     onClick={() => setCurrentPage((page) => page + 1)}
                     style={{
                       ...styles.pageBtn,
-                      ...(currentPage === totalPages
-                        ? styles.pageBtnDisabled
-                        : {}),
+                      ...(currentPage === totalPages ? styles.pageBtnDisabled : {}),
                     }}
                   >
-                    {">"}
+                    ›
                   </button>
                 </div>
               </div>
@@ -897,11 +887,6 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               </button>
             </div>
 
-            <form
-              onSubmit={saveCustomer}
-              className="customer-form-grid"
-              style={styles.formGrid}
-            >
             <form
               onSubmit={saveCustomer}
               className="customer-form-grid"
@@ -1011,7 +996,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             </div>
 
             <div className="customer-info-grid" style={styles.infoGrid}>
-              <Info label="Mobile" value={selectedCustomer.mobile} />
+              <Info label="Mobile" value={selectedCustomer.mobile || "-"} />
               <Info label="Email" value={selectedCustomer.email || "-"} />
               <Info label="Tier" value={formatTier(selectedCustomer.tier)} />
               <Info
@@ -1327,22 +1312,12 @@ const styles = {
 
   toolbar: {
     width: "100%",
-    width: "100%",
     display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 16,
     alignItems: "center",
     gap: 10,
     marginBottom: 16,
   },
 
-  searchBar: {
-    flex: 1,
-    minHeight: 40,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
   searchBar: {
     flex: 1,
     minHeight: 40,
@@ -1352,22 +1327,6 @@ const styles = {
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
     borderRadius: 10,
-    padding: "0 12px",
-  },
-
-  searchIcon: {
-    color: "#8B7355",
-    fontSize: 15,
-    fontWeight: 500,
-    flexShrink: 0,
-  },
-
-  searchInput: {
-    width: "100%",
-    border: "none",
-    background: "transparent",
-    color: "#3F3F46",
-    minHeight: 38,
     padding: "0 12px",
   },
 
@@ -1399,31 +1358,100 @@ const styles = {
   filterBtn: {
     minHeight: 40,
     borderRadius: 9,
-    border: "1px solid #EFE7DE",
+    border: "1.5px solid #EFE7DE",
     background: "#FFFFFF",
     color: "#8B7355",
     padding: "0 14px",
     fontWeight: 600,
     fontSize: 12,
+    cursor: "pointer",
   },
 
-  filterBtnActive: {
+  allActiveBtn: {
     background: "#2D2D2D",
     borderColor: "#2D2D2D",
     color: "#F8F5F2",
   },
 
-  typeSelect: {
-    width: 125,
+  activeBtn: {
+    background: "#2F5D3A",
+    borderColor: "#2F5D3A",
+    color: "#FFFFFF",
+  },
+
+  inactiveBtn: {
+    background: "#7A1F1F",
+    borderColor: "#7A1F1F",
+    color: "#FFFFFF",
+  },
+
+  customSelectWrap: {
+    position: "relative",
+    width: 150,
+    flexShrink: 0,
+    outline: "none",
+  },
+
+  customSelectButton: {
+    width: "100%",
+    minHeight: 40,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
-    color: "#3F3F46",
-    borderRadius: 9,
-    minHeight: 40,
-    padding: "7px 9px",
+    color: "#2D2D2D",
+    borderRadius: 10,
+    padding: "0 12px",
     outline: "none",
     fontSize: 12,
     fontWeight: 500,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  customSelectButtonOpen: {
+    borderColor: "#C6A969",
+    boxShadow: "0 0 0 3px rgba(198,169,105,0.13)",
+  },
+
+  customSelectArrow: {
+    color: "#8B7355",
+    fontSize: 15,
+    fontWeight: 700,
+  },
+
+  customSelectMenu: {
+    position: "absolute",
+    top: "calc(100% + 6px)",
+    left: 0,
+    right: 0,
+    zIndex: 50,
+    background: "#FFFFFF",
+    border: "1px solid #D6D3D1",
+    borderRadius: 10,
+    boxShadow: "0 14px 28px rgba(45,45,45,0.12)",
+    padding: 6,
+    overflow: "hidden",
+  },
+
+  customSelectOption: {
+    width: "100%",
+    minHeight: 34,
+    border: "none",
+    borderRadius: 8,
+    background: "#FFFFFF",
+    color: "#2D2D2D",
+    textAlign: "left",
+    padding: "0 10px",
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+  },
+
+  customSelectOptionActive: {
+    background: "#2D2D2D",
+    color: "#F8F5F2",
   },
 
   input: {
@@ -1549,37 +1577,40 @@ const styles = {
   pageControls: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
     flexWrap: "wrap",
   },
 
   pageBtn: {
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: 9,
+    minWidth: 42,
+    minHeight: 42,
+    borderRadius: 12,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
-    color: "#2D2D2D",
-    padding: "0 10px",
-    fontWeight: 700,
-    fontSize: 14,
+    color: "#8B7355",
+    padding: "0 12px",
+    fontWeight: 800,
+    fontSize: 24,
+    lineHeight: 1,
+    cursor: "pointer",
   },
 
   pageBtnDisabled: {
-    opacity: 0.45,
+    opacity: 0.35,
     cursor: "not-allowed",
   },
 
   numberBtn: {
-    minWidth: 36,
-    minHeight: 36,
-    borderRadius: 9,
+    minWidth: 42,
+    minHeight: 42,
+    borderRadius: 12,
     border: "1px solid #D6D3D1",
     background: "#FFFFFF",
     color: "#2D2D2D",
-    padding: "0 10px",
-    fontWeight: 600,
-    fontSize: 12,
+    padding: "0 12px",
+    fontWeight: 700,
+    fontSize: 13,
+    cursor: "pointer",
   },
 
   numberBtnActive: {

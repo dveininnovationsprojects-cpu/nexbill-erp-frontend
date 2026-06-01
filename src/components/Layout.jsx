@@ -26,13 +26,13 @@ const adminNav = [
   { icon: Receipt,         label: 'Billing',   to: '/admin/billing' },
   { icon: CreditCard,      label: 'Payments',  to: '/admin/payments' },
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
-<<<<<<< HEAD
   {
     icon: BarChart2, label: 'Reports', dropdown: [
       { icon: BarChart2, label: 'Sales Analytics', to: '/admin/sales-analytics' },
       { icon: FileText,  label: 'Export',          to: '/admin/reports/export' },
     ]
   },
+  { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
   {
     icon: Settings, label: 'Settings', dropdown: [
       { 
@@ -61,12 +61,6 @@ const adminNav = [
     ]
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
-=======
-  { icon: BarChart2,       label: 'Reports',   to: '/admin/reports'  },
-  { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
-  { icon: Settings,        label: 'Settings',  to: '/admin/settings' },
-  { icon: UserCircle,      label: 'Profile',   to: '/admin/profile'  },
->>>>>>> 380f0bd3248fdf45f09c0860da1c465640ce5e18
 ];
 
 const cashierNav = [

@@ -34,19 +34,17 @@ export default function Suppliers() {
 
   const fetchSuppliers = async () => {
     try {
-      console.log('Fetching suppliers from /api/suppliers/active');
-      const res = await api.get('/api/suppliers/active');
-      console.log('API Response:', res);
-      console.log('API Response Data:', res.data);
+      const res = await api.get('/api/suppliers/all');
       const data = res.data || [];
-      console.log('Suppliers count:', data.length);
       setSuppliers(data);
       setSelected(prev => prev ? (data.find(s => s.id === prev.id) || data[0] || null) : (data[0] || null));
-    } catch (err) {
-      console.error('Fetch suppliers error:', err);
-      console.error('Error response:', err?.response);
-      console.error('Error status:', err?.response?.status);
-      console.error('Error data:', err?.response?.data);
+    } catch {
+      try {
+        const res = await api.get('/api/suppliers/active');
+        const data = res.data || [];
+        setSuppliers(data);
+        setSelected(prev => prev ? (data.find(s => s.id === prev.id) || data[0] || null) : (data[0] || null));
+      } catch { setSuppliers([]); }
     }
   };
 

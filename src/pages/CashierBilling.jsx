@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Minus, Trash2, ShoppingCart, Tag, Receipt, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +8,7 @@ const MOCK_PRODUCTS = [];
 
 export default function CashierBilling() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
@@ -29,8 +31,22 @@ export default function CashierBilling() {
 
   useEffect(() => {
     api.get('/api/products/all')
-      .then(res => setProducts(res.data || []))
-      .catch(err => console.error('Products fetch error:', err?.response?.status, err?.response?.data));
+      .then(async res => {
+        const prods = res.data || [];
+        if (prods.length) {
+          const invData = await Promise.allSettled(
+            prods.map(p => api.get(`/api/inventory/product/${p.id}`))
+          );
+          const merged = prods.map((p, i) => ({
+            ...p,
+            stock: invData[i].status === 'fulfilled' ? parseFloat(invData[i].value.data.availableQuantity ?? 0) : 0,
+            gstRate: p.gstPercentage ?? p.gstRate ?? 0,
+            category: p.category?.name || p.category || '',
+          }));
+          setProducts(merged.filter(p => p.stock > 0));
+        }
+      })
+      .catch(err => console.error('Products fetch error:', err?.response?.status));
   }, []);
 
   const filtered = search.length > 0
@@ -94,22 +110,12 @@ export default function CashierBilling() {
     setPaymentStatus('processing');
     try {
       const res = await api.post('/api/billing/checkout', { paymentMethod });
-      const newInvoice = {
-        id: res.data.invoiceNumber || `INV-${Date.now()}`,
-        customer: customerId ? `Customer #${customerId}` : 'Walk-in Customer',
-        email: '', phone: '', address: '', gstNo: '',
-        items: cart.map(i => ({ name: i.name, qty: i.qty, rate: i.price, gst: i.gstPercentage || i.gstRate || 0 })),
-        discount: discountVal,
-        status: 'Paid',
-        date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        dueDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        cashier: user?.name || user?.email || 'Cashier',
-        counter: 'Counter 1',
-        payment: paymentMethod,
-      };
-      const existing = JSON.parse(localStorage.getItem('nexbill_invoices') || '[]');
-      localStorage.setItem('nexbill_invoices', JSON.stringify([newInvoice, ...existing]));
       setPaymentStatus('success');
+      setTimeout(() => {
+        setInvoiceModal(false);
+        clearCart();
+        navigate(user?.role === 'ADMIN' ? '/admin/invoices' : '/cashier/invoices');
+      }, 1500);
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data || 'Payment failed!';
       setPaymentStatus('failed');
@@ -353,6 +359,7 @@ export default function CashierBilling() {
               );
             })}
           </div>
+        </div>
 
         {/* Right — Cart */}
         <div className="bill-right">
