@@ -127,7 +127,11 @@ export default function CashierManagement() {
       );
       showToast(`${cashier.name || cashier.email} re-activated successfully!`);
       fetchAll();
-    } catch { showToast('Re-activation failed. Try again.', 'error'); }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data || 'Re-activation failed.';
+      console.error('Reactivate 400 body:', err.response?.data);
+      showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
+    }
   };
 
   /* ── deactivate ── */

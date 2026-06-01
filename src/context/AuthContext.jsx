@@ -29,17 +29,18 @@ export function AuthProvider({ children }) {
       }
       throw { response: { data: { message: res.data.message || 'Invalid credentials. Please try again.' } } };
     }
-    // Backend doesn't return role & JWT has no role claim
-    // Probe admin-only endpoint to determine role
-    let role = 'CASHIER';
-    try {
-      await axios.get('/api/admin/pending-cashiers', {
-        headers: { Authorization: `Bearer ${res.data.token}` },
-        withCredentials: true,
-      });
-      role = 'ADMIN';
-    } catch {
-      role = 'CASHIER';
+    // Use role returned directly from login response, fallback to probing
+    let role = res.data.role || 'CASHIER';
+    if (!res.data.role) {
+      try {
+        await axios.get('/api/admin/active-cashiers', {
+          headers: { Authorization: `Bearer ${res.data.token}` },
+          withCredentials: true,
+        });
+        role = 'ADMIN';
+      } catch {
+        role = 'CASHIER';
+      }
     }
     const userData = { email, token: res.data.token, role };
     setUser(userData);
