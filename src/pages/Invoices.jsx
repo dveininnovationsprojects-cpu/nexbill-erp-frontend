@@ -465,9 +465,6 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
             </span>
           </div>
           <div className="inv-pdf-modal-acts">
-            <button className="inv-btn-outline" onClick={() => onEmail(invoice)}>
-              <Send size={13} /> Send Email
-            </button>
             <button className="inv-btn-sm" onClick={() => printInvoice(invoice)}>
               <Printer size={13} /> Print / PDF
             </button>
