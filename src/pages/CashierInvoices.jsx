@@ -11,12 +11,9 @@ import {
   AlertCircle, Receipt, TrendingUp, Clock, Filter,
   Send, User, Calendar, Monitor, ArrowUpRight,
 } from 'lucide-react';
-<<<<<<< HEAD
 import api from '../api';
-=======
-import axios from 'axios';
->>>>>>> 17eb261dce49ec7de2a4ee2522b189b2f1ae9ea1
 import { useAuth } from '../context/AuthContext';
+
 
 /* ══════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — NexBill Color Palette (matches project)
