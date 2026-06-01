@@ -37,11 +37,11 @@ const STYLES = `
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: #FFFFFF;
-    border: 1px solid #EFE7DE;
-    border-radius: 14px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(45,45,45,0.05);
+    box-shadow: none;
     position: sticky;
     top: 20px;
   }
