@@ -116,21 +116,15 @@ export default function CashierManagement() {
   const handleReactivate = async (cashier) => {
     try {
       await axios.put(
-        `/api/profile/admin/staff/${cashier.id}`,
-        {
-          counterNumber: cashier.counterNumber || null,
-          shiftTiming:   cashier.shiftTiming   || null,
-          basicSalary:   cashier.basicSalary   ? parseFloat(cashier.basicSalary) : null,
-          status:        'ACTIVE',
-        },
+        `/api/admin/cashier/${cashier.id}/toggle-status?status=ACTIVE`,
+        {},
         { headers, withCredentials: true }
       );
       showToast(`${cashier.name || cashier.email} re-activated successfully!`);
       fetchAll();
     } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data || 'Re-activation failed.';
-      console.error('Reactivate 400 body:', err.response?.data);
-      showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
+      const msg = err.response?.data?.message || 'Re-activation failed.';
+      showToast(typeof msg === 'string' ? msg : 'Re-activation failed.', 'error');
     }
   };
 
@@ -139,13 +133,8 @@ export default function CashierManagement() {
     setDeactivating(true);
     try {
       await axios.put(
-        `/api/profile/admin/staff/${deactivateTarget.id}`,
-        {
-          counterNumber: deactivateTarget.counterNumber || null,
-          shiftTiming:   deactivateTarget.shiftTiming   || null,
-          basicSalary:   deactivateTarget.basicSalary   ? parseFloat(deactivateTarget.basicSalary) : null,
-          status:        'SUSPENDED',
-        },
+        `/api/admin/cashier/${deactivateTarget.id}/toggle-status?status=SUSPENDED`,
+        {},
         { headers, withCredentials: true }
       );
       showToast(`${deactivateTarget.name || deactivateTarget.email} deactivated.`, 'warn');
