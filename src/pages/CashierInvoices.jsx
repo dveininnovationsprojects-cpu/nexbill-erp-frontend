@@ -11,8 +11,8 @@ import {
   AlertCircle, Receipt, TrendingUp, Clock, Filter,
   Send, User, Calendar, Monitor, ArrowUpRight,
 } from 'lucide-react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import api from '../api';
 
 /* ══════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — NexBill Color Palette (matches project)
@@ -186,78 +186,6 @@ const STYLES = `
   .ci-toast-err { background:#7A3A3A; }
   @keyframes ciSlideIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
 `;
-
-/* ══════════════════════════════════════════════════════════════════════
-   MOCK DATA — Cashier's invoice records
-══════════════════════════════════════════════════════════════════════ */
-const CASHIER_INVOICES = [
-  {
-    id: 'INV-2026-001', customer: 'Ahamed Yasik', email: 'ahamed@gmail.com',
-    phone: '+91 9876543210', address: '12 MG Road, Chennai, Tamil Nadu 600001',
-    gstNo: '33AABCC1234K1Z5',
-    items: [
-      { name: 'MacBook Pro 14"', qty: 1, rate: 125000, gst: 18 },
-      { name: 'Magic Mouse', qty: 2, rate: 4500, gst: 18 },
-    ],
-    discount: 5000, status: 'Paid', date: '22 May 2026', dueDate: '29 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'UPI',
-  },
-  {
-    id: 'INV-2026-003', customer: 'Tech Solutions Ltd', email: 'accounts@techsol.com',
-    phone: '+91 8765432109', address: '78 IT Hub, Hyderabad, Telangana 500001',
-    gstNo: '36AABCE9012P1Z3',
-    items: [
-      { name: 'Dell Monitor 27"', qty: 5, rate: 28000, gst: 18 },
-      { name: 'Keyboard & Mouse Combo', qty: 5, rate: 3500, gst: 18 },
-    ],
-    discount: 8000, status: 'Paid', date: '20 May 2026', dueDate: '27 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Card',
-  },
-  {
-    id: 'INV-2026-006', customer: 'City Supermart', email: 'manager@citymart.in',
-    phone: '+91 5432109876', address: '34 Market St, Coimbatore, Tamil Nadu 641001',
-    gstNo: '33AABCH2345S1Z5',
-    items: [
-      { name: 'POS Terminal', qty: 5, rate: 18000, gst: 18 },
-      { name: 'Receipt Paper Roll (100pcs)', qty: 20, rate: 450, gst: 5 },
-    ],
-    discount: 5000, status: 'Paid', date: '19 May 2026', dueDate: '26 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Cheque',
-  },
-  {
-    id: 'INV-2026-008', customer: 'Star Electronics', email: 'billing@starelectro.in',
-    phone: '+91 3210987654', address: '56 Tech Ave, Delhi, Delhi 110001',
-    gstNo: '07AABCJ0123U1Z3',
-    items: [
-      { name: 'iPhone 15 Pro', qty: 3, rate: 134900, gst: 18 },
-      { name: 'AirPods Pro', qty: 3, rate: 24900, gst: 18 },
-    ],
-    discount: 10000, status: 'Paid', date: '17 May 2026', dueDate: '24 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Card',
-  },
-  {
-    id: 'INV-2026-009', customer: 'Quick Bazaar', email: 'purchase@quickbazaar.in',
-    phone: '+91 9988776655', address: '2 High Street, Jaipur, Rajasthan 302001',
-    gstNo: '08AABCK4567V1Z7',
-    items: [
-      { name: 'Wireless Router', qty: 6, rate: 3200, gst: 18 },
-      { name: 'Network Switch 8-Port', qty: 3, rate: 1800, gst: 18 },
-    ],
-    discount: 2000, status: 'Pending', date: '23 May 2026', dueDate: '30 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Pending',
-  },
-  {
-    id: 'INV-2026-010', customer: 'Bright Stores', email: 'accounts@brightstores.com',
-    phone: '+91 8877665544', address: '78 Park Ave, Nagpur, Maharashtra 440001',
-    gstNo: '27AABCL7890W1Z1',
-    items: [
-      { name: 'LED Strip Lights (5m)', qty: 20, rate: 850, gst: 12 },
-      { name: 'Smart Bulb Pack (4pcs)', qty: 10, rate: 1200, gst: 12 },
-    ],
-    discount: 1500, status: 'Pending', date: '22 May 2026', dueDate: '29 May 2026',
-    cashier: 'Ravi Kumar', counter: 'Counter 1', payment: 'Pending',
-  },
-];
 
 /* ══════════════════════════════════════════════════════════════════════
    HELPERS
@@ -600,11 +528,75 @@ export default function CashierInvoices() {
   const headers = () => ({ Authorization: `Bearer ${user.token}` });
 
   const [invoices, setInvoices]   = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState('All');
   const [page, setPage]           = useState(1);
   const [previewInv, setPreview]  = useState(null);
   const [toast, setToast]         = useState(null);
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        console.log('Fetching cashier invoices with token:', user?.token);
+        // Try Order API first (includes customer relationship)
+        const res = await api.get('/api/orders');
+        console.log('Raw order response:', res.data);
+        // Filter only this cashier's orders
+        const cashierEmail = user?.email || user?.username;
+        const cashierOrders = (res.data || []).filter(order => 
+          order.cashier?.email === cashierEmail || order.cashier?.username === cashierEmail
+        );
+        
+        const data = cashierOrders.map(order => {
+          console.log('Processing cashier order:', order);
+          
+          let customerName = 'Walk-in Customer';
+          if (order.customer?.name) {
+            customerName = order.customer.name;
+          } else if (order.customerId) {
+            customerName = `Customer #${order.customerId}`;
+          }
+          
+          return {
+            id: order.invoiceNumber || `ORD-${order.id}`,
+            customer: customerName,
+            email: order.customer?.email || '',
+            phone: order.customer?.mobile || order.customer?.phone || '',
+            address: order.customer?.address || '',
+            gstNo: order.customer?.gstNumber || '',
+            items: (order.items || []).map(it => ({
+              name: it.product?.name || it.productName,
+              qty: parseFloat(it.quantity),
+              rate: parseFloat(it.unitPrice),
+              gst: parseFloat(it.gstPercentage || 0),
+            })),
+            discount: parseFloat(order.discountAmount || 0),
+            status: order.status === 'COMPLETED' ? 'Paid' : 'Pending',
+            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+            dueDate: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+            cashier: order.cashier?.name || order.cashier?.email || user?.username || 'Cashier',
+            counter: order.cashier?.counterNumber || 'Counter 1',
+            payment: order.paymentMode || 'CASH',
+            grandTotal: parseFloat(order.grandTotal || 0),
+          };
+        });
+        console.log('Processed invoices:', data);
+        setInvoices(data);
+      } catch (err) {
+        console.error('Failed to fetch invoices:', err);
+        console.error('Error response:', err.response?.data);
+        console.error('Error status:', err.response?.status);
+        if (err.response?.status === 401) {
+          alert('Session expired or unauthorized. Please login again.');
+        }
+        setInvoices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInvoices();
+  }, []);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -626,8 +618,8 @@ export default function CashierInvoices() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // KPI
-  const paidInvs    = CASHIER_INVOICES.filter(i => i.status === 'Paid');
-  const pendingInvs = CASHIER_INVOICES.filter(i => i.status === 'Pending');
+  const paidInvs    = invoices.filter(i => i.status === 'Paid');
+  const pendingInvs = invoices.filter(i => i.status === 'Pending');
   const totalRev    = paidInvs.reduce((s, i) => s + calcInvoice(i).total, 0);
 
   return (
@@ -657,25 +649,25 @@ export default function CashierInvoices() {
           <div className="ci-info-chip">
             <User size={14} />
             <span className="ci-info-label">Cashier</span>
-            <strong>Ravi Kumar</strong>
+            <strong>{user?.username || user?.name || 'Cashier'}</strong>
           </div>
           <div className="ci-info-divider" />
           <div className="ci-info-chip">
             <Monitor size={14} />
             <span className="ci-info-label">Counter</span>
-            <strong>Counter 1</strong>
+            <strong>{user?.counter || 'Counter 1'}</strong>
           </div>
           <div className="ci-info-divider" />
           <div className="ci-info-chip">
             <Clock size={14} />
             <span className="ci-info-label">Shift</span>
-            <strong>9:00 AM – 5:00 PM</strong>
+            <strong>{user?.shiftTiming || user?.shift || '9:00 AM – 5:00 PM'}</strong>
           </div>
           <div className="ci-info-divider" />
           <div className="ci-info-chip">
             <Calendar size={14} />
             <span className="ci-info-label">Date</span>
-            <strong>26 May 2026</strong>
+            <strong>{new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
           </div>
         </div>
 
@@ -684,7 +676,7 @@ export default function CashierInvoices() {
           <div className="ci-kpi-card kpi-gold">
             <div className="ci-kpi-icon ci-icon-gold"><Receipt size={20} /></div>
             <div className="ci-kpi-body">
-              <div className="ci-kpi-value">{CASHIER_INVOICES.length}</div>
+              <div className="ci-kpi-value">{invoices.length}</div>
               <div className="ci-kpi-label">My Invoices</div>
               <div className="ci-kpi-sub">
                 <span className="ci-kpi-trend trend-up"><ArrowUpRight size={10} /> {paidInvs.length} paid</span>

@@ -41,7 +41,18 @@ export function AuthProvider({ children }) {
     } catch {
       role = 'CASHIER';
     }
-    const userData = { email, token: res.data.token, role };
+    const userData = { 
+      email, 
+      token: res.data.token, 
+      role,
+      username: res.data.username || res.data.name || email.split('@')[0],
+      name: res.data.name || res.data.username || email.split('@')[0],
+      counter: res.data.counter || res.data.counterNumber || 'Counter 1',
+      shift: res.data.shift || res.data.shiftTiming || '9:00 AM – 5:00 PM',
+      shiftTiming: res.data.shiftTiming || res.data.shift || '9:00 AM – 5:00 PM',
+      branch: res.data.branch || 'Main Branch',
+      phone: res.data.phone || res.data.mobile,
+    };
     setUser(userData);
     localStorage.setItem('nexbill_user', JSON.stringify(userData));
     return { ...res.data, role };

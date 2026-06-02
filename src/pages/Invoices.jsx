@@ -849,32 +849,80 @@ export default function AdminInvoices() {
 
   const fetchInvoices = async () => {
     try {
-      const res = await api.get('/api/invoices/all');
-      const data = (res.data || []).map(inv => ({
-        id: inv.invoiceNumber || inv.id,
-        customer: inv.customerName || inv.cashierId || 'Walk-in Customer',
-        email: inv.customerEmail || '',
-        phone: inv.customerPhone || '',
-        address: inv.customerAddress || '',
-        gstNo: inv.customerGst || '',
-        items: (inv.items || []).map(it => ({
-          name: it.productName,
-          qty: parseFloat(it.quantity),
-          rate: parseFloat(it.unitPrice),
-          gst: parseFloat(it.gstPercentage || 0),
-        })),
-        discount: parseFloat(inv.discountTotal || 0),
-        status: 'Paid',
-        date: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        dueDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        cashier: inv.cashierId || '',
-        counter: 'Counter 1',
-        payment: inv.paymentMethod || 'CASH',
-        grandTotal: parseFloat(inv.grandTotal || 0),
-      }));
+      // Try Orders API first (new system with customer relationship)
+      const res = await api.get('/api/orders');
+      const data = (res.data || []).map(order => {
+        console.log('Processing order:', order);
+        
+        // Customer name from Order->Customer relationship
+        let customerName = 'Walk-in Customer';
+        if (order.customer?.name) {
+          customerName = order.customer.name;
+        } else if (order.customerId) {
+          customerName = `Customer #${order.customerId}`;
+        }
+        
+        return {
+          id: order.invoiceNumber || `ORD-${order.id}`,
+          customer: customerName,
+          email: order.customer?.email || '',
+          phone: order.customer?.mobile || order.customer?.phone || '',
+          address: order.customer?.address || '',
+          gstNo: order.customer?.gstNumber || '',
+          items: (order.items || []).map(it => ({
+            name: it.product?.name || it.productName,
+            qty: parseFloat(it.quantity),
+            rate: parseFloat(it.unitPrice),
+            gst: parseFloat(it.gstPercentage || 0),
+          })),
+          discount: parseFloat(order.discountAmount || 0),
+          status: order.status === 'COMPLETED' ? 'Paid' : 'Pending',
+          date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          dueDate: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          cashier: order.cashier?.name || order.cashier?.email || '',
+          counter: order.cashier?.counterNumber || 'Counter 1',
+          payment: order.paymentMode || 'CASH',
+          grandTotal: parseFloat(order.grandTotal || 0),
+        };
+      });
       setInvoices(data);
-    } catch {
-      setInvoices([]);
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
+      // Fallback to old Invoice API
+      try {
+        const res = await api.get('/api/billing/history');
+        const data = (res.data || []).map(inv => {
+          let customerName = 'Walk-in Customer';
+          if (inv.customer?.name) customerName = inv.customer.name;
+          else if (inv.customerId) customerName = `Customer #${inv.customerId}`;
+          
+          return {
+            id: inv.invoiceNumber || inv.id,
+            customer: customerName,
+            email: inv.customer?.email || '',
+            phone: inv.customer?.mobile || '',
+            address: inv.customer?.address || '',
+            gstNo: inv.customer?.gstNumber || '',
+            items: (inv.items || []).map(it => ({
+              name: it.productName || it.product?.name,
+              qty: parseFloat(it.quantity),
+              rate: parseFloat(it.unitPrice),
+              gst: parseFloat(it.gstPercentage || 0),
+            })),
+            discount: parseFloat(inv.discountTotal || 0),
+            status: 'Paid',
+            date: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN') : '',
+            dueDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN') : '',
+            cashier: inv.cashierId || '',
+            counter: 'Counter 1',
+            payment: inv.paymentMethod || 'CASH',
+            grandTotal: parseFloat(inv.grandTotal || 0),
+          };
+        });
+        setInvoices(data);
+      } catch {
+        setInvoices([]);
+      }
     } finally {
       setLoading(false);
     }

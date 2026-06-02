@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, CreditCard, CheckCircle, Clock, XCircle } from 'lucide-react';
+import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const MOCK_PAYMENTS = [];
 
@@ -12,10 +14,80 @@ const STATUS_CONFIG = {
 const METHOD_ICONS = { Cash: 'Cash', UPI: 'UPI', Card: 'Card', 'Net Banking': 'Net Banking' };
 
 export default function CashierPayments() {
+  const { user } = useAuth();
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  const filtered = MOCK_PAYMENTS.filter(p => {
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching payments...');
+      
+      // Try payment stats endpoint first
+      try {
+        const res = await api.get('/api/payments/stats');
+        console.log('Payment stats response:', res.data);
+        
+        if (res.data && res.data.length > 0) {
+          const transformedPayments = [];
+          for (const stat of res.data) {
+            try {
+              const txnRes = await api.get(`/api/payments/transactions/${stat.paymentMode}`);
+              const transactions = txnRes.data.map(order => ({
+                id: `PAY-${order.id}`,
+                invoice: order.invoiceNumber || `INV-${order.id}`,
+                customer: order.customerName || order.customer?.name || 'Walk-in',
+                amount: parseFloat(order.grandTotal || 0),
+                method: order.paymentMethod || stat.paymentMode,
+                status: 'SUCCESS',
+                date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+              }));
+              transformedPayments.push(...transactions);
+            } catch (err) {
+              console.error(`Error fetching transactions for ${stat.paymentMode}:`, err);
+            }
+          }
+          setPayments(transformedPayments);
+        } else {
+          throw new Error('Payment stats endpoint returned empty');
+        }
+      } catch (err) {
+        console.warn('Payment stats endpoint failed, trying billing history:', err);
+        
+        // Fallback: Use billing history
+        const billRes = await api.get('/api/billing/history');
+        console.log('Billing history response:', billRes.data);
+        
+        if (billRes.data && billRes.data.length > 0) {
+          const transformedPayments = billRes.data.map(order => ({
+            id: `PAY-${order.id}`,
+            invoice: order.invoiceNumber || `INV-${order.id}`,
+            customer: order.customerName || order.customer?.name || 'Walk-in',
+            amount: parseFloat(order.grandTotal || 0),
+            method: order.paymentMethod || 'CASH',
+            status: 'SUCCESS',
+            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+          }));
+          setPayments(transformedPayments);
+        } else {
+          setPayments([]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching payments:', err);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = payments.filter(p => {
     const matchSearch = p.customer.toLowerCase().includes(search.toLowerCase()) ||
       p.invoice.toLowerCase().includes(search.toLowerCase()) ||
       p.id.toLowerCase().includes(search.toLowerCase());
@@ -23,8 +95,8 @@ export default function CashierPayments() {
     return matchSearch && matchStatus;
   });
 
-  const totalSuccess = MOCK_PAYMENTS.filter(p => p.status === 'SUCCESS').reduce((s, p) => s + p.amount, 0);
-  const totalPending = MOCK_PAYMENTS.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
+  const totalSuccess = payments.filter(p => p.status === 'SUCCESS').reduce((s, p) => s + p.amount, 0);
+  const totalPending = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
 
   return (
     <>
@@ -70,7 +142,7 @@ export default function CashierPayments() {
           </div>
           <div className="pay-kpi">
             <div className="pay-kpi-icon" style={{background:'#EFE7DE'}}><CreditCard size={18} color="#8B7355" /></div>
-            <div><div className="pay-kpi-val">{MOCK_PAYMENTS.length}</div><div className="pay-kpi-label">Total Transactions</div></div>
+            <div><div className="pay-kpi-val">{payments.length}</div><div className="pay-kpi-label">Total Transactions</div></div>
           </div>
         </div>
 
