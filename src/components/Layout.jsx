@@ -34,22 +34,7 @@ const adminNav = [
   },
   { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
   {
-    icon: Settings, label: 'Settings', dropdown: [
-      {
-        icon: UserCircle,
-        label: 'Accounts',
-        nested: [
-          { icon: Building2, label: 'Business Profile', to: '/admin/settings/accounts/business-profile' },
-        ]
-      },
-      {
-        icon: FileText,
-        label: 'Billing',
-        nested: [
-          { icon: FileText, label: 'Invoice Settings', to: '/admin/settings/billing/invoice' },
-        ]
-      },
-    ]
+    icon: Settings, label: 'Settings', to: '/admin/settings'
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
 ];
@@ -61,7 +46,6 @@ const cashierNav = [
   { icon: Users,           label: 'Customers', to: '/cashier/customers' },
   { icon: FileText,        label: 'Invoices',  to: '/cashier/invoices' },
   { icon: CreditCard,      label: 'Payments',  to: '/cashier/payments' },
-  { icon: Settings,        label: 'Settings',  to: '/cashier/settings' },
   { icon: UserCircle,      label: 'Profile',   to: '/cashier/profile'  },
 ];
 
