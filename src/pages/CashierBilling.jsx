@@ -185,24 +185,9 @@ export default function CashierBilling() {
     setSubmitting(true);
     setPaymentStatus('processing');
     try {
-      // Transform cart to order items format
-      const items = cart.map(item => ({
-        productId: item.id,
-        quantity: item.qty
-      }));
-
-      const payload = { 
-        items,
-        paymentMode: paymentMethod,
-        externalTransactionRef: txnRef || generatedTxnId,
-        discountAmount: discountVal || 0
-      };
-      
-      if (customerId) payload.customerId = customerId;
-      
-      console.log('Checkout payload:', payload);
-      const res = await api.post('/api/orders/checkout', payload);
-      console.log('Checkout response:', res.data);
+      const res = await api.post('/api/billing/checkout', {
+        paymentMethod: paymentMethod,
+      });
       setInvoiceResponse(res.data);
       setPaymentStatus('success');
     } catch (err) {
