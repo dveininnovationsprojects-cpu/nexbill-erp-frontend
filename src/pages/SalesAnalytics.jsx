@@ -7,6 +7,7 @@ function SalesAnalytics({ role = "admin" }) {
   const { user } = useAuth();
 
   const [periodFilter, setPeriodFilter] = useState("Today");
+  const [categoryFilter, setCategoryFilter] = useState("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [dashboardData, setDashboardData] = useState(null);
@@ -108,7 +109,9 @@ function SalesAnalytics({ role = "admin" }) {
 
     if (!token) {
       setDashboardData(null);
-      setErrorMessage("Login token not found. Please logout and login again as ADMIN.");
+      setErrorMessage(
+        "Login token not found. Please logout and login again as ADMIN."
+      );
       return;
     }
 
@@ -136,19 +139,6 @@ function SalesAnalytics({ role = "admin" }) {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (!isAdmin) {
-    return (
-      <section style={styles.page}>
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Access Denied</h2>
-          <p style={styles.muted}>
-            Only admin can access Sales Dashboard & Analytics.
-          </p>
-        </div>
-      </section>
-    );
   }
 
   const grossRevenue = Number(dashboardData?.grossRevenue || 0);
@@ -179,7 +169,61 @@ function SalesAnalytics({ role = "admin" }) {
     ? dashboardData.highRevenueProducts
     : [];
 
-  const categoryChart = categoryValuations.map((item, index) => ({
+  const categoryOptions = useMemo(() => {
+    const categories = new Set();
+
+    categoryValuations.forEach((item, index) => {
+      const categoryName =
+        getTextValue(item, [
+          "category",
+          "categoryName",
+          "name",
+          "productCategory",
+        ]) || `Category ${index + 1}`;
+
+      categories.add(categoryName);
+    });
+
+    [...fastMovingProducts, ...highRevenueProducts].forEach((item) => {
+      const categoryName = getTextValue(item, [
+        "category",
+        "categoryName",
+        "productCategory",
+      ]);
+
+      if (categoryName) categories.add(categoryName);
+    });
+
+    return ["All", ...Array.from(categories)];
+  }, [categoryValuations, fastMovingProducts, highRevenueProducts]);
+
+  function isSelectedCategory(item, fallbackLabel = "") {
+    if (categoryFilter === "All") return true;
+
+    const categoryName =
+      getTextValue(item, [
+        "category",
+        "categoryName",
+        "name",
+        "productCategory",
+      ]) || fallbackLabel;
+
+    return categoryName.toLowerCase() === categoryFilter.toLowerCase();
+  }
+
+  const filteredCategoryValuations = categoryValuations.filter((item, index) =>
+    isSelectedCategory(item, `Category ${index + 1}`)
+  );
+
+  const filteredFastMovingProducts = fastMovingProducts.filter((item) =>
+    isSelectedCategory(item)
+  );
+
+  const filteredHighRevenueProducts = highRevenueProducts.filter((item) =>
+    isSelectedCategory(item)
+  );
+
+  const categoryChart = filteredCategoryValuations.map((item, index) => ({
     label:
       getTextValue(item, [
         "category",
@@ -196,7 +240,7 @@ function SalesAnalytics({ role = "admin" }) {
     ]),
   }));
 
-  const fastMovingChart = fastMovingProducts.map((item, index) => ({
+  const fastMovingChart = filteredFastMovingProducts.map((item, index) => ({
     label:
       getTextValue(item, [
         "productName",
@@ -215,22 +259,43 @@ function SalesAnalytics({ role = "admin" }) {
   }));
 
   const productsTable =
-    highRevenueProducts.length > 0 ? highRevenueProducts : fastMovingProducts;
+    filteredHighRevenueProducts.length > 0
+      ? filteredHighRevenueProducts
+      : filteredFastMovingProducts;
 
   function getShowingText() {
+    let periodText = periodFilter;
+
     if (periodFilter === "Range") {
-      if (fromDate && toDate) return `${fromDate} to ${toDate}`;
-      if (fromDate) return `From ${fromDate}`;
-      if (toDate) return `Up to ${toDate}`;
-      return "Custom Range";
+      if (fromDate && toDate) periodText = `${fromDate} to ${toDate}`;
+      else if (fromDate) periodText = `From ${fromDate}`;
+      else if (toDate) periodText = `Up to ${toDate}`;
+      else periodText = "Custom Range";
     }
 
-    return periodFilter;
+    if (categoryFilter !== "All") {
+      return `${periodText} • ${categoryFilter}`;
+    }
+
+    return periodText;
   }
 
   function clearRange() {
     setFromDate("");
     setToDate("");
+  }
+
+  if (!isAdmin) {
+    return (
+      <section style={styles.page}>
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Access Denied</h2>
+          <p style={styles.muted}>
+            Only admin can access Sales Dashboard & Analytics.
+          </p>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -336,6 +401,22 @@ function SalesAnalytics({ role = "admin" }) {
                 <option>This Month</option>
                 <option>This Year</option>
                 <option>Range</option>
+              </select>
+            </label>
+
+            <label style={styles.filterField}>
+              <span style={styles.filterLabel}>Category Wise Sales</span>
+              <select
+                className="nb-input"
+                value={categoryFilter}
+                onChange={(event) => setCategoryFilter(event.target.value)}
+                style={styles.categorySelect}
+              >
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category === "All" ? "All Categories" : category}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -507,7 +588,7 @@ function SalesAnalytics({ role = "admin" }) {
                       <td colSpan="5" style={styles.emptyCell}>
                         {loading
                           ? "Loading product analytics..."
-                          : "No product analytics found for selected period."}
+                          : "No product analytics found for selected period/category."}
                       </td>
                     </tr>
                   )}
@@ -944,6 +1025,19 @@ const styles = {
     fontSize: 13,
     fontWeight: 400,
     minWidth: 150,
+  },
+
+  categorySelect: {
+    border: "1px solid #D6D3D1",
+    background: "#FFFFFF",
+    color: "#3F3F46",
+    borderRadius: 10,
+    minHeight: 42,
+    padding: "10px 14px",
+    outline: "none",
+    fontSize: 13,
+    fontWeight: 400,
+    minWidth: 180,
   },
 
   dateInput: {

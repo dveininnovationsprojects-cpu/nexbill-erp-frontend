@@ -633,10 +633,7 @@ function ReportsExport({ sales = [], role = "admin" }) {
             </table>
           </div>
 
-          <p style={styles.reportFooter}>
-            Generated from NexBill ERP • Smart E-Commerce Billing & Inventory
-            Management System
-          </p>
+          
         </div>
       </section>
     </>
