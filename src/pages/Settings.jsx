@@ -500,10 +500,6 @@ const TABS = [
     id: 'invoice',       label: 'Invoice Settings', icon: FileText,  group: 'Billing',
     sub: 'Invoice prefix, currency and numbering',
   },
-  {
-    id: 'security',      label: 'Security',          icon: Shield,    group: 'Account',
-    sub: 'Password and account security',
-  },
 ];
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1079,10 +1075,8 @@ export default function Settings() {
   let activeTab = isAdmin ? 'profile' : 'notifications';
   if (path.includes('/accounts/business-profile'))      activeTab = 'profile';
   else if (path.includes('/billing/invoice'))           activeTab = 'invoice';
-  else if (path.includes('/preferences/security'))      activeTab = 'security';
 
-  // Cashier only sees Security
-  const visibleTabs = isAdmin ? TABS : TABS.filter(t => t.id === 'security');
+  const visibleTabs = isAdmin ? TABS : [];
 
   const TAB_URLS = {
     profile:       `${prefix}/settings/accounts/business-profile`,

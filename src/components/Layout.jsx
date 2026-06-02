@@ -49,13 +49,6 @@ const adminNav = [
           { icon: FileText, label: 'Invoice Settings', to: '/admin/settings/billing/invoice' },
         ]
       },
-      {
-        icon: Shield,
-        label: 'Security',
-        nested: [
-          { icon: Shield, label: 'Security', to: '/admin/settings/preferences/security' },
-        ]
-      },
     ]
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
@@ -520,7 +513,6 @@ export default function Layout({ children }) {
                 // Check nested settings routes first
                 if (path.includes('/settings/accounts/business-profile')) return 'Business Profile';
                 if (path.includes('/settings/billing/invoice'))         return 'Invoice Settings';
-                if (path.includes('/settings/preferences/security')) return 'Security';
                 
                 // Check main routes
                 for (const item of navItems) {
