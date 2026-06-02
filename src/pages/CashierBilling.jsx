@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Tag, Receipt, X } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Tag, Receipt, X, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +18,17 @@ export default function CashierBilling() {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [txnRef, setTxnRef] = useState('');
   const [customerId, setCustomerId] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', mobile: '', email: '', creditLimit: 0 });
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [generatedTxnId, setGeneratedTxnId] = useState('');
+  const [invoiceResponse, setInvoiceResponse] = useState(null);
 
   // PaymentMode enum mapping
   const PAY_MODES = [
@@ -47,7 +56,67 @@ export default function CashierBilling() {
         }
       })
       .catch(err => console.error('Products fetch error:', err?.response?.status));
+    
+    // Fetch all customers
+    const token = user?.token || user?.accessToken;
+    api.get('/api/customers', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => setCustomers(res.data || []))
+      .catch(err => console.error('Customers fetch error:', err));
   }, []);
+
+  const filteredCustomers = customerSearch.length > 0
+    ? customers.filter(c => 
+        c.name?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        c.mobile?.includes(customerSearch) ||
+        c.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        c.id?.toString().includes(customerSearch)
+      )
+    : [];
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerId(customer.id);
+    setCustomerSearch(customer.name);
+    setShowCustomerDropdown(false);
+  };
+
+  const handleCustomerSearchChange = (e) => {
+    setCustomerSearch(e.target.value);
+    setShowCustomerDropdown(true);
+    if (!e.target.value) {
+      setSelectedCustomer(null);
+      setCustomerId('');
+    }
+  };
+
+  const handleAddNewCustomer = async (e) => {
+    e.preventDefault();
+    setSavingCustomer(true);
+    try {
+      const token = user?.token || user?.accessToken;
+      const res = await api.post('/api/customers', newCustomerForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const newCustomer = res.data;
+      // Refresh customer list from backend to ensure sync
+      const refreshRes = await api.get('/api/customers', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCustomers(refreshRes.data || []);
+      setSelectedCustomer(newCustomer);
+      setCustomerId(newCustomer.id);
+      setCustomerSearch(newCustomer.name);
+      setShowNewCustomerModal(false);
+      setNewCustomerForm({ name: '', mobile: '', email: '', creditLimit: 0 });
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.response?.data || err.message || 'Failed to add customer';
+      alert(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
 
   const filtered = search.length > 0
     ? products.filter(p =>
@@ -102,27 +171,48 @@ export default function CashierBilling() {
     try { await api.delete('/api/cart/clear'); } catch {}
   };
 
-  const openInvoice = () => { setPaymentMethod(null); setPaymentStatus(null); setTxnRef(''); setInvoiceModal(true); };
+  const openInvoice = () => { 
+    setPaymentMethod(null); 
+    setPaymentStatus(null); 
+    setTxnRef(''); 
+    const txnId = `TXN-${Date.now().toString().slice(-8)}`;
+    setGeneratedTxnId(txnId);
+    setInvoiceModal(true); 
+  };
 
   const handlePayment = async () => {
     if (!paymentMethod) return;
     setSubmitting(true);
     setPaymentStatus('processing');
     try {
-      const res = await api.post('/api/billing/checkout', { paymentMethod });
+      const res = await api.post('/api/billing/checkout', {
+        paymentMethod: paymentMethod,
+      });
+      setInvoiceResponse(res.data);
       setPaymentStatus('success');
-      setTimeout(() => {
-        setInvoiceModal(false);
-        clearCart();
-        navigate(user?.role === 'ADMIN' ? '/admin/invoices' : '/cashier/invoices');
-      }, 1500);
     } catch (err) {
       const msg = err?.response?.data?.message || err?.response?.data || 'Payment failed!';
       setPaymentStatus('failed');
-      console.error('Checkout error:', msg);
+      console.error('Checkout error:', err?.response?.data || err.message);
+      alert('Payment failed: ' + (typeof msg === 'string' ? msg : JSON.stringify(msg)));
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleNewBill = () => {
+    setInvoiceModal(false);
+    clearCart();
+    setSelectedCustomer(null);
+    setCustomerId('');
+    setCustomerSearch('');
+    setPaymentStatus(null);
+    setPaymentMethod(null);
+    setInvoiceResponse(null);
+  };
+
+  const handleViewInvoice = () => {
+    navigate(user?.role === 'ADMIN' ? '/admin/invoices' : '/cashier/invoices');
   };
 
   const handleRetry = () => { setPaymentStatus(null); };
@@ -207,14 +297,15 @@ export default function CashierBilling() {
         .bill-invoice-header{background:#2D2D2D;padding:24px;text-align:center;color:#F8F5F2;flex-shrink:0}
         .bill-invoice-header h3{margin:0 0 4px;font-size:18px;font-weight:700}
         .bill-invoice-header p{margin:0;font-size:12px;color:#8B7355}
-        .bill-invoice-body{padding:20px 24px;overflow-y:auto;flex:1}
+        .bill-invoice-scroll{flex:1;overflow-y:auto;min-height:0}
+        .bill-invoice-body{padding:20px 24px}
         .bill-invoice-row{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #F8F5F2;color:#3F3F46}
         .bill-invoice-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:#2D2D2D;padding:12px 0 0}
-        .bill-invoice-actions{display:flex;gap:10px;padding:12px 24px;border-top:1px solid #EFE7DE;flex-shrink:0}
+        .bill-invoice-actions{display:flex;gap:10px;padding:12px 24px;border-top:1px solid #EFE7DE}
         .bill-invoice-close{flex:1;padding:11px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;font-weight:600;color:#8B7355;cursor:pointer;font-family:inherit}
         .bill-invoice-print{flex:1;padding:11px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s}
         .bill-invoice-print:hover{background:#C6A969;color:#2D2D2D}
-        .pay-section{padding:16px 24px;border-top:1px solid #EFE7DE;flex-shrink:0}
+        .pay-section{padding:16px 24px;border-top:1px solid #EFE7DE}
         .pay-label{font-size:12px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px}
         .pay-methods{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
         .pay-btn{padding:10px 8px;border:1.5px solid #EFE7DE;border-radius:10px;background:#F8F5F2;font-size:12px;font-weight:600;color:#3F3F46;cursor:pointer;font-family:inherit;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -231,8 +322,65 @@ export default function CashierBilling() {
         .pay-retry-btn:hover{background:#EFE7DE;color:#2D2D2D}
         .pay-processing{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 0;font-size:13px;color:#8B7355}
         .pay-spinner{width:18px;height:18px;border:2px solid #EFE7DE;border-top-color:#C6A969;border-radius:50%;animation:spin 0.7s linear infinite}
+        .new-cust-modal{position:fixed;inset:0;background:rgba(45,45,45,0.5);backdrop-filter:blur(2px);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px}
+        .new-cust-card{background:#FFFFFF;border-radius:16px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(45,45,45,0.2)}
+        .new-cust-header{padding:20px 24px;border-bottom:1px solid #EFE7DE;display:flex;align-items:center;justify-content:space-between}
+        .new-cust-title{font-size:16px;font-weight:700;color:#2D2D2D;margin:0}
+        .new-cust-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;cursor:pointer;color:#8B7355;transition:all 0.2s}
+        .new-cust-close:hover{background:#EFE7DE;color:#2D2D2D}
+        .new-cust-body{padding:24px;max-height:70vh;overflow-y:auto}
+        .new-cust-field{margin-bottom:16px}
+        .new-cust-field label{display:block;font-size:12px;font-weight:600;color:#3F3F46;margin-bottom:6px}
+        .new-cust-field input,.new-cust-field select{width:100%;padding:10px 12px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;outline:none;font-family:inherit;background:#F8F5F2;color:#2D2D2D;box-sizing:border-box}
+        .new-cust-field input:focus,.new-cust-field select:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12);background:#FFFFFF}
+        .new-cust-actions{padding:16px 24px;border-top:1px solid #EFE7DE;display:flex;gap:10px}
+        .new-cust-cancel{flex:1;padding:11px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;font-weight:600;color:#8B7355;cursor:pointer;font-family:inherit}
+        .new-cust-cancel:hover{background:#EFE7DE;color:#2D2D2D}
+        .new-cust-save{flex:1;padding:11px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+        .new-cust-save:hover{background:#C6A969;color:#2D2D2D}
+        .new-cust-save:disabled{opacity:0.5;cursor:not-allowed}
+        .cust-add-btn{width:100%;padding:10px 12px;background:#FFFFFF;color:#2D2D2D;border:1.5px solid #2D2D2D;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px}
+        .cust-add-btn:hover{background:#2D2D2D;color:#F8F5F2}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
+
+      {/* New Customer Modal */}
+      {showNewCustomerModal && (
+        <div className="new-cust-modal" onClick={() => setShowNewCustomerModal(false)}>
+          <div className="new-cust-card" onClick={e => e.stopPropagation()}>
+            <div className="new-cust-header">
+              <h3 className="new-cust-title">Add New Customer</h3>
+              <button className="new-cust-close" onClick={() => setShowNewCustomerModal(false)}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleAddNewCustomer}>
+              <div className="new-cust-body">
+                <div className="new-cust-field">
+                  <label>Customer Name *</label>
+                  <input type="text" placeholder="Enter customer name" value={newCustomerForm.name} onChange={e => setNewCustomerForm({...newCustomerForm, name: e.target.value})} required />
+                </div>
+                <div className="new-cust-field">
+                  <label>Mobile Number *</label>
+                  <input type="tel" placeholder="9876543210" value={newCustomerForm.mobile} onChange={e => setNewCustomerForm({...newCustomerForm, mobile: e.target.value})} required />
+                </div>
+                <div className="new-cust-field">
+                  <label>Email</label>
+                  <input type="email" placeholder="customer@example.com" value={newCustomerForm.email} onChange={e => setNewCustomerForm({...newCustomerForm, email: e.target.value})} />
+                </div>
+                <div className="new-cust-field">
+                  <label>Credit Limit (₹)</label>
+                  <input type="number" placeholder="0" min="0" value={newCustomerForm.creditLimit} onChange={e => setNewCustomerForm({...newCustomerForm, creditLimit: parseFloat(e.target.value) || 0})} />
+                </div>
+              </div>
+              <div className="new-cust-actions">
+                <button type="button" className="new-cust-cancel" onClick={() => setShowNewCustomerModal(false)}>Cancel</button>
+                <button type="submit" className="new-cust-save" disabled={savingCustomer}>
+                  {savingCustomer ? <span className="pay-spinner" /> : <><User size={14} /> Add Customer</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Preview Modal */}
       {invoiceModal && (
@@ -241,31 +389,33 @@ export default function CashierBilling() {
             <div className="bill-invoice-header">
               <h3>NexBill ERP</h3>
               <p>Invoice Preview · {new Date().toLocaleDateString()}</p>
+              <p style={{fontSize:10,color:'#8B7355',marginTop:4}}>{generatedTxnId}</p>
             </div>
-            <div className="bill-invoice-body">
-              {cart.map(i => (
-                <div key={i.id} className="bill-invoice-row">
-                  <span>{i.name} × {i.qty}</span>
-                  <span>₹{(i.price * i.qty).toLocaleString()}</span>
-                </div>
-              ))}
-              <div className="bill-invoice-row"><span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span></div>
-              {Object.entries(gstBreakdown).map(([rate, amt]) => (
-                <div key={rate} className="bill-invoice-row" style={{color:'#8B7355',fontSize:12}}>
-                  <span>GST {rate}% (CGST {rate/2}% + SGST {rate/2}%)</span>
-                  <span>₹{amt.toFixed(2)}</span>
-                </div>
-              ))}
-              {discountVal > 0 && <div className="bill-invoice-row" style={{color:'#5A7A5A'}}><span>Discount</span><span>-₹{discountVal.toFixed(2)}</span></div>}
-              <div className="bill-invoice-total"><span>Grand Total</span><span>₹{grandTotal.toFixed(2)}</span></div>
-            </div>
-            <div className="bill-invoice-actions">
-              <button className="bill-invoice-close" onClick={() => setInvoiceModal(false)}>Close</button>
-              <button className="bill-invoice-print" onClick={() => window.print()}>Print Invoice</button>
-            </div>
+            <div className="bill-invoice-scroll">
+              <div className="bill-invoice-body">
+                {cart.map(i => (
+                  <div key={i.id} className="bill-invoice-row">
+                    <span>{i.name} × {i.qty}</span>
+                    <span>₹{(i.price * i.qty).toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="bill-invoice-row"><span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span></div>
+                {Object.entries(gstBreakdown).map(([rate, amt]) => (
+                  <div key={rate} className="bill-invoice-row" style={{color:'#8B7355',fontSize:12}}>
+                    <span>GST {rate}% (CGST {rate/2}% + SGST {rate/2}%)</span>
+                    <span>₹{amt.toFixed(2)}</span>
+                  </div>
+                ))}
+                {discountVal > 0 && <div className="bill-invoice-row" style={{color:'#5A7A5A'}}><span>Discount</span><span>-₹{discountVal.toFixed(2)}</span></div>}
+                <div className="bill-invoice-total"><span>Grand Total</span><span>₹{grandTotal.toFixed(2)}</span></div>
+              </div>
+              <div className="bill-invoice-actions">
+                <button className="bill-invoice-close" onClick={() => setInvoiceModal(false)}>Close</button>
+                <button className="bill-invoice-print" onClick={() => window.print()}>Print Invoice</button>
+              </div>
 
-            {/* Payment Section */}
-            <div className="pay-section">
+              {/* Payment Section */}
+              <div className="pay-section">
               {paymentStatus === 'processing' ? (
                 <div className="pay-processing">
                   <span className="pay-spinner" /> Processing payment...
@@ -274,10 +424,30 @@ export default function CashierBilling() {
                 <div className="pay-status">
                   <div className="pay-status-icon">✅</div>
                   <div className="pay-status-text">Payment Successful!</div>
-                  <div className="pay-status-sub">via {paymentMethod?.toUpperCase()}</div>
-                  <button className="pay-confirm-btn" style={{marginTop:12}} onClick={() => { setInvoiceModal(false); clearCart(); }}>
-                    New Bill
-                  </button>
+                  <div className="pay-status-sub">Invoice: {invoiceResponse?.invoiceNumber || 'Generated'}</div>
+                  <div className="pay-status-sub" style={{marginTop:4,fontSize:11}}>TXN: {invoiceResponse?.externalTransactionRef || txnRef || generatedTxnId}</div>
+                  <div className="pay-status-sub" style={{marginTop:4,fontSize:11}}>Amount: ₹{(invoiceResponse?.grandTotal || grandTotal).toFixed(2)}</div>
+                  <div style={{display:'flex',gap:8,marginTop:16,flexDirection:'column'}}>
+                    <button 
+                      className="pay-confirm-btn"
+                      onClick={handleViewInvoice}
+                      style={{background:'#C6A969',color:'#2D2D2D'}}
+                    >
+                      <Receipt size={14} /> View Invoice Details
+                    </button>
+                    <div style={{display:'flex',gap:8}}>
+                      <button className="pay-confirm-btn" style={{flex:1}} onClick={handleNewBill}>
+                        New Bill
+                      </button>
+                      <button 
+                        className="pay-confirm-btn" 
+                        style={{flex:1,background:'#F8F5F2',color:'#2D2D2D',border:'1.5px solid #EFE7DE'}}
+                        onClick={() => navigate(user?.role === 'ADMIN' ? '/admin/invoices' : '/cashier/invoices')}
+                      >
+                        All Invoices
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : paymentStatus === 'failed' ? (
                 <div className="pay-status">
@@ -288,15 +458,68 @@ export default function CashierBilling() {
                 </div>
               ) : (
                 <>
-                  <div className="pay-label">Customer ID (optional)</div>
-                  <input
-                    type="number"
-                    placeholder="Walk-in = leave empty"
-                    value={customerId}
-                    onChange={e => setCustomerId(e.target.value)}
-                    style={{width:'100%',padding:'8px 10px',border:'1.5px solid #EFE7DE',borderRadius:8,fontSize:13,outline:'none',fontFamily:'inherit',background:'#F8F5F2',color:'#2D2D2D',boxSizing:'border-box',marginBottom:10}}
-                  />
-                  <div className="pay-label">Select Payment Method</div>
+                  <div className="pay-label">Customer (optional)</div>
+                  <div style={{position:'relative',marginBottom:10}}>
+                    <input
+                      type="text"
+                      placeholder="Search by name, phone, email or ID..."
+                      value={customerSearch}
+                      onChange={handleCustomerSearchChange}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      style={{width:'100%',padding:'8px 10px',border:'1.5px solid #EFE7DE',borderRadius:8,fontSize:13,outline:'none',fontFamily:'inherit',background:'#F8F5F2',color:'#2D2D2D',boxSizing:'border-box'}}
+                    />
+                    {showCustomerDropdown && filteredCustomers.length > 0 && (
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#FFFFFF',border:'1.5px solid #EFE7DE',borderRadius:8,marginTop:4,maxHeight:200,overflowY:'auto',zIndex:10,boxShadow:'0 4px 12px rgba(45,45,45,0.1)'}}>
+                        {filteredCustomers.map(c => (
+                          <div
+                            key={c.id}
+                            onClick={() => handleCustomerSelect(c)}
+                            style={{padding:'10px 12px',cursor:'pointer',borderBottom:'1px solid #F8F5F2',transition:'background 0.2s'}}
+                            onMouseEnter={e => e.target.style.background = '#F8F5F2'}
+                            onMouseLeave={e => e.target.style.background = '#FFFFFF'}
+                          >
+                            <div style={{fontSize:13,fontWeight:600,color:'#2D2D2D',marginBottom:2}}>{c.name}</div>
+                            <div style={{fontSize:11,color:'#8B7355',display:'flex',gap:8,alignItems:'center'}}>
+                              <span>ID: {c.id}</span>
+                              {c.mobile && <span>· {c.mobile}</span>}
+                              {c.tier && <span style={{background:'#C6A969',color:'#2D2D2D',padding:'2px 6px',borderRadius:4,fontWeight:600}}>{c.tier}</span>}
+                              {!c.tier && <span style={{background:'#EFE7DE',color:'#8B7355',padding:'2px 6px',borderRadius:4}}>Regular</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" className="cust-add-btn" onClick={() => setShowNewCustomerModal(true)}>
+                    <User size={14} /> Add New Customer
+                  </button>
+                  {selectedCustomer && (
+                    <div style={{background:'#F0F7F0',border:'1px solid #C8DFC8',borderRadius:8,padding:10,marginTop:10,fontSize:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                        <span style={{fontWeight:600,color:'#2D2D2D'}}>{selectedCustomer.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => navigate(user?.role === 'ADMIN' ? '/admin/customers' : '/cashier/customers')}
+                          style={{background:'#2D2D2D',color:'#F8F5F2',border:'none',padding:'4px 10px',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}
+                        >
+                          View Details
+                        </button>
+                      </div>
+                      <div style={{color:'#5A7A5A',fontSize:11}}>
+                        {selectedCustomer.mobile && <div>{selectedCustomer.mobile}</div>}
+                        {selectedCustomer.email && <div>{selectedCustomer.email}</div>}
+                        {selectedCustomer.tier ? (
+                          <div style={{marginTop:4,fontWeight:600}}>Tier: {selectedCustomer.tier}</div>
+                        ) : (
+                          <div style={{marginTop:4,color:'#8B7355'}}>Regular Customer</div>
+                        )}
+                        {selectedCustomer.creditLimit > 0 && (
+                          <div style={{marginTop:4,color:'#8B7355'}}>Credit Limit: ₹{selectedCustomer.creditLimit}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="pay-label" style={{marginTop:20}}>Select Payment Method</div>
                   <div className="pay-methods">
                     {PAY_MODES.map(m => (
                       <button
@@ -321,6 +544,7 @@ export default function CashierBilling() {
                   </button>
                 </>
               )}
+              </div>
             </div>
           </div>
         </div>

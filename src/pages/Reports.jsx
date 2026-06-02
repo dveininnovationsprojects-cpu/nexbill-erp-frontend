@@ -1,298 +1,87 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-const DASHBOARD_API_URL = "/api/reports/dashboard";
-const CSV_EXPORT_API_URL = "/api/reports/export/csv";
-
-function Reports({ role = "admin" }) {
+function ReportsExport({ sales = [], role = "admin" }) {
   const [reportType, setReportType] = useState("Sales Report");
-  const [fromDate, setFromDate] = useState(getTodayDate());
-  const [toDate, setToDate] = useState(getTodayDate());
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("All");
 
-  const userRole = String(role || "").toUpperCase();
-  const isAdmin = userRole === "ADMIN";
+  const isAdmin = role === "admin" || role === "ADMIN";
 
-  const dateRange = useMemo(() => {
-    return {
-      startDate: toBackendDateTime(fromDate, "start"),
-      endDate: toBackendDateTime(toDate, "end"),
-    };
-  }, [fromDate, toDate]);
+  const filteredSales = useMemo(() => {
+    return sales.filter((sale) => {
+      return (
+        (!fromDate || sale.date >= fromDate) &&
+        (!toDate || sale.date <= toDate) &&
+        (paymentFilter === "All" ||
+          String(sale.payment || sale.paymentStatus || "").toLowerCase() ===
+            paymentFilter.toLowerCase())
+      );
+    });
+  }, [sales, fromDate, toDate, paymentFilter]);
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchDashboardSummary();
-    }
-  }, [isAdmin, dateRange.startDate, dateRange.endDate]);
+  const totalRevenue = filteredSales.reduce(
+    (sum, sale) =>
+      sum + Number(sale.revenue || sale.totalAmount || sale.amount || 0),
+    0
+  );
 
-  function getToken() {
-    const possibleKeys = [
-      "token",
-      "authToken",
-      "accessToken",
-      "jwt",
-      "user",
-      "auth",
-      "nexbill_user",
-      "nexbill_auth_user",
+  const totalGst = filteredSales.reduce(
+    (sum, sale) => sum + Number(sale.gst || sale.gstAmount || 0),
+    0
+  );
+
+  const totalDiscount = filteredSales.reduce(
+    (sum, sale) => sum + Number(sale.discount || sale.discountAmount || 0),
+    0
+  );
+
+  function exportExcel() {
+    const header = [
+      "Date",
+      "Invoice No",
+      "Customer",
+      "Product",
+      "Category",
+      "Qty",
+      "Revenue",
+      "GST",
+      "Discount",
+      "Payment",
     ];
 
-    for (const key of possibleKeys) {
-      const value = localStorage.getItem(key);
+    const rows = filteredSales.map((sale) => [
+      sale.date || "",
+      sale.invoiceNo || sale.invoiceNumber || "",
+      sale.customer || sale.customerName || "",
+      sale.productName || sale.product || sale.itemName || "",
+      sale.category || "",
+      sale.quantity || sale.qty || 0,
+      sale.revenue || sale.totalAmount || sale.amount || 0,
+      sale.gst || sale.gstAmount || 0,
+      sale.discount || sale.discountAmount || 0,
+      sale.payment || sale.paymentStatus || "",
+    ]);
 
-      if (!value) continue;
-
-      try {
-        const parsed = JSON.parse(value);
-
-        if (parsed?.token) return parsed.token;
-        if (parsed?.accessToken) return parsed.accessToken;
-        if (parsed?.jwt) return parsed.jwt;
-        if (parsed?.user?.token) return parsed.user.token;
-        if (parsed?.user?.accessToken) return parsed.user.accessToken;
-        if (parsed?.data?.token) return parsed.data.token;
-        if (parsed?.data?.accessToken) return parsed.data.accessToken;
-      } catch {
-        if (value.startsWith("eyJ") || value.length > 40) {
-          return value;
-        }
-      }
-    }
-
-    return "";
-  }
-
-  function getHeaders() {
-    const token = getToken();
-
-    return {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  }
-
-  async function readResponse(response) {
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType && contentType.includes("application/json");
-    const data = isJson ? await response.json() : await response.text();
-
-    if (!response.ok) {
-      const message =
-        data?.message ||
-        data?.error ||
-        data ||
-        `Request failed. Status: ${response.status}`;
-
-      throw new Error(message);
-    }
-
-    return data;
-  }
-
-  async function fetchDashboardSummary() {
-    const token = getToken();
-
-    if (!token) {
-      setDashboardData(null);
-      setErrorMessage(
-        "Login token not found. Please logout and login again as ADMIN."
-      );
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setErrorMessage("");
-
-      const url = `${DASHBOARD_API_URL}?startDate=${encodeURIComponent(
-        dateRange.startDate
-      )}&endDate=${encodeURIComponent(dateRange.endDate)}`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: getHeaders(),
-      });
-
-      const data = await readResponse(response);
-      setDashboardData(data || {});
-    } catch (error) {
-      setDashboardData(null);
-      setErrorMessage(
-        error.message ||
-          "Unable to load report data. Check backend server and admin token."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function exportCSV() {
-    const token = getToken();
-
-    if (!token) {
-      setErrorMessage(
-        "Login token not found. Please logout and login again as ADMIN."
-      );
-      return;
-    }
-
-    try {
-      setExporting(true);
-      setErrorMessage("");
-
-      const url = `${CSV_EXPORT_API_URL}?startDate=${encodeURIComponent(
-        dateRange.startDate
-      )}&endDate=${encodeURIComponent(dateRange.endDate)}`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: getHeaders(),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          errorText || `CSV export failed. Status: ${response.status}`
-        );
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-
-      anchor.href = downloadUrl;
-      anchor.download = `sales_report_${Date.now()}.csv`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-
-      URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      setErrorMessage(error.message || "Unable to export CSV report.");
-    } finally {
-      setExporting(false);
-    }
+    downloadCSV("nexbill-report.csv", [header, ...rows]);
   }
 
   function getPrintTableHtml() {
-    if (reportType === "Sales Report") {
-      const rows = topProducts
-        .map(
-          (product, index) => `
-            <tr>
-              <td>${
-                escapeHtml(getTextValue(product, ["productName", "name"])) ||
-                `Product ${index + 1}`
-              }</td>
-              <td>${getNumberValue(product, [
-                "totalQuantitySold",
-                "quantity",
-                "qty",
-              ])}</td>
-              <td>${money(
-                getNumberValue(product, [
-                  "totalRevenueGenerated",
-                  "revenue",
-                  "amount",
-                ])
-              )}</td>
-            </tr>
-          `
-        )
-        .join("");
-
-      return `
-        <table>
-          <thead>
-            <tr>
-              <th>Product Name</th>
-              <th>Quantity Sold</th>
-              <th>Revenue Generated</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              rows ||
-              `<tr><td colspan="3" class="empty">No sales report data found for selected date range.</td></tr>`
-            }
-          </tbody>
-        </table>
-      `;
-    }
-
-    if (reportType === "Payment Report") {
-      const rows = paymentBreakdown
-        .map(
-          (payment) => `
-            <tr>
-              <td>${
-                escapeHtml(getTextValue(payment, ["paymentMode", "mode"])) ||
-                "Unknown"
-              }</td>
-              <td>${money(
-                getNumberValue(payment, ["totalAmount", "amount"])
-              )}</td>
-              <td>${getNumberValue(payment, [
-                "transactionCount",
-                "count",
-              ])}</td>
-            </tr>
-          `
-        )
-        .join("");
-
-      return `
-        <table>
-          <thead>
-            <tr>
-              <th>Payment Mode</th>
-              <th>Total Amount</th>
-              <th>Transaction Count</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${
-              rows ||
-              `<tr><td colspan="3" class="empty">No payment report data found for selected date range.</td></tr>`
-            }
-          </tbody>
-        </table>
-      `;
-    }
-
-    const rows = cashierPerformances
+    const rows = filteredSales
       .map(
-        (cashier, index) => `
+        (sale) => `
           <tr>
-            <td>${
-              escapeHtml(
-                getTextValue(cashier, [
-                  "cashierName",
-                  "name",
-                  "username",
-                  "email",
-                ])
-              ) || `Cashier ${index + 1}`
-            }</td>
-            <td>${getNumberValue(cashier, [
-              "invoiceCount",
-              "totalInvoices",
-              "orders",
-              "count",
-            ])}</td>
-            <td>${money(
-              getNumberValue(cashier, ["revenue", "totalRevenue", "amount"])
+            <td>${escapeHtml(sale.date || "-")}</td>
+            <td>${escapeHtml(sale.invoiceNo || sale.invoiceNumber || "-")}</td>
+            <td>${escapeHtml(sale.customer || sale.customerName || "-")}</td>
+            <td>${escapeHtml(
+              sale.productName || sale.product || sale.itemName || "-"
             )}</td>
-            <td>${money(
-              getNumberValue(cashier, [
-                "discount",
-                "totalDiscount",
-                "discountAmount",
-              ])
-            )}</td>
+            <td>${escapeHtml(sale.quantity || sale.qty || 0)}</td>
+            <td>${money(sale.revenue || sale.totalAmount || sale.amount || 0)}</td>
+            <td>${money(sale.gst || sale.gstAmount || 0)}</td>
+            <td>${money(sale.discount || sale.discountAmount || 0)}</td>
+            <td>${escapeHtml(sale.payment || sale.paymentStatus || "-")}</td>
           </tr>
         `
       )
@@ -302,16 +91,26 @@ function Reports({ role = "admin" }) {
       <table>
         <thead>
           <tr>
-            <th>Cashier</th>
-            <th>Invoices</th>
+            <th>Date</th>
+            <th>Invoice</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Qty</th>
             <th>Revenue</th>
+            <th>GST</th>
             <th>Discount</th>
+            <th>Payment</th>
           </tr>
         </thead>
+
         <tbody>
           ${
             rows ||
-            `<tr><td colspan="4" class="empty">No cashier report data found for selected date range.</td></tr>`
+            `<tr>
+              <td colspan="9" class="empty">
+                No report data found for selected date range.
+              </td>
+            </tr>`
           }
         </tbody>
       </table>
@@ -324,6 +123,7 @@ function Reports({ role = "admin" }) {
       <html>
         <head>
           <title>NexBill ERP - ${escapeHtml(reportType)}</title>
+
           <style>
             * {
               box-sizing: border-box;
@@ -332,14 +132,16 @@ function Reports({ role = "admin" }) {
 
             body {
               margin: 0;
-              padding: 30px;
+              padding: 0;
               background: #ffffff;
               color: #1f2937;
             }
 
             .report-page {
-              max-width: 1000px;
+              width: 100%;
+              max-width: 1050px;
               margin: 0 auto;
+              padding: 28px;
             }
 
             .header {
@@ -359,9 +161,9 @@ function Reports({ role = "admin" }) {
             }
 
             .logo {
-              width: 44px;
-              height: 44px;
-              border-radius: 10px;
+              width: 46px;
+              height: 46px;
+              border-radius: 12px;
               background: #2d2d2d;
               color: #c6a969;
               display: grid;
@@ -373,7 +175,8 @@ function Reports({ role = "admin" }) {
             h1 {
               margin: 0;
               color: #2d2d2d;
-              font-size: 24px;
+              font-size: 25px;
+              font-weight: 700;
             }
 
             .subtitle {
@@ -386,7 +189,8 @@ function Reports({ role = "admin" }) {
               text-align: right;
               color: #8b7355;
               font-size: 12px;
-              line-height: 1.7;
+              line-height: 1.8;
+              min-width: 220px;
             }
 
             .report-title {
@@ -449,8 +253,8 @@ function Reports({ role = "admin" }) {
               background: #ede6de;
               color: #8b7355;
               text-align: left;
-              padding: 13px;
-              font-size: 11px;
+              padding: 12px;
+              font-size: 10px;
               font-weight: 700;
               text-transform: uppercase;
               letter-spacing: 0.06em;
@@ -459,8 +263,8 @@ function Reports({ role = "admin" }) {
 
             td {
               border: 1px solid #efe7de;
-              padding: 13px;
-              font-size: 13px;
+              padding: 12px;
+              font-size: 12px;
               color: #2d2d2d;
             }
 
@@ -480,8 +284,8 @@ function Reports({ role = "admin" }) {
             }
 
             @page {
-              size: A4;
-              margin: 14mm;
+              size: A4 landscape;
+              margin: 12mm;
             }
 
             @media print {
@@ -491,6 +295,7 @@ function Reports({ role = "admin" }) {
 
               .report-page {
                 max-width: 100%;
+                padding: 0;
               }
             }
           </style>
@@ -501,9 +306,12 @@ function Reports({ role = "admin" }) {
             <div class="header">
               <div class="brand">
                 <div class="logo">N</div>
+
                 <div>
                   <h1>NexBill ERP</h1>
-                  <p class="subtitle">Smart E-Commerce Billing & Inventory Management System</p>
+                  <p class="subtitle">
+                    Smart E-Commerce Billing & Inventory Management System
+                  </p>
                 </div>
               </div>
 
@@ -511,36 +319,38 @@ function Reports({ role = "admin" }) {
                 <div><b>Report:</b> ${escapeHtml(reportType)}</div>
                 <div><b>From:</b> ${formatDisplayDate(fromDate)}</div>
                 <div><b>To:</b> ${formatDisplayDate(toDate)}</div>
+                <div><b>Payment:</b> ${escapeHtml(paymentFilter)}</div>
                 <div><b>Generated:</b> ${new Date().toLocaleString("en-IN")}</div>
               </div>
             </div>
 
             <div class="report-title">
               <h2>${escapeHtml(reportType)}</h2>
-              <p>Report generated for selected date range from ${formatDisplayDate(
-                fromDate
-              )} to ${formatDisplayDate(toDate)}.</p>
+              <p>
+                Report generated for selected date range from
+                ${formatDisplayDate(fromDate)} to ${formatDisplayDate(toDate)}.
+              </p>
             </div>
 
             <div class="summary-grid">
               <div class="summary-card">
                 <span>Total Invoices</span>
-                <strong>${totalInvoicesGenerated}</strong>
+                <strong>${filteredSales.length}</strong>
               </div>
 
               <div class="summary-card">
                 <span>Sales Amount</span>
-                <strong>${money(totalGrossRevenue)}</strong>
+                <strong>${money(totalRevenue)}</strong>
               </div>
 
               <div class="summary-card">
                 <span>GST Amount</span>
-                <strong>${money(totalTaxCollected)}</strong>
+                <strong>${money(totalGst)}</strong>
               </div>
 
               <div class="summary-card">
                 <span>Discount</span>
-                <strong>${money(totalDiscountsGiven)}</strong>
+                <strong>${money(totalDiscount)}</strong>
               </div>
             </div>
 
@@ -550,11 +360,20 @@ function Reports({ role = "admin" }) {
               Generated from NexBill ERP • Smart E-Commerce Billing & Inventory Management System
             </div>
           </div>
+
+          <script>
+            window.onload = function () {
+              setTimeout(function () {
+                window.focus();
+                window.print();
+              }, 300);
+            };
+          </script>
         </body>
       </html>
     `;
 
-    const printWindow = window.open("", "_blank", "width=1000,height=800");
+    const printWindow = window.open("", "_blank", "width=1100,height=800");
 
     if (!printWindow) {
       alert("Popup blocked. Please allow popups for this site.");
@@ -564,11 +383,6 @@ function Reports({ role = "admin" }) {
     printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
-
-    setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-    }, 500);
   }
 
   if (!isAdmin) {
@@ -582,25 +396,6 @@ function Reports({ role = "admin" }) {
     );
   }
 
-  const totalGrossRevenue = Number(dashboardData?.totalGrossRevenue || 0);
-  const totalInvoicesGenerated = Number(
-    dashboardData?.totalInvoicesGenerated || 0
-  );
-  const totalTaxCollected = Number(dashboardData?.totalTaxCollected || 0);
-  const totalDiscountsGiven = Number(dashboardData?.totalDiscountsGiven || 0);
-
-  const paymentBreakdown = Array.isArray(dashboardData?.paymentBreakdown)
-    ? dashboardData.paymentBreakdown
-    : [];
-
-  const topProducts = Array.isArray(dashboardData?.topProducts)
-    ? dashboardData.topProducts
-    : [];
-
-  const cashierPerformances = Array.isArray(dashboardData?.cashierPerformances)
-    ? dashboardData.cashierPerformances
-    : [];
-
   return (
     <>
       <style>{`
@@ -612,13 +407,6 @@ function Reports({ role = "admin" }) {
           background: #2D2D2D !important;
           color: #F8F5F2 !important;
           border-color: #2D2D2D !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-excel-export:hover {
-          background: #C6A969 !important;
-          color: #2D2D2D !important;
-          border-color: #C6A969 !important;
           transform: translateY(-1px);
         }
 
@@ -669,22 +457,7 @@ function Reports({ role = "admin" }) {
           border-color: #2D2D2D !important;
         }
 
-        .nb-error-box {
-          background: #FDF0F0;
-          border: 1px solid #F0D0D0;
-          color: #9B4444;
-          border-radius: 12px;
-          padding: 12px 14px;
-          font-size: 13px;
-          font-weight: 500;
-        }
-
         @media (max-width: 900px) {
-          .reports-title-row {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-
           .reports-toolbar {
             flex-direction: column !important;
             align-items: stretch !important;
@@ -702,7 +475,7 @@ function Reports({ role = "admin" }) {
       `}</style>
 
       <section style={styles.page}>
-        <div className="reports-title-row" style={styles.pageTitleRow}>
+        <div style={styles.pageTitleRow}>
           <div>
             <h1 style={styles.pageTitle}>Reports & Export</h1>
           </div>
@@ -719,23 +492,19 @@ function Reports({ role = "admin" }) {
 
             <button
               type="button"
-              onClick={exportCSV}
-              className="nb-btn nb-excel-export"
-              style={styles.excelBtn}
-              disabled={exporting}
+              onClick={exportExcel}
+              className="nb-btn nb-primary"
+              style={styles.primaryBtn}
             >
-              {exporting ? "Exporting..." : "Export CSV"}
+              Export Excel
             </button>
           </div>
         </div>
-
-        {errorMessage && <div className="nb-error-box">{errorMessage}</div>}
 
         <div className="nb-report-card" style={styles.card}>
           <div style={styles.cardHead}>
             <div>
               <h2 style={styles.cardTitle}>{reportType}</h2>
-              {loading && <p style={styles.muted}>Loading report data...</p>}
             </div>
           </div>
 
@@ -749,8 +518,8 @@ function Reports({ role = "admin" }) {
                 style={styles.reportSelect}
               >
                 <option>Sales Report</option>
-                <option>Payment Report</option>
-                <option>Cashier Report</option>
+                <option>GST Report</option>
+                <option>Customer Report</option>
               </select>
             </div>
 
@@ -769,53 +538,100 @@ function Reports({ role = "admin" }) {
               onChange={(event) => setToDate(event.target.value)}
               style={styles.dateInput}
             />
+
+            <select
+              className="nb-input"
+              value={paymentFilter}
+              onChange={(event) => setPaymentFilter(event.target.value)}
+              style={styles.paymentSelect}
+            >
+              <option>All</option>
+              <option>Paid</option>
+              <option>Pending</option>
+            </select>
           </div>
 
           <div className="reports-kpi-grid" style={styles.kpiGrid}>
             <Kpi
               title="Total Invoices"
-              value={totalInvoicesGenerated}
-              sub="Generated invoices"
+              value={filteredSales.length}
+              sub="Filtered invoices"
             />
 
             <Kpi
               title="Sales Amount"
-              value={money(totalGrossRevenue)}
+              value={money(totalRevenue)}
               sub="Total sales value"
             />
 
             <Kpi
               title="GST Amount"
-              value={money(totalTaxCollected)}
-              sub="Tax collected"
+              value={money(totalGst)}
+              sub="Tax report value"
             />
 
             <Kpi
               title="Discount"
-              value={money(totalDiscountsGiven)}
+              value={money(totalDiscount)}
               sub="Total discount"
             />
           </div>
 
-          {reportType === "Sales Report" && (
-            <ReportTable type="sales" topProducts={topProducts} loading={loading} />
-          )}
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <Th>Date</Th>
+                  <Th>Invoice</Th>
+                  <Th>Customer</Th>
+                  <Th>Product</Th>
+                  <Th>Qty</Th>
+                  <Th>Revenue</Th>
+                  <Th>GST</Th>
+                  <Th>Discount</Th>
+                  <Th>Payment</Th>
+                </tr>
+              </thead>
 
-          {reportType === "Payment Report" && (
-            <ReportTable
-              type="payment"
-              paymentBreakdown={paymentBreakdown}
-              loading={loading}
-            />
-          )}
+              <tbody>
+                {filteredSales.map((sale, index) => (
+                  <tr
+                    key={sale.id || sale.invoiceNo || index}
+                    className="nb-table-row"
+                  >
+                    <Td>{sale.date || "-"}</Td>
+                    <Td>{sale.invoiceNo || sale.invoiceNumber || "-"}</Td>
+                    <Td>{sale.customer || sale.customerName || "-"}</Td>
+                    <Td>
+                      {sale.productName || sale.product || sale.itemName || "-"}
+                    </Td>
+                    <Td>{sale.quantity || sale.qty || 0}</Td>
+                    <Td>
+                      {money(
+                        sale.revenue || sale.totalAmount || sale.amount || 0
+                      )}
+                    </Td>
+                    <Td>{money(sale.gst || sale.gstAmount || 0)}</Td>
+                    <Td>
+                      {money(sale.discount || sale.discountAmount || 0)}
+                    </Td>
+                    <Td>
+                      <Badge text={sale.payment || sale.paymentStatus || "-"} />
+                    </Td>
+                  </tr>
+                ))}
 
-          {reportType === "Cashier Report" && (
-            <ReportTable
-              type="cashier"
-              cashierPerformances={cashierPerformances}
-              loading={loading}
-            />
-          )}
+                {filteredSales.length === 0 && (
+                  <tr>
+                    <td colSpan="9" style={styles.emptyCell}>
+                      No report data found. Connect billing module sales data
+                      here.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
           <p style={styles.reportFooter}>
             Generated from NexBill ERP • Smart E-Commerce Billing & Inventory
@@ -827,207 +643,21 @@ function Reports({ role = "admin" }) {
   );
 }
 
-function ReportTable({
-  type,
-  topProducts = [],
-  paymentBreakdown = [],
-  cashierPerformances = [],
-  loading,
-}) {
-  if (type === "sales") {
-    return (
-      <div style={styles.tableWrap}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <Th>Product Name</Th>
-              <Th>Quantity Sold</Th>
-              <Th>Revenue Generated</Th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {topProducts.map((product, index) => (
-              <tr
-                key={`${getTextValue(product, ["productName"])}-${index}`}
-                className="nb-table-row"
-              >
-                <Td>
-                  {getTextValue(product, ["productName", "name"]) ||
-                    `Product ${index + 1}`}
-                </Td>
-                <Td>
-                  {getNumberValue(product, [
-                    "totalQuantitySold",
-                    "quantity",
-                    "qty",
-                  ])}
-                </Td>
-                <Td>
-                  {money(
-                    getNumberValue(product, [
-                      "totalRevenueGenerated",
-                      "revenue",
-                      "amount",
-                    ])
-                  )}
-                </Td>
-              </tr>
-            ))}
-
-            {topProducts.length === 0 && (
-              <tr>
-                <td colSpan="3" style={styles.emptyCell}>
-                  {loading
-                    ? "Loading top products..."
-                    : "No sales report data found for selected date range."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  if (type === "payment") {
-    return (
-      <div style={styles.tableWrap}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <Th>Payment Mode</Th>
-              <Th>Total Amount</Th>
-              <Th>Transaction Count</Th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paymentBreakdown.map((payment, index) => (
-              <tr
-                key={`${getTextValue(payment, ["paymentMode"])}-${index}`}
-                className="nb-table-row"
-              >
-                <Td>
-                  <Badge
-                    text={
-                      getTextValue(payment, ["paymentMode", "mode"]) ||
-                      "Unknown"
-                    }
-                  />
-                </Td>
-                <Td>
-                  {money(getNumberValue(payment, ["totalAmount", "amount"]))}
-                </Td>
-                <Td>
-                  {getNumberValue(payment, ["transactionCount", "count"])}
-                </Td>
-              </tr>
-            ))}
-
-            {paymentBreakdown.length === 0 && (
-              <tr>
-                <td colSpan="3" style={styles.emptyCell}>
-                  {loading
-                    ? "Loading payment report..."
-                    : "No payment report data found for selected date range."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  return (
-    <div style={styles.tableWrap}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <Th>Cashier</Th>
-            <Th>Invoices</Th>
-            <Th>Revenue</Th>
-            <Th>Discount</Th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {cashierPerformances.map((cashier, index) => (
-            <tr
-              key={`${getTextValue(cashier, [
-                "cashierName",
-                "name",
-                "email",
-              ])}-${index}`}
-              className="nb-table-row"
-            >
-              <Td>
-                {getTextValue(cashier, [
-                  "cashierName",
-                  "name",
-                  "username",
-                  "email",
-                ]) || `Cashier ${index + 1}`}
-              </Td>
-              <Td>
-                {getNumberValue(cashier, [
-                  "invoiceCount",
-                  "totalInvoices",
-                  "orders",
-                  "count",
-                ])}
-              </Td>
-              <Td>
-                {money(
-                  getNumberValue(cashier, [
-                    "revenue",
-                    "totalRevenue",
-                    "amount",
-                  ])
-                )}
-              </Td>
-              <Td>
-                {money(
-                  getNumberValue(cashier, [
-                    "discount",
-                    "totalDiscount",
-                    "discountAmount",
-                  ])
-                )}
-              </Td>
-            </tr>
-          ))}
-
-          {cashierPerformances.length === 0 && (
-            <tr>
-              <td colSpan="4" style={styles.emptyCell}>
-                {loading
-                  ? "Loading cashier report..."
-                  : "No cashier report data found for selected date range."}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
+function money(value) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
-function toBackendDateTime(dateValue, type) {
-  const safeDate = dateValue || getTodayDate();
-  const time = type === "start" ? "00:00:00" : "23:59:59";
-
-  return `${safeDate}T${time}`;
-}
-
-function getTodayDate() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 function formatDisplayDate(value) {
@@ -1044,46 +674,22 @@ function formatDisplayDate(value) {
   }
 }
 
-function getNumberValue(item, keys) {
-  if (!item || typeof item !== "object") return 0;
+function downloadCSV(filename, rows) {
+  const csv = rows
+    .map((row) =>
+      row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")
+    )
+    .join("\n");
 
-  for (const key of keys) {
-    if (item[key] !== undefined && item[key] !== null) {
-      const value = Number(item[key]);
-      return Number.isNaN(value) ? 0 : value;
-    }
-  }
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
 
-  return 0;
-}
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
 
-function getTextValue(item, keys) {
-  if (!item || typeof item !== "object") return "";
-
-  for (const key of keys) {
-    if (item[key] !== undefined && item[key] !== null) {
-      return String(item[key]);
-    }
-  }
-
-  return "";
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function money(value) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
+  URL.revokeObjectURL(url);
 }
 
 function Kpi({ title, value, sub }) {
@@ -1139,12 +745,12 @@ const styles = {
     gap: 8,
   },
 
-  excelBtn: {
+  primaryBtn: {
     minHeight: 42,
     borderRadius: 10,
-    border: "1px solid #000000",
-    background: "#000000",
-    color: "#FFFFFF",
+    border: "1px solid #C6A969",
+    background: "#C6A969",
+    color: "#2D2D2D",
     padding: "0 16px",
     fontWeight: 600,
     fontSize: 13,
@@ -1242,6 +848,19 @@ const styles = {
     fontWeight: 400,
   },
 
+  paymentSelect: {
+    width: 82,
+    border: "1px solid #D6D3D1",
+    background: "#FFFFFF",
+    color: "#3F3F46",
+    borderRadius: 9,
+    minHeight: 38,
+    padding: "7px 9px",
+    outline: "none",
+    fontSize: 12,
+    fontWeight: 400,
+  },
+
   kpiGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -1287,7 +906,7 @@ const styles = {
 
   table: {
     width: "100%",
-    minWidth: 720,
+    minWidth: 920,
     borderCollapse: "collapse",
   },
 
@@ -1341,4 +960,4 @@ const styles = {
   },
 };
 
-export default Reports;
+export default ReportsExport;
