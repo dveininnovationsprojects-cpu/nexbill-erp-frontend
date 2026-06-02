@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, TrendingUp, CreditCard, CheckCircle, XCircle, Clock, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
+import api from '../api';
+import { useAuth } from '../context/AuthContext';
 
 const MOCK_PAYMENTS = [];
 
@@ -12,15 +14,87 @@ const STATUS_CONFIG = {
 const METHOD_ICONS = { Cash: 'Cash', UPI: 'UPI', Card: 'Card', 'Net Banking': 'Net Banking' };
 
 export default function Payments() {
+  const { user } = useAuth();
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [cashierFilter, setCashierFilter] = useState('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 5;
 
-  const cashiers = [];
+  useEffect(() => {
+    fetchPaymentStats();
+  }, []);
 
-  const filtered = MOCK_PAYMENTS.filter(p => {
+  const fetchPaymentStats = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching payment stats...');
+      
+      // Try payment stats endpoint first
+      try {
+        const res = await api.get('/api/payments/stats');
+        console.log('Payment stats response:', res.data);
+        
+        if (res.data && res.data.length > 0) {
+          const transformedPayments = [];
+          for (const stat of res.data) {
+            try {
+              const txnRes = await api.get(`/api/payments/transactions/${stat.paymentMode}`);
+              const transactions = txnRes.data.map(order => ({
+                id: `PAY-${order.id}`,
+                invoice: order.invoiceNumber || `INV-${order.id}`,
+                cashier: order.cashierId || user?.username || 'Cashier',
+                customer: order.customerName || order.customer?.name || 'Walk-in',
+                amount: parseFloat(order.grandTotal || 0),
+                method: order.paymentMethod || stat.paymentMode,
+                status: 'SUCCESS',
+                date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+              }));
+              transformedPayments.push(...transactions);
+            } catch (err) {
+              console.error(`Error fetching transactions for ${stat.paymentMode}:`, err);
+            }
+          }
+          setPayments(transformedPayments);
+        } else {
+          throw new Error('Payment stats endpoint returned empty');
+        }
+      } catch (err) {
+        console.warn('Payment stats endpoint failed, trying billing history:', err);
+        
+        // Fallback: Use billing history
+        const billRes = await api.get('/api/billing/history');
+        console.log('Billing history response:', billRes.data);
+        
+        if (billRes.data && billRes.data.length > 0) {
+          const transformedPayments = billRes.data.map(order => ({
+            id: `PAY-${order.id}`,
+            invoice: order.invoiceNumber || `INV-${order.id}`,
+            cashier: order.cashierId || user?.username || 'Cashier',
+            customer: order.customerName || order.customer?.name || 'Walk-in',
+            amount: parseFloat(order.grandTotal || 0),
+            method: order.paymentMethod || 'CASH',
+            status: 'SUCCESS',
+            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+          }));
+          setPayments(transformedPayments);
+        } else {
+          setPayments([]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching payment data:', err);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cashiers = [...new Set(payments.map(p => p.cashier))].filter(Boolean);
+
+  const filtered = payments.filter(p => {
     const matchSearch = p.invoice.toLowerCase().includes(search.toLowerCase()) ||
       p.customer.toLowerCase().includes(search.toLowerCase()) ||
       p.cashier.toLowerCase().includes(search.toLowerCase()) ||
@@ -30,23 +104,23 @@ export default function Payments() {
     return matchSearch && matchStatus && matchCashier;
   });
 
-  const totalCollected = MOCK_PAYMENTS.filter(p => p.status === 'SUCCESS').reduce((s, p) => s + p.amount, 0);
+  const totalCollected = payments.filter(p => p.status === 'SUCCESS').reduce((s, p) => s + p.amount, 0);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
-  const totalPending   = MOCK_PAYMENTS.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
-  const totalFailed    = MOCK_PAYMENTS.filter(p => p.status === 'FAILED').reduce((s, p) => s + p.amount, 0);
+  const totalPending   = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
+  const totalFailed    = payments.filter(p => p.status === 'FAILED').reduce((s, p) => s + p.amount, 0);
 
-  const methodBreakdown = MOCK_PAYMENTS.reduce((acc, p) => {
+  const methodBreakdown = payments.reduce((acc, p) => {
     if (!acc[p.method]) acc[p.method] = { count: 0, amount: 0 };
     acc[p.method].count += 1;
     acc[p.method].amount += p.amount;
     return acc;
   }, {});
 
-  const totalTxn = MOCK_PAYMENTS.length;
-  const paidCount = MOCK_PAYMENTS.filter(p => p.status === 'SUCCESS').length;
-  const pendingCount = MOCK_PAYMENTS.filter(p => p.status === 'PENDING').length;
-  const failedCount = MOCK_PAYMENTS.filter(p => p.status === 'FAILED').length;
+  const totalTxn = payments.length;
+  const paidCount = payments.filter(p => p.status === 'SUCCESS').length;
+  const pendingCount = payments.filter(p => p.status === 'PENDING').length;
+  const failedCount = payments.filter(p => p.status === 'FAILED').length;
 
   return (
     <>
@@ -116,7 +190,7 @@ export default function Payments() {
           </div>
           <div className="ap-kpi">
             <div className="ap-kpi-icon" style={{background:'#EFE7DE'}}><CreditCard size={18} color="#8B7355" /></div>
-            <div><div className="ap-kpi-val">{MOCK_PAYMENTS.length}</div><div className="ap-kpi-label">Transactions</div></div>
+            <div><div className="ap-kpi-val">{payments.length}</div><div className="ap-kpi-label">Transactions</div></div>
           </div>
         </div>
 

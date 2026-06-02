@@ -865,7 +865,7 @@ export default function AdminInvoices() {
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
         totalItems: inv.totalItems || 0,
-        status:     'Paid',
+        status:     inv.status     || 'Paid',
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         cashier:    inv.cashierId    || '—',

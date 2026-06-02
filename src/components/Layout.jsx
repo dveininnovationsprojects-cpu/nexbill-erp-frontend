@@ -28,8 +28,8 @@ const adminNav = [
   { icon: FileText,        label: 'Invoices',  to: '/admin/invoices' },
   {
     icon: BarChart2, label: 'Reports', dropdown: [
+      { icon: FileText,  label: 'Export',          to: '/admin/reports' },
       { icon: BarChart2, label: 'Sales Analytics', to: '/admin/sales-analytics' },
-      { icon: FileText,  label: 'Export',          to: '/admin/reports/export' },
     ]
   },
   { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
@@ -88,6 +88,7 @@ export default function Layout({ children }) {
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [approving, setApproving]       = useState(false);
   const [toast, setToast]               = useState(null);
+  const [userProfile, setUserProfile]   = useState(null);
 
   const isAdmin = user?.role === 'ADMIN';
   const navItems = isAdmin ? adminNav : cashierNav;
@@ -145,6 +146,21 @@ export default function Layout({ children }) {
     const interval = setInterval(() => { fetchPending(); fetchLowStock(); }, 30000);
     return () => clearInterval(interval);
   }, [isAdmin]);
+
+  const fetchUserProfile = async () => {
+    if (!user?.token) return;
+    try {
+      const res = await axios.get('/api/profile/me', {
+        headers: { Authorization: `Bearer ${user.token}` },
+        withCredentials: true,
+      });
+      setUserProfile(res.data);
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, [user?.token]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -607,7 +623,7 @@ export default function Layout({ children }) {
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: '#2D2D2D', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
-                          {isAdmin ? 'NexBill Admin' : 'Ahamed Yasik'}
+                          {userProfile?.name || user?.name || user?.email?.split('@')[0] || 'User'}
                         </div>
                         <div style={{ fontSize: 10, color: '#8B7355', fontWeight: 500, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
                           {user?.email}
