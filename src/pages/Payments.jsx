@@ -42,16 +42,20 @@ export default function Payments() {
           for (const stat of res.data) {
             try {
               const txnRes = await api.get(`/api/payments/transactions/${stat.paymentMode}`);
-              const transactions = txnRes.data.map(order => ({
-                id: `PAY-${order.id}`,
-                invoice: order.invoiceNumber || `INV-${order.id}`,
-                cashier: order.cashierId || user?.username || 'Cashier',
-                customer: order.customerName || order.customer?.name || 'Walk-in',
-                amount: parseFloat(order.grandTotal || 0),
-                method: order.paymentMethod || stat.paymentMode,
-                status: 'SUCCESS',
-                date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
-              }));
+              console.log(`💳 ${stat.paymentMode} transactions:`, txnRes.data);
+              const transactions = txnRes.data.map(order => {
+                console.log('📦 Transaction order:', order);
+                return {
+                  id: `PAY-${order.id}`,
+                  invoice: order.invoiceNumber || `INV-${order.id}`,
+                  cashier: order.cashierName || order.cashier?.name || order.cashier?.username || order.cashierId || 'Cashier',
+                  customer: order.customerName || order.customer?.name || 'Walk-in',
+                  amount: parseFloat(order.grandTotal || 0),
+                  method: order.paymentMethod || stat.paymentMode,
+                  status: 'SUCCESS',
+                  date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+                };
+              });
               transformedPayments.push(...transactions);
             } catch (err) {
               console.error(`Error fetching transactions for ${stat.paymentMode}:`, err);
@@ -66,19 +70,29 @@ export default function Payments() {
         
         // Fallback: Use billing history
         const billRes = await api.get('/api/billing/history');
-        console.log('Billing history response:', billRes.data);
+        console.log('📋 Billing history response:', billRes.data);
+        console.log('📋 First order sample:', billRes.data[0]);
         
         if (billRes.data && billRes.data.length > 0) {
-          const transformedPayments = billRes.data.map(order => ({
-            id: `PAY-${order.id}`,
-            invoice: order.invoiceNumber || `INV-${order.id}`,
-            cashier: order.cashierId || user?.username || 'Cashier',
-            customer: order.customerName || order.customer?.name || 'Walk-in',
-            amount: parseFloat(order.grandTotal || 0),
-            method: order.paymentMethod || 'CASH',
-            status: 'SUCCESS',
-            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
-          }));
+          const transformedPayments = billRes.data
+            .filter(order => {
+              // Filter only yasik's invoices
+              const cashierName = (order.cashierName || order.cashier?.name || order.cashier?.username || order.cashierId || '').toLowerCase();
+              return cashierName.includes('yasik');
+            })
+            .map(order => {
+            console.log('📦 Order data:', order);
+            return {
+              id: `PAY-${order.id}`,
+              invoice: order.invoiceNumber || `INV-${order.id}`,
+              cashier: order.cashierName || order.cashier?.name || order.cashier?.username || order.cashierId || 'Cashier',
+              customer: order.customerName || order.customer?.name || 'Walk-in',
+              amount: parseFloat(order.grandTotal || 0),
+              method: order.paymentMethod || 'CASH',
+              status: 'SUCCESS',
+              date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+            };
+          });
           setPayments(transformedPayments);
         } else {
           setPayments([]);
@@ -134,6 +148,7 @@ export default function Payments() {
         .ap-grid2{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start;width:100%}
         .ap-right-col{display:flex;flex-direction:column;gap:16px;width:280px}
         .ap-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05);width:100%}
+        .ap-table-wrapper{overflow-x:auto;overflow-y:visible}
         .ap-card-header{padding:16px 20px;border-bottom:1px solid #EFE7DE;font-size:14px;font-weight:600;color:#2D2D2D;display:flex;align-items:center;gap:8px}
         .ap-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
         .ap-search-wrap{position:relative;flex:1;min-width:200px}
@@ -146,13 +161,13 @@ export default function Payments() {
         .ap-filter-btn.active{background:#2D2D2D;color:#F8F5F2;border-color:#2D2D2D}
         .ap-table{width:100%;border-collapse:collapse;font-size:13px}
         .ap-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;background:#F8F5F2;border-bottom:1px solid #EFE7DE}
-        .ap-table td{padding:13px 16px;border-bottom:1px solid #F8F5F2;color:#3F3F46;vertical-align:middle}
+        .ap-table td{padding:13px 16px;border-bottom:1px solid #F8F5F2;color:#3F3F46;vertical-align:middle;white-space:nowrap}
         .ap-table tr:last-child td{border-bottom:none}
         .ap-table tr:hover td{background:#FDFCFB}
-        .ap-id{font-size:11px;color:#8B7355;background:#EFE7DE;padding:2px 8px;border-radius:20px;font-weight:600}
+        .ap-id{font-size:11px;color:#8B7355;background:#EFE7DE;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap;display:inline-block}
         .ap-cashier{display:flex;align-items:center;gap:6px}
         .ap-avatar{width:24px;height:24px;background:#2D2D2D;color:#C6A969;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
-        .ap-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px}
+        .ap-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap}
         .ap-method{display:flex;align-items:center;gap:5px;font-size:12px}
         .ap-amount{font-weight:700;color:#2D2D2D}
         .ap-date{font-size:11px;color:#8B7355}
@@ -215,9 +230,10 @@ export default function Payments() {
               </div>
             </div>
             <div className="ap-card">
-              <table className="ap-table">
+              <div className="ap-table-wrapper">
+                <table className="ap-table">
                 <thead>
-                  <tr><th>Pay ID</th><th>Invoice</th><th>Cashier</th><th>Customer</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr>
+                  <tr><th style={{width:'110px'}}>Pay ID</th><th style={{width:'120px'}}>Invoice</th><th style={{width:'140px'}}>Cashier</th><th>Customer</th><th style={{width:'100px',textAlign:'right'}}>Amount</th><th style={{width:'100px'}}>Method</th><th style={{width:'120px'}}>Status</th><th style={{width:'90px'}}>Date</th></tr>
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
@@ -227,19 +243,20 @@ export default function Payments() {
                     const Icon = s.icon;
                     return (
                       <tr key={p.id}>
-                        <td><span className="ap-id">{p.id}</span></td>
-                        <td style={{color:'#8B7355',fontSize:12}}>{p.invoice}</td>
-                        <td><div className="ap-cashier"><div className="ap-avatar">{p.cashier[0]}</div>{p.cashier}</div></td>
+                        <td style={{width:'110px'}}><span className="ap-id">{p.id}</span></td>
+                        <td style={{width:'120px',color:'#8B7355',fontSize:12}}>{p.invoice}</td>
+                        <td style={{width:'140px'}}><div className="ap-cashier"><div className="ap-avatar">{p.cashier[0]}</div>{p.cashier}</div></td>
                         <td>{p.customer}</td>
-                        <td><span className="ap-amount">₹{p.amount.toLocaleString()}</span></td>
-                        <td><span className="ap-method">{p.method}</span></td>
-                        <td><span className="ap-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}><Icon size={11}/>{p.status}</span></td>
-                        <td><span className="ap-date">{p.date}</span></td>
+                        <td style={{width:'100px',textAlign:'right'}}><span className="ap-amount">₹{p.amount.toLocaleString()}</span></td>
+                        <td style={{width:'100px'}}><span className="ap-method">{p.method}</span></td>
+                        <td style={{width:'120px'}}><span className="ap-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}><Icon size={11}/>{p.status}</span></td>
+                        <td style={{width:'90px'}}><span className="ap-date">{p.date}</span></td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              </div>
               {totalPages > 1 && (
                 <div className="ap-pagination">
                   <span className="ap-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} payments</span>

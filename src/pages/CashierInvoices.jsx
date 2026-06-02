@@ -539,8 +539,8 @@ export default function CashierInvoices() {
     const fetchInvoices = async () => {
       try {
         console.log('Fetching cashier invoices with token:', user?.token);
-        // Try Order API first (includes customer relationship)
-        const res = await api.get('/api/orders');
+        // Fetch from billing history
+        const res = await api.get('/api/billing/history');
         console.log('Raw order response:', res.data);
         // Filter only this cashier's orders
         const cashierEmail = user?.email || user?.username;
