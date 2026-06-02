@@ -535,69 +535,6 @@ export default function CashierInvoices() {
   const [previewInv, setPreview]  = useState(null);
   const [toast, setToast]         = useState(null);
 
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      try {
-        console.log('Fetching cashier invoices with token:', user?.token);
-        // Try Order API first (includes customer relationship)
-        const res = await api.get('/api/orders');
-        console.log('Raw order response:', res.data);
-        // Filter only this cashier's orders
-        const cashierEmail = user?.email || user?.username;
-        const cashierOrders = (res.data || []).filter(order => 
-          order.cashier?.email === cashierEmail || order.cashier?.username === cashierEmail
-        );
-        
-        const data = cashierOrders.map(order => {
-          console.log('Processing cashier order:', order);
-          
-          let customerName = 'Walk-in Customer';
-          if (order.customer?.name) {
-            customerName = order.customer.name;
-          } else if (order.customerId) {
-            customerName = `Customer #${order.customerId}`;
-          }
-          
-          return {
-            id: order.invoiceNumber || `ORD-${order.id}`,
-            customer: customerName,
-            email: order.customer?.email || '',
-            phone: order.customer?.mobile || order.customer?.phone || '',
-            address: order.customer?.address || '',
-            gstNo: order.customer?.gstNumber || '',
-            items: (order.items || []).map(it => ({
-              name: it.product?.name || it.productName,
-              qty: parseFloat(it.quantity),
-              rate: parseFloat(it.unitPrice),
-              gst: parseFloat(it.gstPercentage || 0),
-            })),
-            discount: parseFloat(order.discountAmount || 0),
-            status: order.status === 'COMPLETED' ? 'Paid' : 'Pending',
-            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-            dueDate: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-            cashier: order.cashier?.name || order.cashier?.email || user?.username || 'Cashier',
-            counter: order.cashier?.counterNumber || 'Counter 1',
-            payment: order.paymentMode || 'CASH',
-            grandTotal: parseFloat(order.grandTotal || 0),
-          };
-        });
-        console.log('Processed invoices:', data);
-        setInvoices(data);
-      } catch (err) {
-        console.error('Failed to fetch invoices:', err);
-        console.error('Error response:', err.response?.data);
-        console.error('Error status:', err.response?.status);
-        if (err.response?.status === 401) {
-          alert('Session expired or unauthorized. Please login again.');
-        }
-        setInvoices([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInvoices();
-  }, []);
-
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
