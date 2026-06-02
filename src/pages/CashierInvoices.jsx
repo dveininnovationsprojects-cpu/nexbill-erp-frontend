@@ -545,7 +545,10 @@ export default function CashierInvoices() {
     setLoading(true);
     try {
       const res = await api.get('/api/billing/history');
-      const data = (res.data || []).map(inv => ({
+      const all = res.data || [];
+      // Filter only logged-in cashier's invoices until /api/billing/my-invoices is available
+      const mine = all.filter(inv => inv.cashierId === user?.email);
+      const data = mine.map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
         customer:   inv.cashierId     || 'Walk-in Customer',
         email:      '',

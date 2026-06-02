@@ -903,9 +903,14 @@ export default function AdminInvoices() {
     showToast('Invoice marked as Paid');
   };
 
-  const handleDelete = (id) => {
-    setInvoices(prev => prev.filter(inv => inv.id !== id));
-    showToast('Invoice deleted', 'error');
+  const handleDelete = async (id) => {
+    try {
+      await api.put(`/api/billing/cancel/${id}`);
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'CANCELLED' } : inv));
+      showToast(`Invoice ${id} cancelled successfully.`, 'error');
+    } catch {
+      showToast('Failed to cancel invoice. Try again.', 'error');
+    }
   };
 
   const handleCreate = (newInv) => {

@@ -5,9 +5,10 @@
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../api';
 import {
   Building2, FileText, Percent, Bell, Shield,
   Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
@@ -568,25 +569,72 @@ function pwStrength(pw) {
    BUSINESS PROFILE TAB
 ══════════════════════════════════════════════════════════════════════ */
 function ProfileTab({ onSave }) {
-  const { saving, saved, handle } = useSaving(onSave);
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
-    companyName: 'NexBill ERP',
-    tagline:     'Smart Billing & Inventory Management',
-    email:       'billing@nexbill.in',
-    phone:       '+91 9876 543 210',
-    website:     'www.nexbill.in',
-    address:     '45 Tech Park, Whitefield',
-    city:        'Bangalore',
-    state:       'Karnataka',
-    pincode:     '560001',
+    companyName: '',
+    tagline:     '',
+    email:       '',
+    phone:       '',
+    website:     '',
+    address:     '',
+    city:        '',
+    state:       '',
+    pincode:     '',
     country:     'India',
-    gstNo:       '29AABCN1234M1Z5',
-    pan:         'AABCN1234M',
-    cin:         'U72300KA2024PTC123456',
+    gstNo:       '',
+    pan:         '',
+    cin:         '',
+    invoicePrefix: '',
+    currency:    'INR',
+    defaultReorderLevel: 10,
   });
-  const [orig]   = useState(form);
   const [dirty, setDirty] = useState(false);
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
+
+  useEffect(() => {
+    api.get('/api/settings').then(res => {
+      const s = res.data;
+      setForm(f => ({
+        ...f,
+        companyName:         s.companyName         || '',
+        email:               s.companyEmail        || '',
+        phone:               s.companyPhone        || '',
+        address:             s.companyAddress      || '',
+        gstNo:               s.gstNumber           || '',
+        invoicePrefix:       s.invoicePrefix       || '',
+        currency:            s.currency            || 'INR',
+        defaultReorderLevel: s.defaultReorderLevel || 10,
+        logoUrl:             s.logoUrl             || null,
+      }));
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await api.put('/api/settings/update', {
+        companyName:         form.companyName,
+        companyAddress:      form.address,
+        companyPhone:        form.phone,
+        companyEmail:        form.email,
+        gstNumber:           form.gstNo,
+        invoicePrefix:       form.invoicePrefix || 'INV',
+        currency:            form.currency      || 'INR',
+        defaultReorderLevel: form.defaultReorderLevel || 10,
+        logoUrl:             form.logoUrl       || null,
+      });
+      setSaved(true);
+      setDirty(false);
+      onSave('Business profile saved!');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      onSave(err.response?.data?.message || 'Failed to save settings.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const logoInputRef = useRef(null);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -714,8 +762,8 @@ function ProfileTab({ onSave }) {
         </div>
       </div>
       <div className="st-card-foot">
-        <button className="st-btn-secondary" onClick={handleDiscard} disabled={!dirty}>Discard Changes</button>
-        <SaveBtn saving={saving} saved={saved} onClick={() => handle('Business profile saved!')} label="Save Profile" />
+        <button className="st-btn-secondary" onClick={() => { setDirty(false); }} disabled={!dirty}>Discard Changes</button>
+        <SaveBtn saving={saving} saved={saved} onClick={handleSaveSettings} label="Save Profile" />
       </div>
     </div>
   );
