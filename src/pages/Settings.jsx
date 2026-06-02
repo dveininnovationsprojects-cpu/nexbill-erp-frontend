@@ -501,10 +501,6 @@ const TABS = [
     sub: 'Invoice prefix, currency and numbering',
   },
   {
-    id: 'tax',           label: 'Tax & GST',         icon: Percent,   group: 'Billing',
-    sub: 'GST slabs, CGST/SGST rates and HSN/SAC codes',
-  },
-  {
     id: 'notifications', label: 'Notifications',     icon: Bell,      group: 'Preferences',
     sub: 'Email and in-app notification preferences',
   },
@@ -1087,7 +1083,6 @@ export default function Settings() {
   let activeTab = isAdmin ? 'profile' : 'notifications';
   if (path.includes('/accounts/business-profile'))      activeTab = 'profile';
   else if (path.includes('/billing/invoice'))           activeTab = 'invoice';
-  else if (path.includes('/billing/tax'))               activeTab = 'tax';
   else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
   else if (path.includes('/preferences/security'))      activeTab = 'security';
 
@@ -1120,7 +1115,6 @@ export default function Settings() {
     switch (activeTab) {
       case 'profile':       return <ProfileTab          onSave={(m, t) => showToast(m, t)} />;
       case 'invoice':       return <InvoiceSettingsTab  onSave={(m, t) => showToast(m, t)} />;
-      case 'tax':           return <TaxTab              onSave={(m, t) => showToast(m, t)} />;
       case 'notifications': return <NotificationsTab    onSave={(m, t) => showToast(m, t)} />;
       case 'security':      return <SecurityTab         onSave={(m, t) => showToast(m, t)} />;
       default:              return null;

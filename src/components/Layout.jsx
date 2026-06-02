@@ -47,7 +47,6 @@ const adminNav = [
         label: 'Billing',
         nested: [
           { icon: FileText, label: 'Invoice Settings', to: '/admin/settings/billing/invoice' },
-          { icon: Percent,  label: 'Tax & GST',        to: '/admin/settings/billing/tax' },
         ]
       },
       {
@@ -522,7 +521,6 @@ export default function Layout({ children }) {
                 // Check nested settings routes first
                 if (path.includes('/settings/accounts/business-profile')) return 'Business Profile';
                 if (path.includes('/settings/billing/invoice'))         return 'Invoice Settings';
-                if (path.includes('/settings/billing/tax'))             return 'Tax & GST';
                 if (path.includes('/settings/preferences/notifications')) return 'Notifications';
                 if (path.includes('/settings/preferences/security'))    return 'Security';
                 
