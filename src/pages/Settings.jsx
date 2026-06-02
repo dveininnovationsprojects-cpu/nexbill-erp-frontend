@@ -501,11 +501,7 @@ const TABS = [
     sub: 'Invoice prefix, currency and numbering',
   },
   {
-    id: 'notifications', label: 'Notifications',     icon: Bell,      group: 'Preferences',
-    sub: 'Email and in-app notification preferences',
-  },
-  {
-    id: 'security',      label: 'Security',          icon: Shield,    group: 'Preferences',
+    id: 'security',      label: 'Security',          icon: Shield,    group: 'Account',
     sub: 'Password and account security',
   },
 ];
@@ -1083,11 +1079,10 @@ export default function Settings() {
   let activeTab = isAdmin ? 'profile' : 'notifications';
   if (path.includes('/accounts/business-profile'))      activeTab = 'profile';
   else if (path.includes('/billing/invoice'))           activeTab = 'invoice';
-  else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
   else if (path.includes('/preferences/security'))      activeTab = 'security';
 
-  // Cashier only sees Notifications + Security
-  const visibleTabs = isAdmin ? TABS : TABS.filter(t => ['notifications', 'security'].includes(t.id));
+  // Cashier only sees Security
+  const visibleTabs = isAdmin ? TABS : TABS.filter(t => t.id === 'security');
 
   const TAB_URLS = {
     profile:       `${prefix}/settings/accounts/business-profile`,
@@ -1109,13 +1104,12 @@ export default function Settings() {
   const activeTabDef = TABS.find(t => t.id === activeTab);
 
   // Group tabs for sidebar rendering
-  const groups = ['Account', 'Billing', 'Preferences'];
+  const groups = ['Account', 'Billing'];
 
   const renderContent = () => {
     switch (activeTab) {
       case 'profile':       return <ProfileTab          onSave={(m, t) => showToast(m, t)} />;
       case 'invoice':       return <InvoiceSettingsTab  onSave={(m, t) => showToast(m, t)} />;
-      case 'notifications': return <NotificationsTab    onSave={(m, t) => showToast(m, t)} />;
       case 'security':      return <SecurityTab         onSave={(m, t) => showToast(m, t)} />;
       default:              return null;
     }

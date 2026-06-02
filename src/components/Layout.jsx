@@ -50,11 +50,10 @@ const adminNav = [
         ]
       },
       {
-        icon: Settings2,
-        label: 'Preferences',
+        icon: Shield,
+        label: 'Security',
         nested: [
-          { icon: Bell,   label: 'Notifications', to: '/admin/settings/preferences/notifications' },
-          { icon: Shield, label: 'Security',      to: '/admin/settings/preferences/security' },
+          { icon: Shield, label: 'Security', to: '/admin/settings/preferences/security' },
         ]
       },
     ]
@@ -521,8 +520,7 @@ export default function Layout({ children }) {
                 // Check nested settings routes first
                 if (path.includes('/settings/accounts/business-profile')) return 'Business Profile';
                 if (path.includes('/settings/billing/invoice'))         return 'Invoice Settings';
-                if (path.includes('/settings/preferences/notifications')) return 'Notifications';
-                if (path.includes('/settings/preferences/security'))    return 'Security';
+                if (path.includes('/settings/preferences/security')) return 'Security';
                 
                 // Check main routes
                 for (const item of navItems) {
