@@ -493,11 +493,23 @@ const STYLES = `
 ══════════════════════════════════════════════════════════════════════ */
 const TABS = [
   {
-    id: 'profile',  label: 'Business Profile', icon: Building2, group: 'Account',
+    id: 'profile',       label: 'Business Profile', icon: Building2, group: 'Account',
     sub: 'Company info used on invoices and communications',
   },
   {
-    id: 'security', label: 'Security',         icon: Shield,    group: 'Preferences',
+    id: 'invoice',       label: 'Invoice Settings', icon: FileText,  group: 'Billing',
+    sub: 'Invoice prefix, currency and numbering',
+  },
+  {
+    id: 'tax',           label: 'Tax & GST',         icon: Percent,   group: 'Billing',
+    sub: 'GST slabs, CGST/SGST rates and HSN/SAC codes',
+  },
+  {
+    id: 'notifications', label: 'Notifications',     icon: Bell,      group: 'Preferences',
+    sub: 'Email and in-app notification preferences',
+  },
+  {
+    id: 'security',      label: 'Security',          icon: Shield,    group: 'Preferences',
     sub: 'Password and account security',
   },
 ];
@@ -757,6 +769,211 @@ function ProfileTab({ onSave }) {
   );
 }
 /* ══════════════════════════════════════════════════════════════════════
+   INVOICE SETTINGS TAB
+══════════════════════════════════════════════════════════════════════ */
+function InvoiceSettingsTab({ onSave }) {
+  const { saving, saved, handle } = useSaving(onSave);
+  const [form, setForm] = useState({
+    prefix: 'INV-', currency: 'INR',
+  });
+  const [orig] = useState(form);
+  const [dirty, setDirty] = useState(false);
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
+
+  return (
+    <div className="st-card">
+      <div className="st-card-head">
+        <div>
+          <div className="st-card-title"><FileText size={15} /> Invoice Settings</div>
+          <div className="st-card-sub">Control how invoices are numbered and formatted</div>
+        </div>
+        {dirty && <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved</span>}
+      </div>
+      <div className="st-card-body">
+        <div className="st-section-lbl">Numbering</div>
+        <div className="st-grid2">
+          <div className="st-field">
+            <label>Invoice Prefix</label>
+            <input value={form.prefix} onChange={e => set('prefix', e.target.value)} placeholder="INV-" />
+            <div className="st-field-hint">e.g. INV-, BILL-, NB-</div>
+          </div>
+          <div className="st-field">
+            <label>Currency</label>
+            <select value={form.currency} onChange={e => set('currency', e.target.value)}>
+              <option value="INR">₹ INR — Indian Rupee</option>
+              <option value="USD">$ USD — US Dollar</option>
+              <option value="EUR">€ EUR — Euro</option>
+              <option value="GBP">£ GBP — British Pound</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div className="st-card-foot">
+        <button className="st-btn-secondary" disabled={!dirty} onClick={() => { setForm(orig); setDirty(false); }}>Discard</button>
+        <SaveBtn saving={saving} saved={saved} onClick={() => handle('Invoice settings saved!')} label="Save Settings" />
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TAX & GST TAB
+══════════════════════════════════════════════════════════════════════ */
+const GST_SLABS = [
+  { rate: '0%',  name: 'Exempt',    desc: 'Basic necessities'     },
+  { rate: '5%',  name: 'Essential', desc: 'Packaged food, drugs'  },
+  { rate: '12%', name: 'Standard',  desc: 'Processed food'        },
+  { rate: '18%', name: 'Standard+', desc: 'Most goods & services' },
+  { rate: '28%', name: 'Luxury',    desc: 'Luxury, sin goods'     },
+];
+
+function TaxTab({ onSave }) {
+  const [selected, setSelected] = useState(['18%', '5%']);
+  const [cgst, setCGST]         = useState('9');
+  const [sgst, setSGST]         = useState('9');
+  const [igst, setIGST]         = useState('18');
+  const [inclusive, setInclusive] = useState(false);
+  const [hsnEnabled, setHSN]    = useState(true);
+  const [sacEnabled, setSAC]    = useState(false);
+
+  const toggleSlab = (rate) =>
+    setSelected(prev => prev.includes(rate) ? prev.filter(r => r !== rate) : [...prev, rate]);
+
+  return (
+    <div className="st-card">
+      <div className="st-card-head">
+        <div>
+          <div className="st-card-title"><Percent size={15} /> Tax &amp; GST Configuration</div>
+          <div className="st-card-sub">Configure GST rates, CGST/SGST splits, and HSN/SAC codes</div>
+        </div>
+      </div>
+      <div className="st-card-body">
+        <div className="st-section-lbl">Active GST Slabs</div>
+        <div className="st-tax-summary">
+          {selected.length === 0
+            ? <span className="st-tax-chip-none">No slabs selected</span>
+            : selected.sort().map(r => (
+                <span key={r} className="st-tax-chip"><CheckCircle size={10} /> {r} GST</span>
+              ))
+          }
+        </div>
+        <div className="st-gst-grid">
+          {GST_SLABS.map(s => (
+            <div key={s.rate} className={`st-gst-chip ${selected.includes(s.rate) ? 'selected' : ''}`} onClick={() => toggleSlab(s.rate)}>
+              <div className="st-gst-rate">{s.rate}</div>
+              <div className="st-gst-name">{s.name}</div>
+              <div className="st-gst-desc">{s.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div className="st-section-lbl">CGST / SGST / IGST Rates</div>
+        <div className="st-grid3">
+          <div className="st-field">
+            <label>CGST Rate (%)</label>
+            <input type="number" value={cgst} onChange={e => setCGST(e.target.value)} min="0" max="14" />
+            <div className="st-field-hint">Central GST — intrastate</div>
+          </div>
+          <div className="st-field">
+            <label>SGST Rate (%)</label>
+            <input type="number" value={sgst} onChange={e => setSGST(e.target.value)} min="0" max="14" />
+            <div className="st-field-hint">State GST — intrastate</div>
+          </div>
+          <div className="st-field">
+            <label>IGST Rate (%)</label>
+            <input type="number" value={igst} onChange={e => setIGST(e.target.value)} min="0" max="28" />
+            <div className="st-field-hint">Interstate GST</div>
+          </div>
+        </div>
+        <div className="st-info-banner info" style={{ marginBottom: 16 }}>
+          <Info size={14} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>Intrastate:</strong> CGST ({cgst}%) + SGST ({sgst}%) = <strong>{Number(cgst) + Number(sgst)}%</strong> &nbsp;|&nbsp;
+            <strong>Interstate:</strong> IGST ({igst}%) applies
+          </span>
+        </div>
+        <div className="st-section-lbl">Tax Options</div>
+        {[
+          { val: inclusive,  set: setInclusive, label: 'Tax Inclusive Pricing', desc: 'Product prices already include GST' },
+          { val: hsnEnabled, set: setHSN,       label: 'HSN Code for Goods',    desc: 'Show HSN code on invoice items' },
+          { val: sacEnabled, set: setSAC,       label: 'SAC Code for Services', desc: 'Show SAC code on service items' },
+        ].map(({ val, set, label, desc }) => (
+          <div key={label} className="st-toggle-row">
+            <div className="st-toggle-info">
+              <div className="st-toggle-label">{label}</div>
+              <div className="st-toggle-desc">{desc}</div>
+            </div>
+            <Toggle on={val} onChange={set} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   NOTIFICATIONS TAB
+══════════════════════════════════════════════════════════════════════ */
+function NotificationsTab({ onSave }) {
+  const [notifs, setNotifs] = useState({
+    emailNewInvoice: true, emailPaymentReceived: true, emailOverdue: true,
+    emailLowStock: false,  emailCashierApproval: true,
+    appNewInvoice: true,   appPaymentReceived: true,
+    appOverdue: true,      appLowStock: true,
+  });
+  const tog = (k) => setNotifs(n => ({ ...n, [k]: !n[k] }));
+
+  const groups = [
+    {
+      title: 'Email Notifications', icon: Mail,
+      sub: 'Sent to your registered email address',
+      items: [
+        { key: 'emailNewInvoice',      label: 'New Invoice Created',      desc: 'Notified when any invoice is generated' },
+        { key: 'emailPaymentReceived', label: 'Payment Received',         desc: 'Alert when a customer payment is recorded' },
+        { key: 'emailOverdue',         label: 'Invoice Overdue',          desc: 'Reminder when invoices pass their due date' },
+        { key: 'emailLowStock',        label: 'Low Stock Alert',          desc: 'Email when a product falls below minimum stock' },
+        { key: 'emailCashierApproval', label: 'Cashier Approval Request', desc: 'New cashier registration awaiting your approval' },
+      ],
+    },
+    {
+      title: 'In-App Notifications', icon: Bell,
+      sub: 'Shown in the notification panel inside NexBill',
+      items: [
+        { key: 'appNewInvoice',       label: 'New Invoice',   desc: 'In-app notification when a new invoice is created' },
+        { key: 'appPaymentReceived',  label: 'Payment Alert', desc: 'In-app alert when a payment is received' },
+        { key: 'appOverdue',          label: 'Overdue Alert', desc: 'In-app reminder for overdue invoices' },
+        { key: 'appLowStock',         label: 'Low Stock',     desc: 'In-app alert when product inventory is running low' },
+      ],
+    },
+  ];
+
+  return (
+    <>
+      {groups.map(({ title, icon: Icon, sub, items }) => (
+        <div className="st-card" key={title}>
+          <div className="st-card-head">
+            <div>
+              <div className="st-card-title"><Icon size={15} /> {title}</div>
+              <div className="st-card-sub">{sub}</div>
+            </div>
+          </div>
+          <div className="st-card-body">
+            {items.map(({ key, label, desc }) => (
+              <div className="st-toggle-row" key={key}>
+                <div className="st-toggle-info">
+                  <div className="st-toggle-label">{label}</div>
+                  <div className="st-toggle-desc">{desc}</div>
+                </div>
+                <Toggle on={notifs[key]} onChange={() => tog(key)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    SECURITY TAB
 ══════════════════════════════════════════════════════════════════════ */
 function SecurityTab({ onSave }) {
@@ -867,16 +1084,22 @@ export default function Settings() {
   const prefix  = isAdmin ? '/admin' : '/cashier';
 
   // Determine active tab from path
-  let activeTab = isAdmin ? 'profile' : 'security';
-  if (path.includes('/accounts/business-profile'))  activeTab = 'profile';
-  else if (path.includes('/preferences/security'))  activeTab = 'security';
+  let activeTab = isAdmin ? 'profile' : 'notifications';
+  if (path.includes('/accounts/business-profile'))      activeTab = 'profile';
+  else if (path.includes('/billing/invoice'))           activeTab = 'invoice';
+  else if (path.includes('/billing/tax'))               activeTab = 'tax';
+  else if (path.includes('/preferences/notifications')) activeTab = 'notifications';
+  else if (path.includes('/preferences/security'))      activeTab = 'security';
 
-  // Cashier only sees Security
-  const visibleTabs = isAdmin ? TABS : TABS.filter(t => t.id === 'security');
+  // Cashier only sees Notifications + Security
+  const visibleTabs = isAdmin ? TABS : TABS.filter(t => ['notifications', 'security'].includes(t.id));
 
   const TAB_URLS = {
-    profile:  `${prefix}/settings/accounts/business-profile`,
-    security: `${prefix}/settings/preferences/security`,
+    profile:       `${prefix}/settings/accounts/business-profile`,
+    invoice:       `${prefix}/settings/billing/invoice`,
+    tax:           `${prefix}/settings/billing/tax`,
+    notifications: `${prefix}/settings/preferences/notifications`,
+    security:      `${prefix}/settings/preferences/security`,
   };
 
   const setActiveTab = (id) => navigate(TAB_URLS[id]);
@@ -891,13 +1114,16 @@ export default function Settings() {
   const activeTabDef = TABS.find(t => t.id === activeTab);
 
   // Group tabs for sidebar rendering
-  const groups = ['Account', 'Preferences'];
+  const groups = ['Account', 'Billing', 'Preferences'];
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'profile':  return <ProfileTab  onSave={(m, t) => showToast(m, t)} />;
-      case 'security': return <SecurityTab onSave={(m, t) => showToast(m, t)} />;
-      default:         return null;
+      case 'profile':       return <ProfileTab          onSave={(m, t) => showToast(m, t)} />;
+      case 'invoice':       return <InvoiceSettingsTab  onSave={(m, t) => showToast(m, t)} />;
+      case 'tax':           return <TaxTab              onSave={(m, t) => showToast(m, t)} />;
+      case 'notifications': return <NotificationsTab    onSave={(m, t) => showToast(m, t)} />;
+      case 'security':      return <SecurityTab         onSave={(m, t) => showToast(m, t)} />;
+      default:              return null;
     }
   };
 

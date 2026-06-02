@@ -35,27 +35,27 @@ const adminNav = [
   { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
   {
     icon: Settings, label: 'Settings', dropdown: [
-      { 
-        icon: UserCircle, 
-        label: 'Accounts', 
+      {
+        icon: UserCircle,
+        label: 'Accounts',
         nested: [
           { icon: Building2, label: 'Business Profile', to: '/admin/settings/accounts/business-profile' },
         ]
       },
-      { 
-        icon: FileText, 
-        label: 'Billing', 
+      {
+        icon: FileText,
+        label: 'Billing',
         nested: [
-          { icon: Percent, label: 'Tax', to: '/admin/settings/billing/tax' },
-          { icon: Receipt, label: 'Invoice', to: '/admin/settings/billing/invoice' },
+          { icon: FileText, label: 'Invoice Settings', to: '/admin/settings/billing/invoice' },
+          { icon: Percent,  label: 'Tax & GST',        to: '/admin/settings/billing/tax' },
         ]
       },
-      { 
-        icon: Settings2, 
-        label: 'Preferences', 
+      {
+        icon: Settings2,
+        label: 'Preferences',
         nested: [
-          { icon: BellRing, label: 'Notifications', to: '/admin/settings/preferences/notifications' },
-          { icon: Shield, label: 'Security', to: '/admin/settings/preferences/security' },
+          { icon: Bell,   label: 'Notifications', to: '/admin/settings/preferences/notifications' },
+          { icon: Shield, label: 'Security',      to: '/admin/settings/preferences/security' },
         ]
       },
     ]
@@ -521,11 +521,10 @@ export default function Layout({ children }) {
                 
                 // Check nested settings routes first
                 if (path.includes('/settings/accounts/business-profile')) return 'Business Profile';
-                if (path.includes('/settings/billing/tax')) return 'Tax & GST';
-                if (path.includes('/settings/billing/invoice')) return 'Invoice Settings';
+                if (path.includes('/settings/billing/invoice'))         return 'Invoice Settings';
+                if (path.includes('/settings/billing/tax'))             return 'Tax & GST';
                 if (path.includes('/settings/preferences/notifications')) return 'Notifications';
-                if (path.includes('/settings/preferences/security')) return 'Security';
-                if (path.includes('/settings/preferences/system')) return 'System Preferences';
+                if (path.includes('/settings/preferences/security'))    return 'Security';
                 
                 // Check main routes
                 for (const item of navItems) {
