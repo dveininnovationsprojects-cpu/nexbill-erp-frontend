@@ -11,8 +11,9 @@ import {
   AlertCircle, Receipt, TrendingUp, Clock, Filter,
   Send, User, Calendar, Monitor, ArrowUpRight,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import api from '../api';
+import { useAuth } from '../context/AuthContext';
+
 
 /* ══════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — NexBill Color Palette (matches project)
@@ -186,6 +187,7 @@ const STYLES = `
   .ci-toast-err { background:#7A3A3A; }
   @keyframes ciSlideIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
 `;
+
 
 /* ══════════════════════════════════════════════════════════════════════
    HELPERS
@@ -525,7 +527,6 @@ const PAGE_SIZE = 5;
 
 export default function CashierInvoices() {
   const { user } = useAuth();
-  const headers = () => ({ Authorization: `Bearer ${user.token}` });
 
   const [invoices, setInvoices]   = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -603,9 +604,48 @@ export default function CashierInvoices() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleEmail = (inv) => {
-    showToast(`Email sent to ${inv.email}`);
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/billing/history');
+      const data = (res.data || []).map(inv => ({
+        id:         inv.invoiceNumber || String(inv.id),
+        customer:   inv.cashierId     || 'Walk-in Customer',
+        email:      '',
+        phone:      '',
+        address:    '',
+        gstNo:      '',
+        items: (inv.items || []).map(it => ({
+          name: it.productName,
+          qty:  parseFloat(it.quantity      || 0),
+          rate: parseFloat(it.unitPrice     || 0),
+          gst:  parseFloat(it.gstPercentage || 0),
+        })),
+        subtotal:   parseFloat(inv.subtotal      || 0),
+        gstTotal:   parseFloat(inv.gstTotal      || 0),
+        discount:   parseFloat(inv.discountTotal || 0),
+        grandTotal: parseFloat(inv.grandTotal    || 0),
+        status:     'Paid',
+        date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        cashier:    inv.cashierId    || '—',
+        counter:    'Counter 1',
+        payment:    inv.paymentMethod || 'CASH',
+      }));
+      setInvoices(data);
+    } catch {
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => { fetchInvoices(); }, []);
+
+  const handleEmail = (inv) => {
+    showToast(`Email sent to ${inv.cashier}`);
+  };
+
 
   const filtered = invoices.filter(inv => {
     const q = search.toLowerCase();
@@ -617,10 +657,10 @@ export default function CashierInvoices() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // KPI
+  // KPI — from real data
   const paidInvs    = invoices.filter(i => i.status === 'Paid');
   const pendingInvs = invoices.filter(i => i.status === 'Pending');
-  const totalRev    = paidInvs.reduce((s, i) => s + calcInvoice(i).total, 0);
+  const totalRev    = paidInvs.reduce((s, i) => s + i.grandTotal, 0);
 
   return (
     <>
@@ -649,19 +689,7 @@ export default function CashierInvoices() {
           <div className="ci-info-chip">
             <User size={14} />
             <span className="ci-info-label">Cashier</span>
-            <strong>{user?.username || user?.name || 'Cashier'}</strong>
-          </div>
-          <div className="ci-info-divider" />
-          <div className="ci-info-chip">
-            <Monitor size={14} />
-            <span className="ci-info-label">Counter</span>
-            <strong>{user?.counter || 'Counter 1'}</strong>
-          </div>
-          <div className="ci-info-divider" />
-          <div className="ci-info-chip">
-            <Clock size={14} />
-            <span className="ci-info-label">Shift</span>
-            <strong>{user?.shiftTiming || user?.shift || '9:00 AM – 5:00 PM'}</strong>
+            <strong>{user?.email || '—'}</strong>
           </div>
           <div className="ci-info-divider" />
           <div className="ci-info-chip">
@@ -770,9 +798,6 @@ export default function CashierInvoices() {
                           </button>
                           <button className="ci-act-btn" title="Download PDF" onClick={() => printInvoice(inv)}>
                             <Download size={14} />
-                          </button>
-                          <button className="ci-act-btn btn-blue" title="Send Email" onClick={() => handleEmail(inv)}>
-                            <Send size={14} />
                           </button>
                         </div>
                       </td>

@@ -32,15 +32,23 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const canAccess =
-    role === "admin" ||
-    role === "cashier" ||
-    role === "ADMIN" ||
-    role === "CASHIER";
+  const userRole = String(role || "").toUpperCase();
+  const isAdmin = userRole === "ADMIN";
+  const isCashier = userRole === "CASHIER";
+
+  const canAccess = isAdmin || isCashier;
+  const canAddCustomer = isAdmin || isCashier;
+  const canViewCustomer = isAdmin || isCashier;
+  const canEditCustomer = isAdmin || isCashier;
+  const canUpdateLedger = isAdmin || isCashier;
+  const canChangeStatus = isAdmin || isCashier;
+  const canDeleteCustomer = isAdmin;
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    if (canAccess) {
+      loadCustomers();
+    }
+  }, [canAccess]);
 
   const filteredCustomers = useMemo(() => {
     return customers
@@ -109,6 +117,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
     for (const key of possibleKeys) {
       const value = localStorage.getItem(key);
+
       if (!value) continue;
 
       try {
@@ -119,8 +128,12 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         if (parsed?.jwt) return parsed.jwt;
         if (parsed?.user?.token) return parsed.user.token;
         if (parsed?.user?.accessToken) return parsed.user.accessToken;
+        if (parsed?.data?.token) return parsed.data.token;
+        if (parsed?.data?.accessToken) return parsed.data.accessToken;
       } catch {
-        if (value.length > 20) return value;
+        if (value.startsWith("eyJ") || value.length > 40) {
+          return value;
+        }
       }
     }
 
@@ -233,6 +246,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
       setLoading(true);
 
       if (editingId) {
+        if (!canEditCustomer) {
+          alert("You do not have permission to edit customer details.");
+          return;
+        }
+
         const response = await fetch(`${API_BASE_URL}/${editingId}`, {
           method: "PUT",
           headers: getHeaders(),
@@ -250,6 +268,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         setSelectedCustomer(updatedCustomer);
         setView("details");
       } else {
+        if (!canAddCustomer) {
+          alert("You do not have permission to add customer.");
+          return;
+        }
+
         const response = await fetch(API_BASE_URL, {
           method: "POST",
           headers: getHeaders(),
@@ -271,6 +294,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   }
 
   async function deleteCustomer(customer) {
+    if (!canDeleteCustomer) {
+      alert("Only admin can delete customer.");
+      return;
+    }
+
     if (!window.confirm(`Delete ${customer.name}?`)) return;
 
     try {
@@ -297,6 +325,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   }
 
   async function changeCustomerStatus(customer, status) {
+    if (!canChangeStatus) {
+      alert("You do not have permission to change customer status.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -328,6 +361,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
   async function updateLedger(event) {
     event.preventDefault();
+
+    if (!canUpdateLedger) {
+      alert("You do not have permission to update ledger.");
+      return;
+    }
 
     if (!selectedCustomer?.id) {
       alert("Select a customer first.");
@@ -384,6 +422,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   }
 
   function openAdd() {
+    if (!canAddCustomer) {
+      alert("You do not have permission to add customer.");
+      return;
+    }
+
     setForm(emptyCustomer);
     setEditingId(null);
     setSelectedCustomer(null);
@@ -391,6 +434,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   }
 
   function openEdit(customer) {
+    if (!canEditCustomer) {
+      alert("You do not have permission to edit customer details.");
+      return;
+    }
+
     setForm({
       id: customer.id || "",
       name: customer.name || "",
@@ -407,6 +455,11 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   }
 
   function openView(customer) {
+    if (!canViewCustomer) {
+      alert("You do not have permission to view customer.");
+      return;
+    }
+
     setSelectedCustomer(customer);
     setForm({
       id: customer.id || "",
@@ -618,7 +671,7 @@ function Customers({ role = "admin", initialCustomers = [] }) {
             <h1 style={styles.pageTitle}>Customer Management</h1>
           </div>
 
-          {view === "list" && (
+          {view === "list" && canAddCustomer && (
             <button
               type="button"
               onClick={openAdd}
@@ -632,10 +685,29 @@ function Customers({ role = "admin", initialCustomers = [] }) {
         </div>
 
         <div className="customer-kpi-grid" style={styles.kpiGrid}>
-          <Kpi title="Total Customers" value={customers.length} sub="Registered buyers" />
-          <Kpi title="Active Customers" value={activeCustomers} sub="Ready for billing" />
-          <Kpi title="Premium Customers" value={premiumCustomers} sub="VIP / Corporate" />
-          <Kpi title="Customer Value" value={money(totalValue)} sub="Total purchase value" />
+          <Kpi
+            title="Total Customers"
+            value={customers.length}
+            sub="Registered buyers"
+          />
+
+          <Kpi
+            title="Active Customers"
+            value={activeCustomers}
+            sub="Ready for billing"
+          />
+
+          <Kpi
+            title="Premium Customers"
+            value={premiumCustomers}
+            sub="VIP / Corporate"
+          />
+
+          <Kpi
+            title="Customer Value"
+            value={money(totalValue)}
+            sub="Total purchase value"
+          />
         </div>
 
         {view === "list" && (
@@ -674,7 +746,10 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                 Search
               </button>
 
-              <div className="customer-filter-buttons" style={styles.filterButtons}>
+              <div
+                className="customer-filter-buttons"
+                style={styles.filterButtons}
+              >
                 <button
                   type="button"
                   onClick={() => setStatusFilter("All")}
@@ -705,7 +780,9 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   className="nb-filter-btn"
                   style={{
                     ...styles.filterBtn,
-                    ...(statusFilter === "BLACKLISTED" ? styles.inactiveBtn : {}),
+                    ...(statusFilter === "BLACKLISTED"
+                      ? styles.inactiveBtn
+                      : {}),
                   }}
                 >
                   Inactive
@@ -762,32 +839,38 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
                       <Td>
                         <div style={styles.actionGroup}>
-                          <button
-                            type="button"
-                            className="nb-btn nb-view-btn"
-                            style={styles.actionBtn}
-                            onClick={() => openView(customer)}
-                          >
-                            View
-                          </button>
+                          {canViewCustomer && (
+                            <button
+                              type="button"
+                              className="nb-btn nb-view-btn"
+                              style={styles.actionBtn}
+                              onClick={() => openView(customer)}
+                            >
+                              View
+                            </button>
+                          )}
 
-                          <button
-                            type="button"
-                            className="nb-btn nb-edit-btn"
-                            style={styles.actionBtn}
-                            onClick={() => openEdit(customer)}
-                          >
-                            Edit
-                          </button>
+                          {canEditCustomer && (
+                            <button
+                              type="button"
+                              className="nb-btn nb-edit-btn"
+                              style={styles.actionBtn}
+                              onClick={() => openEdit(customer)}
+                            >
+                              Edit
+                            </button>
+                          )}
 
-                          <button
-                            type="button"
-                            className="nb-btn nb-delete-btn"
-                            style={styles.deleteBtn}
-                            onClick={() => deleteCustomer(customer)}
-                          >
-                            Delete
-                          </button>
+                          {canDeleteCustomer && (
+                            <button
+                              type="button"
+                              className="nb-btn nb-delete-btn"
+                              style={styles.deleteBtn}
+                              onClick={() => deleteCustomer(customer)}
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </Td>
                     </tr>
@@ -854,7 +937,9 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                     onClick={() => setCurrentPage((page) => page + 1)}
                     style={{
                       ...styles.pageBtn,
-                      ...(currentPage === totalPages ? styles.pageBtnDisabled : {}),
+                      ...(currentPage === totalPages
+                        ? styles.pageBtnDisabled
+                        : {}),
                     }}
                   >
                     ›
@@ -969,14 +1054,16 @@ function Customers({ role = "admin", initialCustomers = [] }) {
                   Customer List
                 </button>
 
-                <button
-                  type="button"
-                  className="nb-btn nb-edit-btn"
-                  style={styles.actionBtn}
-                  onClick={() => openEdit(selectedCustomer)}
-                >
-                  Edit
-                </button>
+                {canEditCustomer && (
+                  <button
+                    type="button"
+                    className="nb-btn nb-edit-btn"
+                    style={styles.actionBtn}
+                    onClick={() => openEdit(selectedCustomer)}
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1021,68 +1108,74 @@ function Customers({ role = "admin", initialCustomers = [] }) {
               />
             </div>
 
-            <form onSubmit={updateLedger} style={styles.ledgerBox}>
-              <h3 style={styles.ledgerTitle}>Update Ledger</h3>
+            {canUpdateLedger && (
+              <form onSubmit={updateLedger} style={styles.ledgerBox}>
+                <h3 style={styles.ledgerTitle}>Update Ledger</h3>
 
-              <div className="customer-form-grid" style={styles.ledgerGrid}>
-                <Input
-                  label="Bill Amount"
-                  value={form.billAmount}
-                  onChange={(value) =>
-                    setForm({
-                      ...form,
-                      billAmount: value.replace(/[^\d.]/g, ""),
-                    })
-                  }
-                />
+                <div className="customer-form-grid" style={styles.ledgerGrid}>
+                  <Input
+                    label="Bill Amount"
+                    value={form.billAmount}
+                    onChange={(value) =>
+                      setForm({
+                        ...form,
+                        billAmount: value.replace(/[^\d.]/g, ""),
+                      })
+                    }
+                  />
 
-                <Input
-                  label="Paid Amount"
-                  value={form.paidAmount}
-                  onChange={(value) =>
-                    setForm({
-                      ...form,
-                      paidAmount: value.replace(/[^\d.]/g, ""),
-                    })
-                  }
-                />
-              </div>
+                  <Input
+                    label="Paid Amount"
+                    value={form.paidAmount}
+                    onChange={(value) =>
+                      setForm({
+                        ...form,
+                        paidAmount: value.replace(/[^\d.]/g, ""),
+                      })
+                    }
+                  />
+                </div>
 
-              <div className="ledger-actions" style={styles.ledgerActions}>
+                <div className="ledger-actions" style={styles.ledgerActions}>
+                  <button
+                    type="submit"
+                    className="nb-btn nb-primary"
+                    style={styles.primaryBtn}
+                    disabled={loading}
+                  >
+                    Update Ledger
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {canChangeStatus && (
+              <div style={styles.statusBox}>
                 <button
-                  type="submit"
-                  className="nb-btn nb-primary"
-                  style={styles.primaryBtn}
+                  type="button"
+                  className="nb-btn nb-view-btn"
+                  style={styles.statusActiveBtn}
+                  onClick={() =>
+                    changeCustomerStatus(selectedCustomer, "ACTIVE")
+                  }
                   disabled={loading}
                 >
-                  Update Ledger
+                  Mark Active
+                </button>
+
+                <button
+                  type="button"
+                  className="nb-btn nb-delete-btn"
+                  style={styles.statusInactiveBtn}
+                  onClick={() =>
+                    changeCustomerStatus(selectedCustomer, "BLACKLISTED")
+                  }
+                  disabled={loading}
+                >
+                  Mark Inactive
                 </button>
               </div>
-            </form>
-
-            <div style={styles.statusBox}>
-              <button
-                type="button"
-                className="nb-btn nb-view-btn"
-                style={styles.statusActiveBtn}
-                onClick={() => changeCustomerStatus(selectedCustomer, "ACTIVE")}
-                disabled={loading}
-              >
-                Mark Active
-              </button>
-
-              <button
-                type="button"
-                className="nb-btn nb-delete-btn"
-                style={styles.statusInactiveBtn}
-                onClick={() =>
-                  changeCustomerStatus(selectedCustomer, "BLACKLISTED")
-                }
-                disabled={loading}
-              >
-                Mark Inactive
-              </button>
-            </div>
+            )}
           </div>
         )}
       </section>
@@ -1092,7 +1185,8 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
 function CustomDropdown({ value, options, onChange }) {
   const [open, setOpen] = useState(false);
-  const selected = options.find((option) => option.value === value) || options[0];
+  const selected =
+    options.find((option) => option.value === value) || options[0];
 
   return (
     <div

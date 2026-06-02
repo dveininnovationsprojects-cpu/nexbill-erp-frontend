@@ -849,80 +849,34 @@ export default function AdminInvoices() {
 
   const fetchInvoices = async () => {
     try {
-      // Try Orders API first (new system with customer relationship)
-      const res = await api.get('/api/orders');
-      const data = (res.data || []).map(order => {
-        console.log('Processing order:', order);
-        
-        // Customer name from Order->Customer relationship
-        let customerName = 'Walk-in Customer';
-        if (order.customer?.name) {
-          customerName = order.customer.name;
-        } else if (order.customerId) {
-          customerName = `Customer #${order.customerId}`;
-        }
-        
-        return {
-          id: order.invoiceNumber || `ORD-${order.id}`,
-          customer: customerName,
-          email: order.customer?.email || '',
-          phone: order.customer?.mobile || order.customer?.phone || '',
-          address: order.customer?.address || '',
-          gstNo: order.customer?.gstNumber || '',
-          items: (order.items || []).map(it => ({
-            name: it.product?.name || it.productName,
-            qty: parseFloat(it.quantity),
-            rate: parseFloat(it.unitPrice),
-            gst: parseFloat(it.gstPercentage || 0),
-          })),
-          discount: parseFloat(order.discountAmount || 0),
-          status: order.status === 'COMPLETED' ? 'Paid' : 'Pending',
-          date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-          dueDate: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-          cashier: order.cashier?.name || order.cashier?.email || '',
-          counter: order.cashier?.counterNumber || 'Counter 1',
-          payment: order.paymentMode || 'CASH',
-          grandTotal: parseFloat(order.grandTotal || 0),
-        };
-      });
+      const res = await api.get('/api/billing/history');
+      const data = (res.data || []).map(inv => ({
+        id:         inv.invoiceNumber || String(inv.id),
+        customer:   inv.cashierId     || 'Walk-in Customer',
+        email:      '',
+        phone:      '',
+        address:    '',
+        gstNo:      '',
+        items: (inv.items || []).map(it => ({
+          name: it.productName,
+          qty:  parseFloat(it.quantity      || 0),
+          rate: parseFloat(it.unitPrice     || 0),
+          gst:  parseFloat(it.gstPercentage || 0),
+        })),
+        subtotal:   parseFloat(inv.subtotal      || 0),
+        gstTotal:   parseFloat(inv.gstTotal      || 0),
+        discount:   parseFloat(inv.discountTotal || 0),
+        grandTotal: parseFloat(inv.grandTotal    || 0),
+        totalItems: inv.totalItems || 0,
+        status:     'Paid',
+        date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        cashier:    inv.cashierId    || '—',
+        payment:    inv.paymentMethod || 'CASH',
+      }));
       setInvoices(data);
-    } catch (err) {
-      console.error('Failed to fetch orders:', err);
-      // Fallback to old Invoice API
-      try {
-        const res = await api.get('/api/billing/history');
-        const data = (res.data || []).map(inv => {
-          let customerName = 'Walk-in Customer';
-          if (inv.customer?.name) customerName = inv.customer.name;
-          else if (inv.customerId) customerName = `Customer #${inv.customerId}`;
-          
-          return {
-            id: inv.invoiceNumber || inv.id,
-            customer: customerName,
-            email: inv.customer?.email || '',
-            phone: inv.customer?.mobile || '',
-            address: inv.customer?.address || '',
-            gstNo: inv.customer?.gstNumber || '',
-            items: (inv.items || []).map(it => ({
-              name: it.productName || it.product?.name,
-              qty: parseFloat(it.quantity),
-              rate: parseFloat(it.unitPrice),
-              gst: parseFloat(it.gstPercentage || 0),
-            })),
-            discount: parseFloat(inv.discountTotal || 0),
-            status: 'Paid',
-            date: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN') : '',
-            dueDate: inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN') : '',
-            cashier: inv.cashierId || '',
-            counter: 'Counter 1',
-            payment: inv.paymentMethod || 'CASH',
-            grandTotal: parseFloat(inv.grandTotal || 0),
-          };
-        });
-        setInvoices(data);
-      } catch {
-        setInvoices([]);
-      }
+    } catch {
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -1126,12 +1080,6 @@ export default function AdminInvoices() {
                           </button>
                           <button className="inv-act-btn" title="Download PDF" onClick={() => printInvoice(inv)}>
                             <Download size={14} />
-                          </button>
-                          <button className="inv-act-btn btn-blue" title="Send Email" onClick={() => handleEmail(inv)}>
-                            <Send size={14} />
-                          </button>
-                          <button className="inv-act-btn btn-amber" title="Duplicate Invoice" onClick={() => handleDuplicate(inv)}>
-                            <Copy size={14} />
                           </button>
                           {inv.status !== 'Paid' && (
                             <button className="inv-act-btn btn-green" title="Mark as Paid" onClick={() => handleMarkPaid(inv.id)}>
