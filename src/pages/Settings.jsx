@@ -24,6 +24,50 @@ import {
 const STYLES = `
   * { box-sizing: border-box; }
 
+  /* ── Tab Bar (matches Profile module) ── */
+  .pr-tab-bar {
+    display: flex; gap: 0;
+    background: #FFFFFF;
+    border: 1px solid #EFE7DE;
+    border-radius: 14px 14px 0 0;
+    border-bottom: none;
+    box-shadow: 0 1px 3px rgba(45,45,45,0.04);
+    overflow-x: auto; scrollbar-width: none;
+    padding: 0 10px;
+  }
+  .pr-tab-bar::-webkit-scrollbar { display: none; }
+  .pr-tab-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 15px 20px 13px;
+    border: none; background: none; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    color: #9E9087; white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color 0.18s, border-color 0.18s;
+  }
+  .pr-tab-btn:hover { color: #2D2D2D; }
+  .pr-tab-btn.active { color: #2D2D2D; border-bottom-color: #C6A969; }
+  .pr-tab-btn .pr-tab-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.18s, color 0.18s; background: transparent;
+  }
+  .pr-tab-btn:hover .pr-tab-icon { background: #F8F5F2; }
+  .pr-tab-btn.active .pr-tab-icon { background: rgba(198,169,105,0.15); color: #C6A969; }
+  .pr-tab-panel-wrap {
+    background: #F8F5F2;
+    border: 1px solid #EFE7DE;
+    border-radius: 0 0 14px 14px;
+    border-top: none;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 16px;
+    animation: prFadeSlide 0.2s ease;
+  }
+  @keyframes prFadeSlide {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   .st-shell {
     display: flex;
     gap: 0;
@@ -762,45 +806,180 @@ function ProfileTab({ onSave }) {
 function InvoiceSettingsTab({ onSave }) {
   const { saving, saved, handle } = useSaving(onSave);
   const [form, setForm] = useState({
-    prefix: 'INV-', currency: 'INR',
+    prefix: 'INV-', startingNumber: '1001', dueDays: '7',
+    currency: 'INR', dateFormat: 'DD MMM YYYY',
+    paymentTerms: 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest.',
+    footerNote: 'Thank you for your business! For queries, contact billing@nexbill.in',
+    showLogo: true, showGST: true, showSignature: true,
+    showQR: false,  showBankDetails: true, showTerms: true,
   });
   const [orig] = useState(form);
   const [dirty, setDirty] = useState(false);
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
+  const tog = (k)    => { setForm(f => ({ ...f, [k]: !f[k] })); setDirty(true); };
+
+  const TOGGLES = [
+    { key: 'showLogo',        label: 'Company Logo',          desc: 'Display your logo in the invoice header' },
+    { key: 'showGST',         label: 'GST Breakdown',         desc: 'Show CGST/SGST/IGST split on line items' },
+    { key: 'showSignature',   label: 'Signature Area',        desc: 'Include authorized signatory section at bottom' },
+    { key: 'showQR',          label: 'Payment QR Code',       desc: 'Add a UPI payment QR code to the invoice' },
+    { key: 'showBankDetails', label: 'Bank Transfer Details', desc: 'Show account number and IFSC for bank payments' },
+    { key: 'showTerms',       label: 'Terms & Conditions',    desc: 'Display payment terms in the invoice footer' },
+  ];
 
   return (
-    <div className="st-card">
-      <div className="st-card-head">
-        <div>
-          <div className="st-card-title"><FileText size={15} /> Invoice Settings</div>
-          <div className="st-card-sub">Control how invoices are numbered and formatted</div>
-        </div>
-        {dirty && <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved</span>}
-      </div>
-      <div className="st-card-body">
-        <div className="st-section-lbl">Numbering</div>
-        <div className="st-grid2">
-          <div className="st-field">
-            <label>Invoice Prefix</label>
-            <input value={form.prefix} onChange={e => set('prefix', e.target.value)} placeholder="INV-" />
-            <div className="st-field-hint">e.g. INV-, BILL-, NB-</div>
+    <>
+      <div className="st-card">
+        <div className="st-card-head">
+          <div>
+            <div className="st-card-title"><FileText size={15} /> Invoice Settings</div>
+            <div className="st-card-sub">Control how invoices are numbered, formatted and displayed</div>
           </div>
+          {dirty && <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved</span>}
+        </div>
+        <div className="st-card-body">
+          <div className="st-section-lbl">Numbering</div>
+          <div className="st-grid3">
+            <div className="st-field">
+              <label>Invoice Prefix</label>
+              <input value={form.prefix} onChange={e => set('prefix', e.target.value)} placeholder="INV-" />
+              <div className="st-field-hint">e.g. INV-, BILL-, NB-</div>
+            </div>
+            <div className="st-field">
+              <label>Starting Number</label>
+              <input type="number" value={form.startingNumber} onChange={e => set('startingNumber', e.target.value)} />
+              <div className="st-field-hint">Next: <strong style={{ color: '#2D2D2D' }}>{form.prefix}{form.startingNumber}</strong></div>
+            </div>
+            <div className="st-field">
+              <label>Payment Due (Days)</label>
+              <input type="number" value={form.dueDays} onChange={e => set('dueDays', e.target.value)} min="0" />
+              <div className="st-field-hint">After invoice date</div>
+            </div>
+          </div>
+
+          <div className="st-section-lbl">Format</div>
+          <div className="st-grid2">
+            <div className="st-field">
+              <label>Currency</label>
+              <select value={form.currency} onChange={e => set('currency', e.target.value)}>
+                <option value="INR">₹ INR — Indian Rupee</option>
+                <option value="USD">$ USD — US Dollar</option>
+                <option value="EUR">€ EUR — Euro</option>
+                <option value="GBP">£ GBP — British Pound</option>
+              </select>
+            </div>
+            <div className="st-field">
+              <label>Date Format</label>
+              <select value={form.dateFormat} onChange={e => set('dateFormat', e.target.value)}>
+                <option>DD MMM YYYY</option>
+                <option>DD/MM/YYYY</option>
+                <option>MM/DD/YYYY</option>
+                <option>YYYY-MM-DD</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="st-section-lbl">Content</div>
           <div className="st-field">
-            <label>Currency</label>
-            <select value={form.currency} onChange={e => set('currency', e.target.value)}>
-              <option value="INR">₹ INR — Indian Rupee</option>
-              <option value="USD">$ USD — US Dollar</option>
-              <option value="EUR">€ EUR — Euro</option>
-              <option value="GBP">£ GBP — British Pound</option>
-            </select>
+            <label>Default Payment Terms</label>
+            <textarea value={form.paymentTerms} onChange={e => set('paymentTerms', e.target.value)} />
+          </div>
+          <div className="st-field" style={{ marginBottom: 0 }}>
+            <label>Invoice Footer Note</label>
+            <textarea value={form.footerNote} onChange={e => set('footerNote', e.target.value)} style={{ minHeight: 60 }} />
+          </div>
+
+          <div className="st-section-lbl" style={{ marginTop: 20 }}>Display Options</div>
+          {TOGGLES.map(({ key, label, desc }) => (
+            <div className="st-toggle-row" key={key}>
+              <div className="st-toggle-info">
+                <div className="st-toggle-label">{label}</div>
+                <div className="st-toggle-desc">{desc}</div>
+              </div>
+              <Toggle on={form[key]} onChange={() => tog(key)} />
+            </div>
+          ))}
+        </div>
+        <div className="st-card-foot">
+          <button className="st-btn-secondary" disabled={!dirty} onClick={() => { setForm(orig); setDirty(false); }}>Discard</button>
+          <SaveBtn saving={saving} saved={saved} onClick={() => handle('Invoice settings saved!')} label="Save Settings" />
+        </div>
+      </div>
+
+      {/* Live Invoice Preview */}
+      <div className="st-card">
+        <div className="st-card-head">
+          <div>
+            <div className="st-card-title"><FileText size={15} /> Live Preview</div>
+            <div className="st-card-sub">How your invoice will look with current settings</div>
+          </div>
+        </div>
+        <div className="st-card-body">
+          <div className="st-inv-preview">
+            <div className="st-inv-prev-head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {form.showLogo && <div className="st-inv-prev-logo">N</div>}
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#2D2D2D' }}>NexBill ERP</div>
+                  <div style={{ fontSize: 10, color: '#8B7355' }}>billing@nexbill.in</div>
+                  {form.showGST && <div style={{ fontSize: 10, color: '#8B7355' }}>GSTIN: 29AABCN1234M1Z5</div>}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div className="st-inv-prev-title">INVOICE</div>
+                <div className="st-inv-prev-meta">{form.prefix}{form.startingNumber}</div>
+                <div className="st-inv-prev-meta">Date: 23 May 2026</div>
+                <div className="st-inv-prev-meta">Due: {form.dueDays} days</div>
+              </div>
+            </div>
+            <div className="st-inv-prev-body">
+              <div>
+                <div className="st-inv-prev-label">Bill To</div>
+                <div className="st-inv-prev-val">Ravi Kumar</div>
+                <div style={{ fontSize: 11, color: '#8B7355' }}>ravi@example.com</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div className="st-inv-prev-label">Payment Method</div>
+                <div className="st-inv-prev-val">UPI / Bank Transfer</div>
+                {form.showQR && <div style={{ fontSize: 10, color: '#C6A969', fontWeight: 600 }}>QR code included</div>}
+              </div>
+            </div>
+            <table className="st-inv-prev-table">
+              <thead>
+                <tr>
+                  <th>Item</th><th>Qty</th><th>Rate</th>
+                  {form.showGST && <th>GST</th>}
+                  <th style={{ textAlign: 'right' }}>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Product A</td><td>2</td><td>₹500</td>
+                  {form.showGST && <td>18%</td>}
+                  <td style={{ textAlign: 'right' }}>₹1,180</td>
+                </tr>
+                <tr>
+                  <td>Service B</td><td>1</td><td>₹2,000</td>
+                  {form.showGST && <td>18%</td>}
+                  <td style={{ textAlign: 'right' }}>₹2,360</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="st-inv-total">
+              <div className="st-inv-total-box">
+                <div className="st-inv-total-label">Total Amount</div>
+                <div className="st-inv-total-val">₹3,540</div>
+              </div>
+            </div>
+            {form.showTerms && (
+              <div style={{ fontSize: 10, color: '#8B7355', marginTop: 12, borderTop: '1px solid #EFE7DE', paddingTop: 10, lineHeight: 1.5 }}>
+                {form.footerNote}
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <div className="st-card-foot">
-        <button className="st-btn-secondary" disabled={!dirty} onClick={() => { setForm(orig); setDirty(false); }}>Discard</button>
-        <SaveBtn saving={saving} saved={saved} onClick={() => handle('Invoice settings saved!')} label="Save Settings" />
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -1064,54 +1243,25 @@ function SecurityTab({ onSave }) {
    SETTINGS — DEFAULT EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Settings() {
-  const location = useLocation();
-  const navigate  = useNavigate();
   const { user }  = useAuth();
-  const path = location.pathname;
-  const isAdmin = user?.role === 'ADMIN';
-  const prefix  = isAdmin ? '/admin' : '/cashier';
-
-  // Determine active tab from path
-  let activeTab = isAdmin ? 'profile' : 'notifications';
-  if (path.includes('/accounts/business-profile'))      activeTab = 'profile';
-  else if (path.includes('/billing/invoice'))           activeTab = 'invoice';
-
-  const visibleTabs = isAdmin ? TABS : [];
-
-  const TAB_URLS = {
-    profile:       `${prefix}/settings/accounts/business-profile`,
-    invoice:       `${prefix}/settings/billing/invoice`,
-    tax:           `${prefix}/settings/billing/tax`,
-    notifications: `${prefix}/settings/preferences/notifications`,
-    security:      `${prefix}/settings/preferences/security`,
-  };
-
-  const setActiveTab = (id) => navigate(TAB_URLS[id]);
-
-  const [toast, setToast] = useState(null);
+  const isAdmin   = user?.role === 'ADMIN';
+  const [activeTab, setActiveTab] = useState('profile');
+  const [toast, setToast]         = useState(null);
 
   const showToast = (msg = 'Settings saved successfully!', type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  const activeTabDef = TABS.find(t => t.id === activeTab);
-
-  // Group tabs for sidebar rendering
-  const groups = ['Account', 'Billing'];
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'profile':       return <ProfileTab          onSave={(m, t) => showToast(m, t)} />;
-      case 'invoice':       return <InvoiceSettingsTab  onSave={(m, t) => showToast(m, t)} />;
-      case 'security':      return <SecurityTab         onSave={(m, t) => showToast(m, t)} />;
-      default:              return null;
-    }
-  };
+  const TABS = isAdmin ? [
+    { id: 'profile', label: 'Business Profile', Icon: Building2 },
+    { id: 'invoice', label: 'Invoice Settings',  Icon: FileText  },
+  ] : [];
 
   return (
     <>
       <style>{STYLES}</style>
+
       {toast && (
         <div className={`st-toast ${toast.type === 'error' ? 'st-toast-err' : ''}`}>
           {toast.type === 'error'
@@ -1122,33 +1272,33 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="st-shell">
+      {isAdmin && (
+        <>
+          {/* ── Tab Bar (same style as Profile module) ── */}
+          <div className="pr-tab-bar">
+            {TABS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                className={`pr-tab-btn ${activeTab === id ? 'active' : ''}`}
+                onClick={() => setActiveTab(id)}
+              >
+                <span className="pr-tab-icon"><Icon size={15} /></span>
+                {label}
+              </button>
+            ))}
+          </div>
 
-        {/* ── Content ── */}
-        <div className="st-content">
-
-          {/* Sub-header */}
-          {activeTabDef && (
-            <div className="st-subheader">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="st-subheader-icon">
-                  <activeTabDef.icon size={20} />
-                </div>
-                <div>
-                  <div className="st-subheader-title">{activeTabDef.label}</div>
-                  <div className="st-subheader-sub">{activeTabDef.sub}</div>
-                </div>
-              </div>
-              <div style={{ fontSize: 11, color: '#D6D3D1', fontWeight: 500, textAlign: 'right' }}>
-                {groups.indexOf(activeTabDef.group) + 1} of 3 sections<br />
-                <span style={{ color: '#EFE7DE', fontWeight: 700 }}>{activeTabDef.group}</span>
-              </div>
-            </div>
-          )}
-
-          {renderContent()}
-        </div>
-      </div>
+          {/* ── Tab Panel ── */}
+          <div className="pr-tab-panel-wrap" key={activeTab}>
+            {activeTab === 'profile' && (
+              <ProfileTab onSave={(m, t) => showToast(m, t)} />
+            )}
+            {activeTab === 'invoice' && (
+              <InvoiceSettingsTab onSave={(m, t) => showToast(m, t)} />
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 }
