@@ -150,13 +150,10 @@ export default function Layout({ children }) {
         withCredentials: true,
       });
       const all = res.data || [];
-      console.log('🔔 All notifications:', all);
-      console.log('📊 Unread notifications:', all.filter(n => !n.isRead));
       setAllCashierNotifs(all);
       setCashierNotifs(all.filter(n => !n.isRead));
-    } catch (err) { 
-      console.error('❌ Fetch notifications failed:', err);
-      setCashierNotifs([]); 
+    } catch (err) {
+      setCashierNotifs([]);
       setAllCashierNotifs([]);
     }
   };
@@ -595,19 +592,41 @@ export default function Layout({ children }) {
                     <div className={styles.notifHeader}>
                       <span>Notifications</span>
                       {!isAdmin && (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button 
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button
                             className={`${styles.notifTab} ${notifTab === 'unread' ? styles.notifTabActive : ''}`}
                             onClick={() => setNotifTab('unread')}
                           >
-                            Unread
+                            Unread {cashierNotifs.length > 0 && `(${cashierNotifs.length})`}
                           </button>
-                          <button 
+                          <button
                             className={`${styles.notifTab} ${notifTab === 'all' ? styles.notifTabActive : ''}`}
                             onClick={() => setNotifTab('all')}
                           >
                             All
                           </button>
+                          {notifTab === 'unread' && cashierNotifs.length > 0 && (
+                            <button
+                              className={styles.notifTab}
+                              style={{ fontSize: 10, color: '#8B7355' }}
+                              onClick={async () => {
+                                // Mark all as read
+                                const unread = [...cashierNotifs];
+                                setAllCashierNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+                                setCashierNotifs([]);
+                                try {
+                                  await Promise.all(unread.map(n =>
+                                    axios.put(`/api/notifications/read/${n.id}`, {}, {
+                                      headers: { Authorization: `Bearer ${user.token}` },
+                                      withCredentials: true,
+                                    })
+                                  ));
+                                } catch {}
+                              }}
+                            >
+                              Mark all read
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -674,20 +693,23 @@ export default function Layout({ children }) {
                                   {!notif.isRead && (
                                     <button className={styles.notifApproveBtn} onClick={async (e) => {
                                       e.stopPropagation();
+                                      // Optimistic update first
+                                      setAllCashierNotifs(prev =>
+                                        prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n)
+                                      );
+                                      setCashierNotifs(prev => prev.filter(n => n.id !== notif.id));
                                       try {
-                                        console.log('🔄 Marking notification as read:', notif.id);
-                                        const response = await axios.put(`/api/notifications/read/${notif.id}`, {}, {
+                                        await axios.put(`/api/notifications/read/${notif.id}`, {}, {
                                           headers: { Authorization: `Bearer ${user.token}` },
                                           withCredentials: true,
                                         });
-                                        console.log('✅ Mark read response:', response.status);
-                                        // Immediately update local state
-                                        setAllCashierNotifs(prev => 
-                                          prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n)
-                                        );
-                                        setCashierNotifs(prev => prev.filter(n => n.id !== notif.id));
                                       } catch (err) {
-                                        console.error('❌ Mark read failed:', err.response?.status, err.response?.data || err.message);
+                                        // Rollback on failure
+                                        setAllCashierNotifs(prev =>
+                                          prev.map(n => n.id === notif.id ? { ...n, isRead: false } : n)
+                                        );
+                                        setCashierNotifs(prev => [...prev, notif]);
+                                        console.error('Mark read failed:', err.response?.status);
                                       }
                                     }}>Mark Read</button>
                                   )}

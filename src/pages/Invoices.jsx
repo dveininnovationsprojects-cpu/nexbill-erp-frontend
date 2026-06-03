@@ -432,7 +432,7 @@ function printInvoice(inv) {
   </div>
 
   <div class="thankyou">
-    <div class="ty-title">Thank you for your business! 🙏</div>
+    <div class="ty-title">Thank you for your business!</div>
     <div class="ty-sub">For queries: billing@nexbill.in &nbsp;|&nbsp; +91 9876 543 210</div>
   </div>
 
@@ -465,9 +465,6 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
             </span>
           </div>
           <div className="inv-pdf-modal-acts">
-            <button className="inv-btn-outline" onClick={() => onEmail(invoice)}>
-              <Send size={13} /> Send Email
-            </button>
             <button className="inv-btn-sm" onClick={() => printInvoice(invoice)}>
               <Printer size={13} /> Print / PDF
             </button>
@@ -596,7 +593,7 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
 
             {/* Thank You */}
             <div className="inv-doc-thankyou">
-              <div className="inv-doc-thankyou-title">Thank you for your business! 🙏</div>
+              <div className="inv-doc-thankyou-title">Thank you for your business!</div>
               <div className="inv-doc-thankyou-sub">For queries: billing@nexbill.in &nbsp;|&nbsp; +91 9876 543 210</div>
             </div>
           </div>
@@ -852,9 +849,9 @@ export default function AdminInvoices() {
       const res = await api.get('/api/billing/history');
       const data = (res.data || []).map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
-        customer:   inv.cashierId     || 'Walk-in Customer',
+        customer:   inv.customerName || 'Walk-in Customer',
         email:      '',
-        phone:      '',
+        phone:      inv.customerPhone || '',
         address:    '',
         gstNo:      '',
         items: (inv.items || []).map(it => ({
@@ -868,7 +865,7 @@ export default function AdminInvoices() {
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
         totalItems: inv.totalItems || 0,
-        status:     'Paid',
+        status:     inv.status     || 'Paid',
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         cashier:    inv.cashierId    || '—',
@@ -906,9 +903,14 @@ export default function AdminInvoices() {
     showToast('Invoice marked as Paid');
   };
 
-  const handleDelete = (id) => {
-    setInvoices(prev => prev.filter(inv => inv.id !== id));
-    showToast('Invoice deleted', 'error');
+  const handleDelete = async (id) => {
+    try {
+      await api.put(`/api/billing/cancel/${id}`);
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'CANCELLED' } : inv));
+      showToast(`Invoice ${id} cancelled successfully.`, 'error');
+    } catch {
+      showToast('Failed to cancel invoice. Try again.', 'error');
+    }
   };
 
   const handleCreate = (newInv) => {
@@ -917,7 +919,7 @@ export default function AdminInvoices() {
   };
 
   const handleEmail = (inv) => {
-    showToast(`Email sent to ${inv.email}`);
+    showToast(`Email sent for invoice ${inv.id}`);
   };
 
   const handleDuplicate = (inv) => {
@@ -1059,7 +1061,6 @@ export default function AdminInvoices() {
                       <td><span className="inv-id-cell">{inv.id}</span></td>
                       <td>
                         <div className="inv-customer-name">{inv.customer}</div>
-                        <div className="inv-customer-sub">{inv.email}</div>
                       </td>
                       <td style={{ color: '#8B7355' }}>{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
                       <td><span className="inv-amount">{inr(total)}</span></td>

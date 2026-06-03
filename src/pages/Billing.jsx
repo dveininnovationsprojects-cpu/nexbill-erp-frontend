@@ -20,7 +20,7 @@ export default function Billing() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    api.get('/api/billing/all').then(res => setBills(res.data || [])).catch(() => setBills([]));
+    api.get('/api/billing/history').then(res => setBills(res.data || [])).catch(() => setBills([]));
   }, []);
 
   const cashiers = [...new Set(bills.map(b => b.cashierId || b.cashier).filter(Boolean))];
@@ -141,10 +141,11 @@ export default function Billing() {
                 const invoice = b.invoiceNumber || b.invoice || '—';
                 const total = b.grandTotal || b.total || 0;
                 const gst = b.gstTotal || b.gst || 0;
-                const discount = b.discountTotal || b.discount || 0;
-                const items = b.totalItems || b.items || 0;
+                const discount = parseFloat(b.discountTotal || b.discount || 0);
+                const items = b.totalItems || 0;
                 const method = b.paymentMethod || b.method || '—';
-                const date = b.timestamp ? new Date(b.timestamp).toLocaleString('en-IN') : (b.date || '—');
+                const date = b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+                const discountDisplay = discount > 0 ? `-₹${discount.toLocaleString('en-IN')}` : '—';
                 return (
                   <tr key={b.id || b.invoiceNumber}>
                     <td><span className="ab-inv">{invoice}</span></td>
@@ -157,7 +158,7 @@ export default function Billing() {
                     <td>{b.customerName || b.customer || 'Walk-in'}</td>
                     <td style={{color:'#8B7355'}}>{items} items</td>
                     <td style={{color:'#8B7355'}}>₹{gst}</td>
-                    <td style={{color:'#5A7A5A'}}>{discount > 0 ? `-₹${discount}` : '—'}</td>
+                    <td style={{color:'#5A7A5A'}}>{discountDisplay}</td>
                     <td><span className="ab-total">₹{Number(total).toLocaleString()}</span></td>
                     <td><span className="ab-method">{method}</span></td>
                     <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{status}</span></td>

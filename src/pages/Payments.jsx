@@ -74,13 +74,7 @@ export default function Payments() {
         console.log('📋 First order sample:', billRes.data[0]);
         
         if (billRes.data && billRes.data.length > 0) {
-          const transformedPayments = billRes.data
-            .filter(order => {
-              // Filter only yasik's invoices
-              const cashierName = (order.cashierName || order.cashier?.name || order.cashier?.username || order.cashierId || '').toLowerCase();
-              return cashierName.includes('yasik');
-            })
-            .map(order => {
+          const transformedPayments = billRes.data.map(order => {
             console.log('📦 Order data:', order);
             return {
               id: `PAY-${order.id}`,
