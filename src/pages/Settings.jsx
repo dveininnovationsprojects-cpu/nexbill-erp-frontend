@@ -1,21 +1,18 @@
 // ╔══════════════════════════════════════════════════════════════════════╗
-// ║   NexBill ERP — Settings Module  (Enhanced UI v2)                  ║
-// ║   Tabs: Business Profile · Invoice · Tax & GST ·                   ║
-// ║          Notifications · Security                                  ║
+// ║   NexBill ERP — Settings Module                                    ║
+// ║   Tabs: Business Profile · Invoice Settings                        ║
 // ║   All CSS, all components, all logic — ONE FILE                    ║
 // ╚══════════════════════════════════════════════════════════════════════╝
 
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api';
 import {
-  Building2, FileText, Percent, Bell, Shield,
-  Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
-  User, Phone, Mail, MapPin, Globe, Hash, Camera,
-  CreditCard, Calendar, Clock, ToggleLeft, ToggleRight,
-  ChevronRight, Lock, Smartphone, RefreshCw, Upload,
-  Info, AlertTriangle, Send, Check,
+  Building2, FileText,
+  Save, CheckCircle, AlertCircle, X,
+  User, Phone, Mail, MapPin, Globe, Hash,
+  ToggleLeft, ToggleRight, Upload,
+  Info, Check,
 } from 'lucide-react';
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -561,20 +558,6 @@ function Toggle({ on, onChange }) {
   );
 }
 
-function useSaving(onSave) {
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
-  const handle = async (msg) => {
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 800));
-    setSaving(false);
-    setSaved(true);
-    onSave(msg);
-    setTimeout(() => setSaved(false), 2000);
-  };
-  return { saving, saved, handle };
-}
-
 function SaveBtn({ saving, saved, onClick, label = 'Save', icon: Icon = Save }) {
   return (
     <button className="st-btn-primary" onClick={onClick} disabled={saving}>
@@ -586,15 +569,6 @@ function SaveBtn({ saving, saved, onClick, label = 'Save', icon: Icon = Save }) 
       }
     </button>
   );
-}
-
-function pwStrength(pw) {
-  let s = 0;
-  if (pw.length >= 8)           s++;
-  if (/[A-Z]/.test(pw))        s++;
-  if (/[0-9]/.test(pw))        s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
-  return s;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -631,10 +605,18 @@ function ProfileTab({ onSave }) {
       setForm(f => ({
         ...f,
         companyName:         s.companyName         || '',
+        tagline:             s.tagline             || '',
         email:               s.companyEmail        || '',
         phone:               s.companyPhone        || '',
+        website:             s.website             || '',
         address:             s.companyAddress      || '',
+        city:                s.city                || '',
+        state:               s.state               || '',
+        pincode:             s.pincode             || '',
+        country:             s.country             || 'India',
         gstNo:               s.gstNumber           || '',
+        pan:                 s.pan                 || '',
+        cin:                 s.cin                 || '',
         invoicePrefix:       s.invoicePrefix       || '',
         currency:            s.currency            || 'INR',
         defaultReorderLevel: s.defaultReorderLevel || 10,
@@ -648,14 +630,22 @@ function ProfileTab({ onSave }) {
     try {
       await api.put('/api/settings/update', {
         companyName:         form.companyName,
+        tagline:             form.tagline             || '',
         companyAddress:      form.address,
         companyPhone:        form.phone,
         companyEmail:        form.email,
+        website:             form.website             || '',
+        city:                form.city                || '',
+        state:               form.state               || '',
+        pincode:             form.pincode             || '',
+        country:             form.country             || 'India',
         gstNumber:           form.gstNo,
-        invoicePrefix:       form.invoicePrefix || 'INV',
-        currency:            form.currency      || 'INR',
+        pan:                 form.pan                 || '',
+        cin:                 form.cin                 || '',
+        invoicePrefix:       form.invoicePrefix       || 'INV',
+        currency:            form.currency            || 'INR',
         defaultReorderLevel: form.defaultReorderLevel || 10,
-        logoUrl:             form.logoUrl       || null,
+        logoUrl:             form.logoUrl             || null,
       });
       setSaved(true);
       setDirty(false);
@@ -676,7 +666,11 @@ function ProfileTab({ onSave }) {
     if (!file) return;
     if (!file.type.startsWith('image/')) { onSave('Please select a valid image file.', 'error'); return; }
     const reader = new FileReader();
-    reader.onload = (ev) => { setLogoPreview(ev.target.result); setDirty(true); };
+    reader.onload = (ev) => {
+      setLogoPreview(ev.target.result);
+      set('logoUrl', ev.target.result); // write base64 into form so it's included in Save
+      setDirty(true);
+    };
     reader.readAsDataURL(file);
   };
 
@@ -709,7 +703,7 @@ function ProfileTab({ onSave }) {
                 <Upload size={12} /> {logoPreview ? 'Change Logo' : 'Upload Logo'}
               </button>
               {logoPreview && (
-                <button className="st-logo-remove" onClick={() => { setLogoPreview(null); setDirty(true); if (logoInputRef.current) logoInputRef.current.value = ''; }}>
+                <button className="st-logo-remove" onClick={() => { setLogoPreview(null); set('logoUrl', null); setDirty(true); if (logoInputRef.current) logoInputRef.current.value = ''; }}>
                   <X size={12} /> Remove
                 </button>
               )}
@@ -804,19 +798,83 @@ function ProfileTab({ onSave }) {
    INVOICE SETTINGS TAB
 ══════════════════════════════════════════════════════════════════════ */
 function InvoiceSettingsTab({ onSave }) {
-  const { saving, saved, handle } = useSaving(onSave);
-  const [form, setForm] = useState({
+  const DEFAULTS = {
     prefix: 'INV-', startingNumber: '1001', dueDays: '7',
     currency: 'INR', dateFormat: 'DD MMM YYYY',
     paymentTerms: 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest.',
     footerNote: 'Thank you for your business! For queries, contact billing@nexbill.in',
     showLogo: true, showGST: true, showSignature: true,
     showQR: false,  showBankDetails: true, showTerms: true,
-  });
-  const [orig] = useState(form);
-  const [dirty, setDirty] = useState(false);
+  };
+  const [form, setForm] = useState(DEFAULTS);
+  const [orig, setOrig] = useState(DEFAULTS);
+  const [dirty, setDirty]   = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  // Company profile fields for Live Preview
+  const [company, setCompany] = useState({ name: '', email: '', gstNo: '' });
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
   const tog = (k)    => { setForm(f => ({ ...f, [k]: !f[k] })); setDirty(true); };
+
+  // Load saved invoice settings + business profile on mount
+  useEffect(() => {
+    api.get('/api/settings').then(res => {
+      const s = res.data;
+      const loaded = {
+        prefix:         s.invoicePrefix       || DEFAULTS.prefix,
+        startingNumber: s.invoiceStartingNumber != null ? String(s.invoiceStartingNumber) : DEFAULTS.startingNumber,
+        dueDays:        s.invoiceDueDays       != null ? String(s.invoiceDueDays)          : DEFAULTS.dueDays,
+        currency:       s.currency             || DEFAULTS.currency,
+        dateFormat:     s.invoiceDateFormat    || DEFAULTS.dateFormat,
+        paymentTerms:   s.invoicePaymentTerms  || DEFAULTS.paymentTerms,
+        footerNote:     s.invoiceFooterNote    || DEFAULTS.footerNote,
+        showLogo:        s.showLogo        != null ? s.showLogo        : DEFAULTS.showLogo,
+        showGST:         s.showGST         != null ? s.showGST         : DEFAULTS.showGST,
+        showSignature:   s.showSignature   != null ? s.showSignature   : DEFAULTS.showSignature,
+        showQR:          s.showQR          != null ? s.showQR          : DEFAULTS.showQR,
+        showBankDetails: s.showBankDetails != null ? s.showBankDetails : DEFAULTS.showBankDetails,
+        showTerms:       s.showTerms       != null ? s.showTerms       : DEFAULTS.showTerms,
+      };
+      setForm(loaded);
+      setOrig(loaded);
+      // Load company profile for Live Preview
+      setCompany({
+        name:   s.companyName  || 'Your Company',
+        email:  s.companyEmail || '',
+        gstNo:  s.gstNumber    || '',
+      });
+    }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.put('/api/settings/invoice-settings', {
+        prefix:         form.prefix,
+        startingNumber: Number(form.startingNumber),
+        dueDays:        Number(form.dueDays),
+        currency:       form.currency,
+        dateFormat:     form.dateFormat,
+        paymentTerms:   form.paymentTerms,
+        footerNote:     form.footerNote,
+        showLogo:        form.showLogo,
+        showGST:         form.showGST,
+        showSignature:   form.showSignature,
+        showQR:          form.showQR,
+        showBankDetails: form.showBankDetails,
+        showTerms:       form.showTerms,
+      });
+      setOrig(form);
+      setDirty(false);
+      setSaved(true);
+      onSave('Invoice settings saved!');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      onSave(err.response?.data?.message || 'Failed to save invoice settings.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const TOGGLES = [
     { key: 'showLogo',        label: 'Company Logo',          desc: 'Display your logo in the invoice header' },
@@ -902,7 +960,7 @@ function InvoiceSettingsTab({ onSave }) {
         </div>
         <div className="st-card-foot">
           <button className="st-btn-secondary" disabled={!dirty} onClick={() => { setForm(orig); setDirty(false); }}>Discard</button>
-          <SaveBtn saving={saving} saved={saved} onClick={() => handle('Invoice settings saved!')} label="Save Settings" />
+          <SaveBtn saving={saving} saved={saved} onClick={handleSave} label="Save Settings" />
         </div>
       </div>
 
@@ -918,11 +976,11 @@ function InvoiceSettingsTab({ onSave }) {
           <div className="st-inv-preview">
             <div className="st-inv-prev-head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {form.showLogo && <div className="st-inv-prev-logo">N</div>}
+                {form.showLogo && <div className="st-inv-prev-logo">{company.name?.[0]?.toUpperCase() || 'C'}</div>}
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#2D2D2D' }}>NexBill ERP</div>
-                  <div style={{ fontSize: 10, color: '#8B7355' }}>billing@nexbill.in</div>
-                  {form.showGST && <div style={{ fontSize: 10, color: '#8B7355' }}>GSTIN: 29AABCN1234M1Z5</div>}
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#2D2D2D' }}>{company.name || 'Your Company'}</div>
+                  {company.email  && <div style={{ fontSize: 10, color: '#8B7355' }}>{company.email}</div>}
+                  {form.showGST && company.gstNo && <div style={{ fontSize: 10, color: '#8B7355' }}>GSTIN: {company.gstNo}</div>}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -979,261 +1037,6 @@ function InvoiceSettingsTab({ onSave }) {
           </div>
         </div>
       </div>
-    </>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   TAX & GST TAB
-══════════════════════════════════════════════════════════════════════ */
-const GST_SLABS = [
-  { rate: '0%',  name: 'Exempt',    desc: 'Basic necessities'     },
-  { rate: '5%',  name: 'Essential', desc: 'Packaged food, drugs'  },
-  { rate: '12%', name: 'Standard',  desc: 'Processed food'        },
-  { rate: '18%', name: 'Standard+', desc: 'Most goods & services' },
-  { rate: '28%', name: 'Luxury',    desc: 'Luxury, sin goods'     },
-];
-
-function TaxTab({ onSave }) {
-  const [selected, setSelected] = useState(['18%', '5%']);
-  const [cgst, setCGST]         = useState('9');
-  const [sgst, setSGST]         = useState('9');
-  const [igst, setIGST]         = useState('18');
-  const [inclusive, setInclusive] = useState(false);
-  const [hsnEnabled, setHSN]    = useState(true);
-  const [sacEnabled, setSAC]    = useState(false);
-
-  const toggleSlab = (rate) =>
-    setSelected(prev => prev.includes(rate) ? prev.filter(r => r !== rate) : [...prev, rate]);
-
-  return (
-    <div className="st-card">
-      <div className="st-card-head">
-        <div>
-          <div className="st-card-title"><Percent size={15} /> Tax &amp; GST Configuration</div>
-          <div className="st-card-sub">Configure GST rates, CGST/SGST splits, and HSN/SAC codes</div>
-        </div>
-      </div>
-      <div className="st-card-body">
-        <div className="st-section-lbl">Active GST Slabs</div>
-        <div className="st-tax-summary">
-          {selected.length === 0
-            ? <span className="st-tax-chip-none">No slabs selected</span>
-            : selected.sort().map(r => (
-                <span key={r} className="st-tax-chip"><CheckCircle size={10} /> {r} GST</span>
-              ))
-          }
-        </div>
-        <div className="st-gst-grid">
-          {GST_SLABS.map(s => (
-            <div key={s.rate} className={`st-gst-chip ${selected.includes(s.rate) ? 'selected' : ''}`} onClick={() => toggleSlab(s.rate)}>
-              <div className="st-gst-rate">{s.rate}</div>
-              <div className="st-gst-name">{s.name}</div>
-              <div className="st-gst-desc">{s.desc}</div>
-            </div>
-          ))}
-        </div>
-        <div className="st-section-lbl">CGST / SGST / IGST Rates</div>
-        <div className="st-grid3">
-          <div className="st-field">
-            <label>CGST Rate (%)</label>
-            <input type="number" value={cgst} onChange={e => setCGST(e.target.value)} min="0" max="14" />
-            <div className="st-field-hint">Central GST — intrastate</div>
-          </div>
-          <div className="st-field">
-            <label>SGST Rate (%)</label>
-            <input type="number" value={sgst} onChange={e => setSGST(e.target.value)} min="0" max="14" />
-            <div className="st-field-hint">State GST — intrastate</div>
-          </div>
-          <div className="st-field">
-            <label>IGST Rate (%)</label>
-            <input type="number" value={igst} onChange={e => setIGST(e.target.value)} min="0" max="28" />
-            <div className="st-field-hint">Interstate GST</div>
-          </div>
-        </div>
-        <div className="st-info-banner info" style={{ marginBottom: 16 }}>
-          <Info size={14} style={{ flexShrink: 0 }} />
-          <span>
-            <strong>Intrastate:</strong> CGST ({cgst}%) + SGST ({sgst}%) = <strong>{Number(cgst) + Number(sgst)}%</strong> &nbsp;|&nbsp;
-            <strong>Interstate:</strong> IGST ({igst}%) applies
-          </span>
-        </div>
-        <div className="st-section-lbl">Tax Options</div>
-        {[
-          { val: inclusive,  set: setInclusive, label: 'Tax Inclusive Pricing', desc: 'Product prices already include GST' },
-          { val: hsnEnabled, set: setHSN,       label: 'HSN Code for Goods',    desc: 'Show HSN code on invoice items' },
-          { val: sacEnabled, set: setSAC,       label: 'SAC Code for Services', desc: 'Show SAC code on service items' },
-        ].map(({ val, set, label, desc }) => (
-          <div key={label} className="st-toggle-row">
-            <div className="st-toggle-info">
-              <div className="st-toggle-label">{label}</div>
-              <div className="st-toggle-desc">{desc}</div>
-            </div>
-            <Toggle on={val} onChange={set} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   NOTIFICATIONS TAB
-══════════════════════════════════════════════════════════════════════ */
-function NotificationsTab({ onSave }) {
-  const [notifs, setNotifs] = useState({
-    emailNewInvoice: true, emailPaymentReceived: true, emailOverdue: true,
-    emailLowStock: false,  emailCashierApproval: true,
-    appNewInvoice: true,   appPaymentReceived: true,
-    appOverdue: true,      appLowStock: true,
-  });
-  const tog = (k) => setNotifs(n => ({ ...n, [k]: !n[k] }));
-
-  const groups = [
-    {
-      title: 'Email Notifications', icon: Mail,
-      sub: 'Sent to your registered email address',
-      items: [
-        { key: 'emailNewInvoice',      label: 'New Invoice Created',      desc: 'Notified when any invoice is generated' },
-        { key: 'emailPaymentReceived', label: 'Payment Received',         desc: 'Alert when a customer payment is recorded' },
-        { key: 'emailOverdue',         label: 'Invoice Overdue',          desc: 'Reminder when invoices pass their due date' },
-        { key: 'emailLowStock',        label: 'Low Stock Alert',          desc: 'Email when a product falls below minimum stock' },
-        { key: 'emailCashierApproval', label: 'Cashier Approval Request', desc: 'New cashier registration awaiting your approval' },
-      ],
-    },
-    {
-      title: 'In-App Notifications', icon: Bell,
-      sub: 'Shown in the notification panel inside NexBill',
-      items: [
-        { key: 'appNewInvoice',       label: 'New Invoice',   desc: 'In-app notification when a new invoice is created' },
-        { key: 'appPaymentReceived',  label: 'Payment Alert', desc: 'In-app alert when a payment is received' },
-        { key: 'appOverdue',          label: 'Overdue Alert', desc: 'In-app reminder for overdue invoices' },
-        { key: 'appLowStock',         label: 'Low Stock',     desc: 'In-app alert when product inventory is running low' },
-      ],
-    },
-  ];
-
-  return (
-    <>
-      {groups.map(({ title, icon: Icon, sub, items }) => (
-        <div className="st-card" key={title}>
-          <div className="st-card-head">
-            <div>
-              <div className="st-card-title"><Icon size={15} /> {title}</div>
-              <div className="st-card-sub">{sub}</div>
-            </div>
-          </div>
-          <div className="st-card-body">
-            {items.map(({ key, label, desc }) => (
-              <div className="st-toggle-row" key={key}>
-                <div className="st-toggle-info">
-                  <div className="st-toggle-label">{label}</div>
-                  <div className="st-toggle-desc">{desc}</div>
-                </div>
-                <Toggle on={notifs[key]} onChange={() => tog(key)} />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   SECURITY TAB
-══════════════════════════════════════════════════════════════════════ */
-function SecurityTab({ onSave }) {
-  const { saving, saved, handle } = useSaving(onSave);
-  const [pwForm, setPWForm] = useState({ current: '', newPw: '', confirm: '' });
-  const [showPw, setShowPw] = useState({ current: false, newPw: false, confirm: false });
-  const [twoFA, setTwoFA]   = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState('30');
-  const [pwError, setPwError] = useState('');
-
-  const togglePw = (k) => setShowPw(s => ({ ...s, [k]: !s[k] }));
-  const setP = (k, v) => { setPWForm(f => ({ ...f, [k]: v })); setPwError(''); };
-
-  const str    = pwStrength(pwForm.newPw);
-  const strCol = ['', '#dc2626', '#f59e0b', '#22c55e', '#16a34a'][str];
-  const strLbl = ['', 'Weak', 'Fair', 'Good', 'Strong'][str];
-
-  const handlePwSave = async () => {
-    if (!pwForm.current)                 { setPwError('Current password is required.'); return; }
-    if (pwForm.newPw.length < 8)         { setPwError('New password must be at least 8 characters.'); return; }
-    if (pwForm.newPw !== pwForm.confirm) { setPwError('New passwords do not match.'); return; }
-    try {
-      await api.put('/api/profile/update', { password: pwForm.newPw });
-      onSave('Password updated successfully!');
-      setPWForm({ current: '', newPw: '', confirm: '' });
-    } catch (err) {
-      setPwError(err.response?.data?.message || 'Failed to update password. Try again.');
-    }
-  };
-
-  const PwField = ({ field, label, placeholder }) => (
-    <div className="st-field">
-      <label>{label}</label>
-      <div className="st-input-wrap">
-        <Lock size={14} className="st-input-icon" />
-        <input
-          style={{ paddingLeft: 34, paddingRight: 36 }}
-          type={showPw[field] ? 'text' : 'password'}
-          value={pwForm[field]}
-          placeholder={placeholder}
-          onChange={e => setP(field, e.target.value)}
-        />
-        <button className="st-eye-btn" type="button" onClick={() => togglePw(field)}>
-          {showPw[field] ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
-    </div>
-  );
-
-  return (
-    <>
-      {/* Change Password */}
-      <div className="st-card">
-        <div className="st-card-head">
-          <div>
-            <div className="st-card-title"><Lock size={15} /> Change Password</div>
-            <div className="st-card-sub">Keep your account secure with a strong, unique password</div>
-          </div>
-        </div>
-        <div className="st-card-body">
-          <PwField field="current" label="Current Password"     placeholder="Enter current password" />
-          <PwField field="newPw"   label="New Password"         placeholder="Min 8 characters" />
-
-          {/* Strength bar */}
-          {pwForm.newPw.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <div className="st-pw-strength">
-                {[1,2,3,4].map(i => (
-                  <div key={i} className="st-pw-bar" style={{ background: i <= str ? strCol : '#EFE7DE' }} />
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: strCol, fontWeight: 600 }}>{strLbl} password</div>
-            </div>
-          )}
-
-          <PwField field="confirm" label="Confirm New Password" placeholder="Re-enter new password" />
-
-          {pwError && (
-            <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-              <AlertCircle size={13} /> {pwError}
-            </div>
-          )}
-
-          <div style={{ background: '#F8F5F2', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#8B7355', lineHeight: 1.5 }}>
-            Use at least 8 characters — mix uppercase, lowercase, numbers and symbols.
-          </div>
-        </div>
-        <div className="st-card-foot">
-          <button className="st-btn-secondary" onClick={() => { setPWForm({ current: '', newPw: '', confirm: '' }); setPwError(''); }}>Clear</button>
-          <SaveBtn saving={saving} saved={saved} onClick={handlePwSave} label="Update Password" icon={Shield} />
-        </div>
-      </div>
-
     </>
   );
 }

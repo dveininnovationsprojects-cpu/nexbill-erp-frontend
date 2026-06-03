@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import {
   User, Mail, Phone, Clock, Shield,
   LogOut, Edit3, Save, X, Lock, Eye, EyeOff,
@@ -374,7 +374,7 @@ function PwInput({ label, value, onChange, showPw, onToggle, placeholder }) {
 /* ══════════════════════════════════════════════════════════════════════
    CHANGE PASSWORD MODAL
 ══════════════════════════════════════════════════════════════════════ */
-function ChangePasswordModal({ onClose, onSave, userToken }) {
+function ChangePasswordModal({ onClose, onSave }) {
   const [form, setForm]     = useState({ current: '', newPw: '', confirm: '' });
   const [show, setShow]     = useState({ current: false, newPw: false, confirm: false });
   const [saving, setSaving] = useState(false);
@@ -394,11 +394,10 @@ function ChangePasswordModal({ onClose, onSave, userToken }) {
     if (form.newPw !== form.confirm)  { setError('Passwords do not match.'); return; }
     setSaving(true);
     try {
-      await axios.put(
-        '/api/profile/update',
-        { password: form.newPw },
-        { headers: { Authorization: `Bearer ${userToken}` }, withCredentials: true }
-      );
+      await api.put('/api/profile/update', {
+        currentPassword: form.current,
+        password:        form.newPw,
+      });
       onSave('Password updated successfully!');
       onClose();
     } catch (err) {
@@ -498,11 +497,7 @@ function PersonalInfoTab({ user, profileData, profileLoading, onSave, onChangePW
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.put(
-        '/api/profile/update',
-        { name: form.name, phone: form.phone },
-        { headers: { Authorization: `Bearer ${user.token}` }, withCredentials: true }
-      );
+      await api.put('/api/profile/update', { name: form.name, phone: form.phone });
       setOrig(form);
       setEditing(false);
       onSave('Profile updated successfully!');
@@ -763,10 +758,7 @@ export default function Profile() {
   const fetchProfile = async () => {
     if (!user?.token) return;
     try {
-      const res = await axios.get('/api/profile/me', {
-        headers: { Authorization: `Bearer ${user.token}` },
-        withCredentials: true,
-      });
+      const res = await api.get('/api/profile/me');
       setProfileData(res.data);
     } catch (err) {
       showToast('Could not load profile data.', 'error');
@@ -843,7 +835,7 @@ export default function Profile() {
       )}
 
       {showLogout && <LogoutModal user={user} onCancel={() => setShowLogout(false)} onConfirm={handleLogoutConfirm} loading={logoutLoading} />}
-      {showChangePW && <ChangePasswordModal onClose={() => setShowChangePW(false)} onSave={showToast} userToken={user?.token} />}
+      {showChangePW && <ChangePasswordModal onClose={() => setShowChangePW(false)} onSave={showToast} />}
 
       <div className="pr-shell">
 

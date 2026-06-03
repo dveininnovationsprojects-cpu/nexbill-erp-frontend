@@ -38,6 +38,11 @@ export default function CashierBilling() {
     { id: 'NET_BANKING', label: 'Net Banking' },
   ];
 
+  // Clear stale cart on page load
+  useEffect(() => {
+    api.delete('/api/cart/clear').catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.get('/api/products/all')
       .then(async res => {
@@ -135,7 +140,7 @@ export default function CashierBilling() {
     });
     // Sync with backend cart
     try {
-      await api.post('/api/cart/add', { productId: product.id, quantity: 1 });
+      await api.post('/api/cart/add', { productId: product.id, quantity: 1.0 });
     } catch (err) {
       const msg = err?.response?.data || 'Failed to add to cart';
       alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -157,7 +162,7 @@ export default function CashierBilling() {
       try { await api.delete(`/api/cart/remove/${id}`); } catch {}
     } else {
       setCart(prev => prev.map(i => i.id === id ? { ...i, qty: newQty } : i));
-      try { await api.put('/api/cart/update', { productId: id, quantity: newQty }); } catch {}
+      try { await api.put('/api/cart/update', { productId: id, quantity: parseFloat(newQty) }); } catch {}
     }
   };
 

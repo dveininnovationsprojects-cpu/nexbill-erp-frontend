@@ -213,9 +213,17 @@ function stampColor(status) {
 /* ══════════════════════════════════════════════════════════════════════
    PRINT / PDF
 ══════════════════════════════════════════════════════════════════════ */
-function printInvoice(inv) {
+function printInvoice(inv, co = {}) {
   const { subtotal, gstTotal, total } = calcInvoice(inv);
   const sc = stampColor(inv.status);
+  const coName    = co.companyName    || 'Your Company';
+  const coTagline = co.tagline        || '';
+  const coAddr    = co.companyAddress || '';
+  const coPhone   = co.companyPhone   || '';
+  const coEmail   = co.companyEmail   || '';
+  const coGST     = co.gstNumber      || '';
+  const coTerms   = co.invoicePaymentTerms || 'Payment due within 7 days. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval.';
+  const coFooter  = co.invoiceFooterNote   || (co.companyEmail ? `For queries: ${co.companyEmail}` : 'Thank you for your business!');
 
   const rows = inv.items.map((it, i) => {
     const lineAmt = it.qty * it.rate;
@@ -234,118 +242,156 @@ function printInvoice(inv) {
     </tr>`;
   }).join('');
 
+  const statusColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Draft:'#64748b', CANCELLED:'#64748b', COMPLETED:'#16a34a' };
+  const sColor = statusColors[inv.status] || '#64748b';
+  const grandTotal = subtotal + gstTotal - (inv.discount || 0);
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Invoice ${inv.id} — NexBill ERP</title>
+  <title>Invoice ${inv.id} — ${coName}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;color:#2D2D2D;background:#fff;padding:40px;max-width:820px;margin:0 auto}
-    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:24px;border-bottom:2px solid #EFE7DE}
-    .brand-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-    .logo{width:46px;height:46px;background:#2D2D2D;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;text-align:center;line-height:46px}
-    .co-name{font-size:18px;font-weight:800;color:#2D2D2D}
-    .co-sub{font-size:10px;color:#8B7355;margin-top:1px}
-    .co-addr{font-size:11px;color:#3F3F46;line-height:1.7}
-    .inv-title{font-size:28px;font-weight:900;color:#2D2D2D;letter-spacing:-1px;margin-bottom:12px}
-    .meta-row{display:flex;gap:20px;justify-content:flex-end;margin-bottom:3px}
-    .meta-lbl{font-size:11px;color:#8B7355}
-    .meta-val{font-size:12px;font-weight:600;color:#2D2D2D}
-    .parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px}
-    .party-lbl{font-size:9.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.9px;margin-bottom:6px}
-    .party-name{font-size:14px;font-weight:700;color:#2D2D2D;margin-bottom:4px}
-    .party-info{font-size:11.5px;color:#3F3F46;line-height:1.7}
-    .stamp{display:inline-block;padding:4px 14px;border:3px solid ${sc};color:${sc};border-radius:6px;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;transform:rotate(-10deg);margin-top:12px}
-    table{width:100%;border-collapse:collapse;margin-bottom:20px}
-    thead th{background:#2D2D2D;color:#F8F5F2;padding:9px 11px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;text-align:left}
-    thead th:first-child{border-radius:6px 0 0 6px;text-align:center}
-    thead th:last-child{border-radius:0 6px 6px 0;text-align:right}
+    body{font-family:'Inter',sans-serif;background:#f4f4f4;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.08)}
+    .header-band{background:#1a1a1a;padding:18px 32px;display:flex;justify-content:space-between;align-items:center}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo-box{width:40px;height:40px;background:linear-gradient(135deg,#C6A969,#8B7355);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0}
+    .co-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.2px}
+    .co-tag{font-size:10px;color:#C6A969;margin-top:1px;font-weight:500}
+    .inv-label{text-align:right}
+    .inv-word{font-size:28px;font-weight:900;color:#C6A969;letter-spacing:3px;line-height:1}
+    .inv-num{font-size:11.5px;color:#a0a0a0;margin-top:4px;font-weight:500}
+    .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969 0%,#E8D5A0 50%,#8B7355 100%)}
+    .meta-band{background:#f8f6f3;padding:16px 40px;display:flex;gap:0;border-bottom:1px solid #ede9e4}
+    .meta-item{flex:1;padding-right:24px;border-right:1px solid #e0dbd4}
+    .meta-item:last-child{border-right:none;padding-right:0;padding-left:24px;text-align:right}
+    .meta-item:not(:first-child):not(:last-child){padding-left:24px}
+    .meta-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+    .meta-val{font-size:13px;font-weight:700;color:#1a1a1a}
+    .meta-val.accent{color:#C6A969}
+    .status-chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${sColor}18;color:${sColor};border:1.5px solid ${sColor}40}
+    .body{padding:24px 40px}
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;align-items:start}
+    .party-box{background:#f8f6f3;border-radius:8px;padding:12px 16px;border:1px solid #ede9e4}
+    .party-box.right{text-align:right}
+    .party-lbl{font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:3px}
+    .party-info{font-size:11px;color:#555;line-height:1.6}
+    .party-gstin{font-size:10.5px;color:#8B7355;font-weight:600;margin-top:3px}
+    .co-info{font-size:11px;color:#888;line-height:1.6;margin-top:4px}
+    .stamp-wrap{margin-top:10px}
+    .stamp{display:inline-block;padding:3px 12px;border:2px solid ${sColor};color:${sColor};border-radius:4px;font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;transform:rotate(-7deg)}
+    .tbl-wrap{border-radius:10px;overflow:hidden;border:1px solid #ede9e4;margin-bottom:24px}
+    table{width:100%;border-collapse:collapse}
+    thead tr{background:#1a1a1a}
+    thead th{padding:11px 14px;font-size:9.5px;font-weight:700;color:#C6A969;text-transform:uppercase;letter-spacing:0.8px;text-align:left}
     thead th.r{text-align:right}
-    tbody td{padding:9px 11px;border-bottom:1px solid #EFE7DE;font-size:12px;color:#3F3F46;vertical-align:top}
-    .totals{display:flex;justify-content:flex-end;margin-bottom:24px}
-    .totals-inner{min-width:300px;background:#F8F5F2;border-radius:8px;padding:12px 14px}
-    .tot-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px;color:#3F3F46}
-    .tot-grand{border-top:2px solid #2D2D2D;padding-top:10px;margin-top:4px;font-size:15px;font-weight:800;color:#2D2D2D}
-    .footer{display:flex;justify-content:space-between;align-items:flex-end;padding-top:20px;border-top:1px solid #EFE7DE}
-    .terms-lbl{font-size:9.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px}
-    .terms-txt{font-size:11px;color:#3F3F46;line-height:1.7;max-width:320px}
-    .sig-line{width:130px;border-top:1.5px solid #D6D3D1;margin:28px auto 5px}
-    .sig-lbl{font-size:9.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.8px;text-align:center}
-    .sig-name{font-size:11.5px;color:#2D2D2D;font-weight:700;text-align:center;margin-top:2px}
-    .thankyou{text-align:center;margin-top:20px;padding:12px;background:#F8F5F2;border-radius:7px}
-    .ty-title{font-size:13px;font-weight:700;color:#2D2D2D}
-    .ty-sub{font-size:11px;color:#8B7355;margin-top:3px}
-    @media print{body{padding:24px}thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    thead th.c{text-align:center}
+    tbody tr:nth-child(even){background:#fafaf9}
+    tbody tr:nth-child(odd){background:#fff}
+    tbody td{padding:11px 14px;font-size:12.5px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:top}
+    tbody tr:last-child td{border-bottom:none}
+    .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:28px}
+    .totals-box{width:300px;border-radius:10px;overflow:hidden;border:1px solid #ede9e4}
+    .tot-row{display:flex;justify-content:space-between;padding:9px 16px;font-size:12.5px;border-bottom:1px solid #f0ece8}
+    .tot-row:last-child{border-bottom:none}
+    .tot-lbl{color:#555;font-weight:500}
+    .tot-val{font-weight:700;color:#1a1a1a}
+    .tot-disc .tot-lbl,.tot-disc .tot-val{color:#16a34a}
+    .tot-grand-row{background:#1a1a1a;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+    .tot-grand-lbl{color:#C6A969;font-size:13px;font-weight:700;letter-spacing:0.3px}
+    .tot-grand-val{color:#fff;font-size:18px;font-weight:900}
+    .footer-band{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;padding-top:24px;border-top:2px solid #f0ece8}
+    .terms-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+    .terms-txt{font-size:11px;color:#666;line-height:1.7;max-width:360px}
+    .sig-area{text-align:center;min-width:160px}
+    .sig-line{width:140px;border-top:1.5px solid #ccc;margin:32px auto 8px}
+    .sig-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
+    .sig-name{font-size:12px;color:#1a1a1a;font-weight:700;margin-top:3px}
+    .thankyou{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);padding:12px 32px;text-align:center}
+    .ty-title{font-size:12px;font-weight:700;color:#C6A969;letter-spacing:0.5px}
+    .ty-sub{font-size:10.5px;color:#a0a0a0;margin-top:3px}
+    @media print{body{background:#fff}.page{box-shadow:none}}
   </style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="brand-row">
-        <div class="logo">N</div>
-        <div>
-          <div class="co-name">NexBill ERP</div>
-          <div class="co-sub">Smart Billing &amp; Inventory Management</div>
-        </div>
+<div class="page">
+  <div class="header-band">
+    <div class="brand">
+      <div class="logo-box">${coName[0]?.toUpperCase() || 'C'}</div>
+      <div>
+        <div class="co-name">${coName}</div>
+        ${coTagline ? `<div class="co-tag">${coTagline}</div>` : ''}
       </div>
-      <div class="co-addr">45 Tech Park, Bangalore, Karnataka 560001<br>+91 9876 543 210 | billing@nexbill.in<br>GSTIN: 29AABCN1234M1Z5</div>
     </div>
-    <div style="text-align:right">
-      <div class="inv-title">INVOICE</div>
-      <div class="meta-row"><span class="meta-lbl">Invoice No.</span><span class="meta-val">${inv.id}</span></div>
-      <div class="meta-row"><span class="meta-lbl">Date</span><span class="meta-val">${inv.date}</span></div>
-      <div class="meta-row"><span class="meta-lbl">Due Date</span><span class="meta-val">${inv.dueDate}</span></div>
-      <div class="meta-row"><span class="meta-lbl">Payment</span><span class="meta-val">${inv.payment}</span></div>
+    <div class="inv-label">
+      <div class="inv-word">INVOICE</div>
+      <div class="inv-num">${inv.id}</div>
     </div>
   </div>
-  <div class="parties">
-    <div>
-      <div class="party-lbl">Bill To</div>
-      <div class="party-name">${inv.customer}</div>
-      <div class="party-info">${inv.address}<br>${inv.phone}<br>${inv.email}${inv.gstNo ? '<br>GSTIN: ' + inv.gstNo : ''}</div>
-    </div>
-    <div style="text-align:right">
-      <div class="party-lbl">Handled By</div>
-      <div class="party-name">${inv.cashier}</div>
-      <div class="party-info">${inv.counter}</div>
-      <div class="stamp">${inv.status}</div>
-    </div>
+  <div class="gold-strip"></div>
+  <div class="meta-band">
+    <div class="meta-item"><div class="meta-lbl">Invoice Date</div><div class="meta-val">${inv.date}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Due Date</div><div class="meta-val">${inv.dueDate && inv.dueDate !== '—' ? inv.dueDate : 'On Receipt'}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Payment Mode</div><div class="meta-val accent">${inv.payment}</div></div>
+    <div class="meta-item"><div class="meta-lbl">Status</div><div class="meta-val"><span class="status-chip">${inv.status}</span></div></div>
   </div>
-  <table>
-    <thead><tr>
-      <th style="width:30px">#</th><th>Description</th>
-      <th class="r">Qty</th><th class="r">Rate</th>
-      <th class="r">Taxable Amt</th><th class="r">CGST</th>
-      <th class="r">SGST</th><th class="r">Total</th>
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="totals">
-    <div class="totals-inner">
-      <div class="tot-row"><span>Subtotal</span><span>${inr(subtotal)}</span></div>
-      <div class="tot-row"><span>GST Total</span><span>${inr(gstTotal)}</span></div>
-      ${inv.discount > 0 ? `<div class="tot-row" style="color:#16a34a"><span>Discount</span><span>-${inr(inv.discount)}</span></div>` : ''}
-      <div class="tot-row tot-grand"><span>Grand Total</span><span>${inr(total)}</span></div>
+  <div class="body">
+    <div class="parties">
+      <div class="party-box">
+        <div class="party-lbl">Bill To</div>
+        <div class="party-name">${inv.customer}</div>
+        <div class="party-info">${inv.address ? inv.address + '<br>' : ''}${inv.phone ? inv.phone + '<br>' : ''}${inv.email || ''}</div>
+        ${inv.gstNo ? `<div class="party-gstin">GSTIN: ${inv.gstNo}</div>` : ''}
+      </div>
+      <div class="party-box right">
+        <div class="party-lbl">From</div>
+        <div class="party-name">${coName}</div>
+        <div class="co-info">${coAddr ? coAddr + '<br>' : ''}${coPhone ? coPhone + '<br>' : ''}${coEmail || ''}</div>
+        ${coGST ? `<div class="party-gstin">GSTIN: ${coGST}</div>` : ''}
+        <div class="stamp-wrap"><span class="stamp">${inv.status}</span></div>
+      </div>
     </div>
-  </div>
-  <div class="footer">
-    <div>
-      <div class="terms-lbl">Terms &amp; Conditions</div>
-      <div class="terms-txt">Payment due within 7 days. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval. Computer-generated invoice.</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th class="c" style="width:36px">#</th><th>Description</th>
+          <th class="r">Qty</th><th class="r">Rate</th>
+          <th class="r">Taxable Amt</th><th class="r">CGST</th>
+          <th class="r">SGST</th><th class="r">Total</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
-    <div>
-      <div class="sig-line"></div>
-      <div class="sig-lbl">Authorized Signatory</div>
-      <div class="sig-name">NexBill ERP</div>
+    <div class="totals-wrap">
+      <div class="totals-box">
+        <div class="tot-row"><span class="tot-lbl">Subtotal</span><span class="tot-val">${inr(subtotal)}</span></div>
+        <div class="tot-row"><span class="tot-lbl">GST Total</span><span class="tot-val">${inr(gstTotal)}</span></div>
+        ${inv.discount > 0 ? `<div class="tot-row tot-disc"><span class="tot-lbl">Discount</span><span class="tot-val">-${inr(inv.discount)}</span></div>` : ''}
+        <div class="tot-grand-row"><span class="tot-grand-lbl">GRAND TOTAL</span><span class="tot-grand-val">${inr(grandTotal)}</span></div>
+      </div>
+    </div>
+    <div class="footer-band">
+      <div>
+        <div class="terms-lbl">Terms &amp; Conditions</div>
+        <div class="terms-txt">${coTerms}</div>
+      </div>
+      <div class="sig-area">
+        <div class="sig-line"></div>
+        <div class="sig-lbl">Authorized Signatory</div>
+        <div class="sig-name">${coName}</div>
+      </div>
     </div>
   </div>
   <div class="thankyou">
-    <div class="ty-title">Thank you for your business! 🙏</div>
-    <div class="ty-sub">For queries: billing@nexbill.in | +91 9876 543 210</div>
+    <div class="ty-title">Thank you for your business!</div>
+    <div class="ty-sub">${coFooter}</div>
   </div>
-  <script>window.onload=function(){window.print()}</script>
+</div>
+<script>window.onload=function(){window.print()}</script>
 </body>
 </html>`;
 
@@ -358,9 +404,17 @@ function printInvoice(inv) {
 /* ══════════════════════════════════════════════════════════════════════
    PDF PREVIEW MODAL
 ══════════════════════════════════════════════════════════════════════ */
-function PDFPreviewModal({ invoice, onClose, onEmail }) {
+function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
   const { subtotal, gstTotal, total } = calcInvoice(invoice);
   const sc = stampColor(invoice.status);
+  const coName    = co.companyName    || 'Your Company';
+  const coTagline = co.tagline        || '';
+  const coAddr    = co.companyAddress || '';
+  const coPhone   = co.companyPhone   || '';
+  const coEmail   = co.companyEmail   || '';
+  const coGST     = co.gstNumber      || '';
+  const coTerms   = co.invoicePaymentTerms || 'Payment due within 7 days. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval.';
+  const coFooter  = co.invoiceFooterNote   || (co.companyEmail ? `For queries: ${co.companyEmail}` : 'Thank you for your business!');
 
   return (
     <div className="ci-overlay" onClick={onClose}>
@@ -378,7 +432,7 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
             <button className="ci-btn-outline" onClick={() => onEmail(invoice)}>
               <Send size={13} /> Send Email
             </button>
-            <button className="ci-btn-sm" onClick={() => printInvoice(invoice)}>
+            <button className="ci-btn-sm" onClick={() => printInvoice(invoice, co)}>
               <Printer size={13} /> Print / PDF
             </button>
             <button className="ci-close-btn" onClick={onClose}><X size={15} /></button>
@@ -392,16 +446,16 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
             <div className="ci-doc-head">
               <div>
                 <div className="ci-doc-brand-row">
-                  <div className="ci-doc-logo">N</div>
+                  <div className="ci-doc-logo">{coName[0]?.toUpperCase() || 'C'}</div>
                   <div>
-                    <div className="ci-doc-company">NexBill ERP</div>
-                    <div className="ci-doc-company-sub">Smart Billing &amp; Inventory Management</div>
+                    <div className="ci-doc-company">{coName}</div>
+                    {coTagline && <div className="ci-doc-company-sub">{coTagline}</div>}
                   </div>
                 </div>
                 <div className="ci-doc-addr">
-                  45 Tech Park, Bangalore, Karnataka 560001<br />
-                  +91 9876 543 210 &nbsp;|&nbsp; billing@nexbill.in<br />
-                  GSTIN: 29AABCN1234M1Z5
+                  {coAddr}{coAddr && <br />}
+                  {coPhone}{coPhone && coEmail && ' | '}{coEmail}{(coPhone || coEmail) && <br />}
+                  {coGST && <>GSTIN: {coGST}</>}
                 </div>
               </div>
               <div className="ci-doc-right">
@@ -496,21 +550,18 @@ function PDFPreviewModal({ invoice, onClose, onEmail }) {
             <div className="ci-doc-footer">
               <div>
                 <div className="ci-doc-terms-lbl">Terms &amp; Conditions</div>
-                <div className="ci-doc-terms-txt">
-                  Payment due within 7 days. Late payments attract 2% monthly interest.
-                  Goods once sold cannot be returned without prior approval. Computer-generated invoice.
-                </div>
+                <div className="ci-doc-terms-txt">{coTerms}</div>
               </div>
               <div className="ci-doc-sig">
                 <div className="ci-doc-sig-line" />
                 <div className="ci-doc-sig-lbl">Authorized Signatory</div>
-                <div className="ci-doc-sig-name">NexBill ERP</div>
+                <div className="ci-doc-sig-name">{coName}</div>
               </div>
             </div>
 
             <div className="ci-doc-thankyou">
-              <div className="ci-doc-ty-title">Thank you for your business! 🙏</div>
-              <div className="ci-doc-ty-sub">For queries: billing@nexbill.in &nbsp;|&nbsp; +91 9876 543 210</div>
+              <div className="ci-doc-ty-title">Thank you for your business!</div>
+              <div className="ci-doc-ty-sub">{coFooter}</div>
             </div>
           </div>
         </div>
@@ -534,6 +585,7 @@ export default function CashierInvoices() {
   const [page, setPage]           = useState(1);
   const [previewInv, setPreview]  = useState(null);
   const [toast, setToast]         = useState(null);
+  const [co, setCo]               = useState({});
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -545,15 +597,13 @@ export default function CashierInvoices() {
     try {
       const res = await api.get('/api/billing/history');
       const all = res.data || [];
-      // Filter only logged-in cashier's invoices until /api/billing/my-invoices is available
-      const mine = all.filter(inv => inv.cashierId === user?.email);
-      const data = mine.map(inv => ({
+      const data = all.map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
-        customer:   inv.cashierId     || 'Walk-in Customer',
-        email:      '',
-        phone:      '',
-        address:    '',
-        gstNo:      '',
+        customer:   inv.customer?.name    || inv.customerName || 'Walk-in Customer',
+        email:      inv.customer?.email   || '',
+        phone:      inv.customer?.phone   || '',
+        address:    inv.customer?.address || '',
+        gstNo:      inv.customer?.gstNo   || '',
         items: (inv.items || []).map(it => ({
           name: it.productName,
           qty:  parseFloat(it.quantity      || 0),
@@ -564,11 +614,11 @@ export default function CashierInvoices() {
         gstTotal:   parseFloat(inv.gstTotal      || 0),
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
-        status:     'Paid',
+        status:     inv.status        || 'Paid',
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-        dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-        cashier:    inv.cashierId    || '—',
-        counter:    'Counter 1',
+        dueDate:    inv.dueDate   ? new Date(inv.dueDate).toLocaleDateString('en-IN',   { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        cashier:    inv.cashierName   || inv.cashierId || '—',
+        counter:    inv.counter       || '—',
         payment:    inv.paymentMethod || 'CASH',
       }));
       setInvoices(data);
@@ -579,10 +629,18 @@ export default function CashierInvoices() {
     }
   };
 
-  useEffect(() => { fetchInvoices(); }, []);
+  useEffect(() => {
+    fetchInvoices();
+    api.get('/api/settings').then(res => setCo(res.data || {})).catch(() => {});
+  }, []);
 
-  const handleEmail = (inv) => {
-    showToast(`Email sent to ${inv.cashier}`);
+  const handleEmail = async (inv) => {
+    try {
+      await api.post(`/api/billing/send-email/${inv.id}`);
+      showToast(`Email sent for invoice ${inv.id}`);
+    } catch {
+      showToast('Failed to send email. Try again.', 'error');
+    }
   };
 
 
@@ -619,6 +677,7 @@ export default function CashierInvoices() {
           invoice={previewInv}
           onClose={() => setPreview(null)}
           onEmail={(inv) => { setPreview(null); handleEmail(inv); }}
+          co={co}
         />
       )}
 
@@ -735,7 +794,7 @@ export default function CashierInvoices() {
                           <button className="ci-act-btn" title="Preview Invoice" onClick={() => setPreview(inv)}>
                             <Eye size={14} />
                           </button>
-                          <button className="ci-act-btn" title="Download PDF" onClick={() => printInvoice(inv)}>
+                          <button className="ci-act-btn" title="Download PDF" onClick={() => printInvoice(inv, co)}>
                             <Download size={14} />
                           </button>
                         </div>
