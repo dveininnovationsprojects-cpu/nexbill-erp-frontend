@@ -4,15 +4,14 @@ import {
   Search, ChevronDown, AlertCircle, IndianRupee, Building2,
   Monitor, Timer, RefreshCw
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const EMPTY_APPROVE_FORM = { phone: '', branch: '', counterNumber: '', shiftTiming: '', basicSalary: '' };
-const EMPTY_EDIT_FORM    = { counterNumber: '', shiftTiming: '', basicSalary: '', status: 'ACTIVE' };
+const EMPTY_EDIT_FORM    = { branch: '', counterNumber: '', shiftTiming: '', basicSalary: '', status: 'ACTIVE' };
 
 export default function CashierManagement() {
   const { user } = useAuth();
-  const headers  = { Authorization: `Bearer ${user.token}` };
 
   /* ── data ── */
   const [pending, setPending]   = useState([]);
@@ -54,7 +53,7 @@ export default function CashierManagement() {
     setLoading(true);
     try {
       const [allRes] = await Promise.allSettled([
-        axios.get('/api/admin/all-cashiers', { headers, withCredentials: true }),
+        api.get('/api/admin/all-cashiers'),
       ]);
       const all = allRes.status === 'fulfilled' ? allRes.value.data : [];
       setPending(all.filter(c => c.status === 'PENDING'));
@@ -71,10 +70,9 @@ export default function CashierManagement() {
     e.preventDefault();
     setApproving(true);
     try {
-      await axios.post(
+      await api.post(
         `/api/admin/approve-cashier/${approveTarget.email}`,
-        { ...approveForm, basicSalary: parseFloat(approveForm.basicSalary) },
-        { headers, withCredentials: true }
+        { ...approveForm, basicSalary: parseFloat(approveForm.basicSalary) }
       );
       showToast(`${approveTarget.name || approveTarget.email} approved successfully!`);
       setApproveTarget(null);
@@ -87,6 +85,7 @@ export default function CashierManagement() {
   const openEdit = (cashier) => {
     setEditTarget(cashier);
     setEditForm({
+      branch:        cashier.branch        || '',
       counterNumber: cashier.counterNumber || '',
       shiftTiming:   cashier.shiftTiming   || '',
       basicSalary:   cashier.basicSalary   || '',
@@ -99,31 +98,30 @@ export default function CashierManagement() {
     setSaving(true);
     try {
       const payload = {
+        branch:        editForm.branch        || null,
         counterNumber: editForm.counterNumber || null,
         shiftTiming:   editForm.shiftTiming   || null,
         basicSalary:   editForm.basicSalary   ? parseFloat(editForm.basicSalary) : null,
         status:        String(editForm.status),
       };
-      await axios.put(
-        `/api/profile/admin/staff/${editTarget.id}`,
-        payload,
-        { headers, withCredentials: true }
-      );
+      console.log('[Edit Cashier] ID:', editTarget.id, '| URL:', `/api/profile/admin/staff/${editTarget.id}`, '| Payload:', payload);
+      await api.put(`/api/profile/admin/staff/${editTarget.id}`, payload);
       showToast(`${editTarget.name || editTarget.email} updated successfully!`);
       setEditTarget(null);
       fetchAll();
-    } catch { showToast('Update failed. Try again.', 'error'); }
-    finally   { setSaving(false); }
+    } catch (err) {
+      const status  = err.response?.status;
+      const message = err.response?.data?.message || err.response?.data || err.message || 'Unknown error';
+      console.error('[Edit Cashier] Failed:', status, message, err.response?.data);
+      showToast(`Update failed (${status || 'no response'}): ${typeof message === 'string' ? message : JSON.stringify(message)}`, 'error');
+    }
+    finally { setSaving(false); }
   };
 
   /* ── reactivate ── */
   const handleReactivate = async (cashier) => {
     try {
-      await axios.put(
-        `/api/admin/cashier/${cashier.id}/toggle-status?status=ACTIVE`,
-        {},
-        { headers, withCredentials: true }
-      );
+      await api.put(`/api/admin/cashier/${cashier.id}/toggle-status?status=ACTIVE`, {});
       showToast(`${cashier.name || cashier.email} re-activated successfully!`);
       fetchAll();
     } catch (err) {
@@ -136,11 +134,7 @@ export default function CashierManagement() {
   const handleDeactivate = async () => {
     setDeactivating(true);
     try {
-      await axios.put(
-        `/api/admin/cashier/${deactivateTarget.id}/toggle-status?status=SUSPENDED`,
-        {},
-        { headers, withCredentials: true }
-      );
+      await api.put(`/api/admin/cashier/${deactivateTarget.id}/toggle-status?status=SUSPENDED`, {});
       showToast(`${deactivateTarget.name || deactivateTarget.email} deactivated.`, 'warn');
       setDeactivateTarget(null);
       fetchAll();
@@ -405,18 +399,23 @@ export default function CashierManagement() {
               <form onSubmit={handleEdit}>
                 <div className="cm-form-grid">
                   <div className="cm-field">
+                    <label>Branch</label>
+                    <input placeholder="Main Branch" value={editForm.branch}
+                      onChange={e => setEditForm({...editForm, branch: e.target.value})} />
+                  </div>
+                  <div className="cm-field">
                     <label>Counter Number</label>
-                    <input placeholder="Counter 1" required value={editForm.counterNumber}
+                    <input placeholder="Counter 1" value={editForm.counterNumber}
                       onChange={e => setEditForm({...editForm, counterNumber: e.target.value})} />
                   </div>
                   <div className="cm-field">
                     <label>Shift Timing</label>
-                    <input placeholder="9AM – 5PM" required value={editForm.shiftTiming}
+                    <input placeholder="9AM – 5PM" value={editForm.shiftTiming}
                       onChange={e => setEditForm({...editForm, shiftTiming: e.target.value})} />
                   </div>
                   <div className="cm-field">
                     <label>Basic Salary (₹)</label>
-                    <input type="number" min="0" placeholder="15000" required value={editForm.basicSalary}
+                    <input type="number" min="0" placeholder="15000" value={editForm.basicSalary}
                       onChange={e => setEditForm({...editForm, basicSalary: e.target.value})} />
                   </div>
                   <div className="cm-field">
