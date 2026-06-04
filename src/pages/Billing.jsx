@@ -20,7 +20,7 @@ export default function Billing() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    api.get('/api/billing/all').then(res => setBills(res.data || [])).catch(() => setBills([]));
+    api.get('/api/billing/history').then(res => setBills(res.data || [])).catch(() => setBills([]));
   }, []);
 
   const cashiers = [...new Set(bills.map(b => b.cashierId || b.cashier).filter(Boolean))];

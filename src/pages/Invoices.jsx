@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, Printer, CheckCircle,
   AlertCircle, Trash2, Receipt, TrendingUp, Filter,
   Clock, Package, User, Building2,
-  Send, Copy, MoreHorizontal, ArrowUpRight, ArrowDownRight,
+  Copy, MoreHorizontal, ArrowUpRight, ArrowDownRight,
   Plus, DollarSign,
 } from 'lucide-react';
 
@@ -267,11 +267,15 @@ function inr(n) {
 }
 
 function badgeClass(status) {
-  return { Paid: 'badge-paid', Pending: 'badge-pending', Overdue: 'badge-overdue', Draft: 'badge-draft' }[status] || 'badge-draft';
+  if (['Paid','PAID','COMPLETED','paid','completed'].includes(status)) return 'badge-paid';
+  if (['Pending','PENDING','pending'].includes(status))               return 'badge-pending';
+  if (['Overdue','OVERDUE','overdue'].includes(status))               return 'badge-overdue';
+  if (['CANCELLED','cancelled'].includes(status))                     return 'badge-draft';
+  return 'badge-draft';
 }
 
 function stampStyle(status) {
-  const colors = { Paid: '#16a34a', Pending: '#ca8a04', Overdue: '#dc2626', Draft: '#64748b' };
+  const colors = { Paid: '#16a34a', PAID: '#16a34a', COMPLETED: '#16a34a', Pending: '#ca8a04', PENDING: '#ca8a04', Overdue: '#dc2626', OVERDUE: '#dc2626', Draft: '#64748b' };
   return { border: `3px solid ${colors[status] || '#64748b'}`, color: colors[status] || '#64748b' };
 }
 
@@ -288,8 +292,12 @@ function printInvoice(inv, co = {}) {
   const coPhone   = co.companyPhone   || '';
   const coEmail   = co.companyEmail   || '';
   const coGST     = co.gstNumber      || '';
-  const coTerms   = co.invoicePaymentTerms || 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval.';
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval.';
   const coFooter  = co.invoiceFooterNote   || `For queries: ${co.companyEmail || ''}`;
+  const showLogo  = co.showCompanyLogo        !== false;
+  const showGST   = co.showGstBreakdown       !== false;
+  const showSig   = co.showSignatureArea      !== false;
+  const showTerms = co.showTermsAndConditions !== false;
 
   const rows = inv.items.map((it, i) => {
     const lineAmt = it.qty * it.rate;
@@ -561,7 +569,7 @@ function printInvoice(inv, co = {}) {
 /* ══════════════════════════════════════════════════════════════════════
    PDF PREVIEW MODAL
 ══════════════════════════════════════════════════════════════════════ */
-function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
+function PDFPreviewModal({ invoice, onClose, co = {} }) {
   const { subtotal, gstTotal, total } = calcInvoice(invoice);
   const coName    = co.companyName    || 'Your Company';
   const coTagline = co.tagline        || '';
@@ -569,8 +577,12 @@ function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
   const coPhone   = co.companyPhone   || '';
   const coEmail   = co.companyEmail   || '';
   const coGST     = co.gstNumber      || '';
-  const coTerms   = co.invoicePaymentTerms || 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest.';
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest.';
   const coFooter  = co.invoiceFooterNote   || (co.companyEmail ? `For queries: ${co.companyEmail}` : 'Thank you for your business!');
+  const showLogo  = co.showCompanyLogo        !== false;
+  const showGST   = co.showGstBreakdown       !== false;
+  const showSig   = co.showSignatureArea      !== false;
+  const showTerms = co.showTermsAndConditions !== false;
 
   return (
     <div className="inv-overlay" onClick={onClose}>
@@ -599,7 +611,7 @@ function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
             <div className="inv-doc-head">
               <div>
                 <div className="inv-doc-brand-row">
-                  <div className="inv-doc-logo">{coName[0]?.toUpperCase() || 'C'}</div>
+                  {showLogo && <div className="inv-doc-logo">{coName[0]?.toUpperCase() || 'C'}</div>}
                   <div>
                     <div className="inv-doc-company">{coName}</div>
                     {coTagline && <div className="inv-doc-company-sub">{coTagline}</div>}
@@ -659,8 +671,8 @@ function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
                   <th>Description</th>
                   <th className="right">Qty</th>
                   <th className="right">Rate</th>
-                  <th className="right">GST%</th>
-                  <th className="right">GST Amt</th>
+                  {showGST && <th className="right">GST%</th>}
+                  {showGST && <th className="right">GST Amt</th>}
                   <th className="right">Total</th>
                 </tr>
               </thead>
@@ -674,8 +686,8 @@ function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
                       <td className="bold">{it.name}</td>
                       <td className="right">{it.qty}</td>
                       <td className="right">{inr(it.rate)}</td>
-                      <td className="right">{it.gst}%</td>
-                      <td className="right">{inr(lineGst)}</td>
+                      {showGST && <td className="right">{it.gst}%</td>}
+                      {showGST && <td className="right">{inr(lineGst)}</td>}
                       <td className="right bold">{inr(lineAmt + lineGst)}</td>
                     </tr>
                   );
@@ -687,7 +699,7 @@ function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
             <div className="inv-doc-totals">
               <div className="inv-doc-totals-inner">
                 <div className="inv-doc-tot-row"><span>Subtotal</span><span>{inr(subtotal)}</span></div>
-                <div className="inv-doc-tot-row"><span>GST Total</span><span>{inr(gstTotal)}</span></div>
+                {showGST && <div className="inv-doc-tot-row"><span>GST Total</span><span>{inr(gstTotal)}</span></div>}
                 {invoice.discount > 0 && (
                   <div className="inv-doc-tot-row discount"><span>Discount</span><span>-{inr(invoice.discount)}</span></div>
                 )}
@@ -696,17 +708,23 @@ function PDFPreviewModal({ invoice, onClose, onEmail, co = {} }) {
             </div>
 
             {/* Footer */}
-            <div className="inv-doc-footer">
-              <div>
-                <div className="inv-doc-terms-lbl">Terms &amp; Conditions</div>
-                <div className="inv-doc-terms-txt">{coTerms}</div>
+            {(showTerms || showSig) && (
+              <div className="inv-doc-footer">
+                {showTerms && (
+                  <div>
+                    <div className="inv-doc-terms-lbl">Terms &amp; Conditions</div>
+                    <div className="inv-doc-terms-txt">{coTerms}</div>
+                  </div>
+                )}
+                {showSig && (
+                  <div className="inv-doc-sig">
+                    <div className="inv-doc-sig-line" />
+                    <div className="inv-doc-sig-lbl">Authorized Signatory</div>
+                    <div className="inv-doc-sig-name">{coName}</div>
+                  </div>
+                )}
               </div>
-              <div className="inv-doc-sig">
-                <div className="inv-doc-sig-line" />
-                <div className="inv-doc-sig-lbl">Authorized Signatory</div>
-                <div className="inv-doc-sig-name">{coName}</div>
-              </div>
-            </div>
+            )}
 
             {/* Thank You */}
             <div className="inv-doc-thankyou">
@@ -730,6 +748,7 @@ function CreateInvoiceModal({ onClose, onCreate }) {
   });
   const [items, setItems]   = useState([{ ...EMPTY_ITEM }]);
   const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -748,10 +767,28 @@ function CreateInvoiceModal({ onClose, onCreate }) {
   const total        = subtotal + gstTotal - discountAmt;
 
   const handleSave = async () => {
-    if (!form.customer || items.some(it => !it.name)) return;
+    if (!form.customer) { setError('Customer name is required.'); return; }
+    if (items.some(it => !it.name)) { setError('All line items must have a description.'); return; }
+    setError('');
     setSaving(true);
     try {
-      const res = await api.post('/api/billing/create', { ...form, items });
+      const res = await api.post('/api/billing/checkout', {
+        customerName:    form.customer,
+        customerEmail:   form.email,
+        customerPhone:   form.phone,
+        customerAddress: form.address,
+        customerGstNo:   form.gstNo,
+        paymentMethod:   form.payment,
+        dueDate:         form.dueDate   || null,
+        discount:        form.discount  ? Number(form.discount) : 0,
+        notes:           form.notes     || '',
+        items: items.map(it => ({
+          name: it.name,
+          qty:  it.qty,
+          rate: it.rate,
+          gst:  it.gst,
+        })),
+      });
       const inv = res.data;
       const newInv = {
         id:         inv.invoiceNumber || String(inv.id),
@@ -780,7 +817,12 @@ function CreateInvoiceModal({ onClose, onCreate }) {
       onCreate(newInv);
       onClose();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create invoice. Try again.');
+      const msg = err.response?.data?.message || err.message || 'Failed to create invoice.';
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Permission denied: only Cashiers can create invoices. Ask a cashier to generate it.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setSaving(false);
     }
@@ -956,6 +998,11 @@ function CreateInvoiceModal({ onClose, onCreate }) {
           </div>
         </div>
 
+        {error && (
+          <div style={{ margin:'0 24px 0', padding:'10px 14px', background:'#FEE2E2', border:'1px solid #FCA5A5', borderRadius:9, fontSize:12, color:'#dc2626', display:'flex', alignItems:'flex-start', gap:8 }}>
+            <AlertCircle size={14} style={{ flexShrink:0, marginTop:1 }} />{error}
+          </div>
+        )}
         <div className="inv-modal-foot">
           <button className="inv-btn-secondary" onClick={onClose}>Cancel</button>
           <button className="inv-btn-primary" onClick={handleSave} disabled={saving || !form.customer}>
@@ -1045,15 +1092,7 @@ export default function AdminInvoices() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleMarkPaid = async (id) => {
-    try {
-      await api.put(`/api/billing/status/${id}`, { status: 'Paid' });
-      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Paid' } : inv));
-      showToast('Invoice marked as Paid');
-    } catch {
-      showToast('Failed to update invoice status. Try again.', 'error');
-    }
-  };
+  // Mark as paid endpoint not available in backend — button hidden
 
   const handleDelete = async (id) => {
     try {
@@ -1070,20 +1109,16 @@ export default function AdminInvoices() {
     showToast(`Invoice ${newInv.id} created successfully!`);
   };
 
-  const handleEmail = async (inv) => {
-    try {
-      await api.post(`/api/billing/send-email/${inv.id}`);
-      showToast(`Email sent for invoice ${inv.id}`);
-    } catch {
-      showToast('Failed to send email. Try again.', 'error');
-    }
-  };
+  // send-email endpoint not available in backend
 
-  // KPI stats
-  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + calcInvoice(i).total, 0);
-  const paidCount    = invoices.filter(i => i.status === 'Paid').length;
-  const pendingCount = invoices.filter(i => i.status === 'Pending').length;
-  const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
+  // KPI stats — handle backend status variants (COMPLETED = Paid, PENDING = Pending etc.)
+  const isPaid    = s => ['Paid','PAID','COMPLETED','paid','completed'].includes(s);
+  const isPending = s => ['Pending','PENDING','pending'].includes(s);
+  const isOverdue = s => ['Overdue','OVERDUE','overdue'].includes(s);
+  const totalRevenue = invoices.filter(i => isPaid(i.status)).reduce((s, i) => s + calcInvoice(i).total, 0);
+  const paidCount    = invoices.filter(i => isPaid(i.status)).length;
+  const pendingCount = invoices.filter(i => isPending(i.status)).length;
+  const overdueCount = invoices.filter(i => isOverdue(i.status)).length;
 
   return (
     <>
@@ -1102,7 +1137,6 @@ export default function AdminInvoices() {
         <PDFPreviewModal
           invoice={previewInv}
           onClose={() => setPreview(null)}
-          onEmail={(inv) => { setPreview(null); handleEmail(inv); }}
           co={co}
         />
       )}
@@ -1230,12 +1264,7 @@ export default function AdminInvoices() {
                           <button className="inv-act-btn" title="Download PDF" onClick={() => printInvoice(inv, co)}>
                             <Download size={14} />
                           </button>
-                          {inv.status !== 'Paid' && (
-                            <button className="inv-act-btn btn-green" title="Mark as Paid" onClick={() => handleMarkPaid(inv.id)}>
-                              <CheckCircle size={14} />
-                            </button>
-                          )}
-                          {inv.status !== 'CANCELLED' && (
+                          {!['CANCELLED','COMPLETED','Paid','PAID','paid','completed'].includes(inv.status) && (
                             <button className="inv-act-btn btn-red" title="Cancel Invoice" onClick={() => handleDelete(inv.id)}>
                               <X size={14} />
                             </button>

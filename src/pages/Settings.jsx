@@ -596,6 +596,7 @@ function ProfileTab({ onSave }) {
     currency:    'INR',
     defaultReorderLevel: 10,
   });
+  const [orig, setOrig]   = useState(null);
   const [dirty, setDirty] = useState(false);
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
 
@@ -612,40 +613,61 @@ function ProfileTab({ onSave }) {
         address:             s.companyAddress      || '',
         city:                s.city                || '',
         state:               s.state               || '',
-        pincode:             s.pincode             || '',
+        pincode:             s.pinCode             || '',   // backend: pinCode
         country:             s.country             || 'India',
         gstNo:               s.gstNumber           || '',
-        pan:                 s.pan                 || '',
+        pan:                 s.panNumber           || '',   // backend: panNumber
         cin:                 s.cin                 || '',
         invoicePrefix:       s.invoicePrefix       || '',
         currency:            s.currency            || 'INR',
         defaultReorderLevel: s.defaultReorderLevel || 10,
         logoUrl:             s.logoUrl             || null,
       }));
+      setOrig(prev => ({ ...prev,
+        companyName: s.companyName || '', tagline: s.tagline || '',
+        email: s.companyEmail || '', phone: s.companyPhone || '',
+        website: s.website || '', address: s.companyAddress || '',
+        city: s.city || '', state: s.state || '', pincode: s.pinCode || '',
+        country: s.country || 'India', gstNo: s.gstNumber || '',
+        pan: s.panNumber || '', cin: s.cin || '',
+        invoicePrefix: s.invoicePrefix || '', currency: s.currency || 'INR',
+        defaultReorderLevel: s.defaultReorderLevel || 10, logoUrl: s.logoUrl || null,
+      }));
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
+  const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
   const handleSaveSettings = async () => {
+    // Validate GST before sending — backend will reject with 400 if invalid
+    if (form.gstNo && form.gstNo.trim().length > 0) {
+      if (!GST_REGEX.test(form.gstNo.trim().toUpperCase())) {
+        onSave('Invalid GST number format. Must be 15 characters like: 29AABCN1234M1Z5', 'error');
+        return;
+      }
+    }
+    if (!form.invoicePrefix || form.invoicePrefix.trim() === '') {
+      onSave('Invoice Prefix cannot be empty.', 'error');
+      return;
+    }
     setSaving(true);
     try {
       await api.put('/api/settings/update', {
         companyName:         form.companyName,
         tagline:             form.tagline             || '',
-        companyAddress:      form.address,
-        companyPhone:        form.phone,
         companyEmail:        form.email,
+        companyPhone:        form.phone,
         website:             form.website             || '',
+        companyAddress:      form.address,
         city:                form.city                || '',
         state:               form.state               || '',
-        pincode:             form.pincode             || '',
-        country:             form.country             || 'India',
+        pinCode:             form.pincode             || '',   // backend: pinCode
         gstNumber:           form.gstNo,
-        pan:                 form.pan                 || '',
+        panNumber:           form.pan                 || '',   // backend: panNumber
         cin:                 form.cin                 || '',
         invoicePrefix:       form.invoicePrefix       || 'INV',
         currency:            form.currency            || 'INR',
         defaultReorderLevel: form.defaultReorderLevel || 10,
-        logoUrl:             form.logoUrl             || null,
       });
       setSaved(true);
       setDirty(false);
@@ -674,7 +696,7 @@ function ProfileTab({ onSave }) {
     reader.readAsDataURL(file);
   };
 
-  const handleDiscard = () => { setForm(orig); setDirty(false); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoPreview(null); };
+  const handleDiscard = () => { if (orig) setForm(orig); setDirty(false); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoPreview(null); };
   return (
     <div className="st-card">
       <div className="st-card-head">
@@ -772,13 +794,17 @@ function ProfileTab({ onSave }) {
         <div className="st-grid3">
           <div className="st-field">
             <label>GSTIN <span className="st-field-badge">Verified</span></label>
-            <input value={form.gstNo} onChange={e => set('gstNo', e.target.value)} placeholder="29AABCN1234M1Z5" />
-            <div className="st-field-hint">15-digit GST identification number</div>
+            <input value={form.gstNo} onChange={e => set('gstNo', e.target.value.toUpperCase().slice(0, 15))} placeholder="29AABCN1234M1Z5" maxLength={15} />
+            <div className="st-field-hint" style={{ color: form.gstNo.length > 0 && form.gstNo.length < 15 ? '#ca8a04' : form.gstNo.length === 15 ? '#16a34a' : '#8B7355' }}>
+              {form.gstNo.length === 0 && '15-character GST identification number'}
+              {form.gstNo.length > 0 && form.gstNo.length < 15 && `${form.gstNo.length}/15 — keep typing`}
+              {form.gstNo.length === 15 && '15/15 ✓'}
+            </div>
           </div>
           <div className="st-field">
             <label>PAN Number <span className="st-field-badge">Verified</span></label>
-            <input value={form.pan} onChange={e => set('pan', e.target.value)} placeholder="AABCN1234M" />
-            <div className="st-field-hint">10-character PAN</div>
+            <input value={form.pan} onChange={e => set('pan', e.target.value.toUpperCase().slice(0, 10))} placeholder="AABCN1234M" maxLength={10} />
+            <div className="st-field-hint">10-character PAN ({form.pan.length}/10)</div>
           </div>
           <div className="st-field">
             <label>CIN <span style={{ fontSize: 10, color: '#8B7355', fontWeight: 500 }}>(optional)</span></label>
@@ -788,7 +814,7 @@ function ProfileTab({ onSave }) {
         </div>
       </div>
       <div className="st-card-foot">
-        <button className="st-btn-secondary" onClick={() => { setDirty(false); }} disabled={!dirty}>Discard Changes</button>
+        <button className="st-btn-secondary" onClick={handleDiscard} disabled={!dirty}>Discard Changes</button>
         <SaveBtn saving={saving} saved={saved} onClick={handleSaveSettings} label="Save Profile" />
       </div>
     </div>
@@ -803,8 +829,7 @@ function InvoiceSettingsTab({ onSave }) {
     currency: 'INR', dateFormat: 'DD MMM YYYY',
     paymentTerms: 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest.',
     footerNote: 'Thank you for your business! For queries, contact billing@nexbill.in',
-    showLogo: true, showGST: true, showSignature: true,
-    showQR: false,  showBankDetails: true, showTerms: true,
+    showLogo: true, showGST: true, showSignature: true, showTerms: true,
   };
   const [form, setForm] = useState(DEFAULTS);
   const [orig, setOrig] = useState(DEFAULTS);
@@ -821,19 +846,17 @@ function InvoiceSettingsTab({ onSave }) {
     api.get('/api/settings').then(res => {
       const s = res.data;
       const loaded = {
-        prefix:         s.invoicePrefix       || DEFAULTS.prefix,
-        startingNumber: s.invoiceStartingNumber != null ? String(s.invoiceStartingNumber) : DEFAULTS.startingNumber,
-        dueDays:        s.invoiceDueDays       != null ? String(s.invoiceDueDays)          : DEFAULTS.dueDays,
-        currency:       s.currency             || DEFAULTS.currency,
-        dateFormat:     s.invoiceDateFormat    || DEFAULTS.dateFormat,
-        paymentTerms:   s.invoicePaymentTerms  || DEFAULTS.paymentTerms,
-        footerNote:     s.invoiceFooterNote    || DEFAULTS.footerNote,
-        showLogo:        s.showLogo        != null ? s.showLogo        : DEFAULTS.showLogo,
-        showGST:         s.showGST         != null ? s.showGST         : DEFAULTS.showGST,
-        showSignature:   s.showSignature   != null ? s.showSignature   : DEFAULTS.showSignature,
-        showQR:          s.showQR          != null ? s.showQR          : DEFAULTS.showQR,
-        showBankDetails: s.showBankDetails != null ? s.showBankDetails : DEFAULTS.showBankDetails,
-        showTerms:       s.showTerms       != null ? s.showTerms       : DEFAULTS.showTerms,
+        prefix:         s.invoicePrefix            || DEFAULTS.prefix,
+        startingNumber: s.startingNumber    != null ? String(s.startingNumber)    : DEFAULTS.startingNumber,
+        dueDays:        s.paymentDueDays    != null ? String(s.paymentDueDays)    : DEFAULTS.dueDays,
+        currency:       s.currency                 || DEFAULTS.currency,
+        dateFormat:     s.dateFormat               || DEFAULTS.dateFormat,
+        paymentTerms:   s.defaultPaymentTerms      || DEFAULTS.paymentTerms,
+        footerNote:     s.invoiceFooterNote        || DEFAULTS.footerNote,
+        showLogo:      s.showCompanyLogo       != null ? s.showCompanyLogo       : DEFAULTS.showLogo,
+        showGST:       s.showGstBreakdown      != null ? s.showGstBreakdown      : DEFAULTS.showGST,
+        showSignature: s.showSignatureArea     != null ? s.showSignatureArea     : DEFAULTS.showSignature,
+        showTerms:     s.showTermsAndConditions != null ? s.showTermsAndConditions : DEFAULTS.showTerms,
       };
       setForm(loaded);
       setOrig(loaded);
@@ -849,20 +872,18 @@ function InvoiceSettingsTab({ onSave }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/api/settings/invoice-settings', {
-        prefix:         form.prefix,
-        startingNumber: Number(form.startingNumber),
-        dueDays:        Number(form.dueDays),
-        currency:       form.currency,
-        dateFormat:     form.dateFormat,
-        paymentTerms:   form.paymentTerms,
-        footerNote:     form.footerNote,
-        showLogo:        form.showLogo,
-        showGST:         form.showGST,
-        showSignature:   form.showSignature,
-        showQR:          form.showQR,
-        showBankDetails: form.showBankDetails,
-        showTerms:       form.showTerms,
+      await api.put('/api/settings/update', {
+        invoicePrefix:             form.prefix,
+        startingNumber:            Number(form.startingNumber),
+        paymentDueDays:            Number(form.dueDays),
+        currency:                  form.currency,
+        dateFormat:                form.dateFormat,
+        defaultPaymentTerms:       form.paymentTerms,
+        invoiceFooterNote:         form.footerNote,
+        showCompanyLogo:           form.showLogo,
+        showGstBreakdown:          form.showGST,
+        showSignatureArea:         form.showSignature,
+        showTermsAndConditions:    form.showTerms,
       });
       setOrig(form);
       setDirty(false);
@@ -877,12 +898,10 @@ function InvoiceSettingsTab({ onSave }) {
   };
 
   const TOGGLES = [
-    { key: 'showLogo',        label: 'Company Logo',          desc: 'Display your logo in the invoice header' },
-    { key: 'showGST',         label: 'GST Breakdown',         desc: 'Show CGST/SGST/IGST split on line items' },
-    { key: 'showSignature',   label: 'Signature Area',        desc: 'Include authorized signatory section at bottom' },
-    { key: 'showQR',          label: 'Payment QR Code',       desc: 'Add a UPI payment QR code to the invoice' },
-    { key: 'showBankDetails', label: 'Bank Transfer Details', desc: 'Show account number and IFSC for bank payments' },
-    { key: 'showTerms',       label: 'Terms & Conditions',    desc: 'Display payment terms in the invoice footer' },
+    { key: 'showLogo',      label: 'Company Logo',       desc: 'Display your logo in the invoice header' },
+    { key: 'showGST',       label: 'GST Breakdown',      desc: 'Show CGST/SGST/IGST split on line items' },
+    { key: 'showSignature', label: 'Signature Area',     desc: 'Include authorized signatory section at bottom' },
+    { key: 'showTerms',     label: 'Terms & Conditions', desc: 'Display payment terms in the invoice footer' },
   ];
 
   return (
