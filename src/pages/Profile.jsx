@@ -391,6 +391,9 @@ function ChangePasswordModal({ onClose, onSave }) {
     e.preventDefault();
     if (!form.current)               { setError('Please enter your current password.'); return; }
     if (form.newPw.length < 8)       { setError('New password must be at least 8 characters.'); return; }
+    if (!/[A-Z]/.test(form.newPw))   { setError('Password must contain at least 1 uppercase letter.'); return; }
+    if (!/[0-9]/.test(form.newPw))   { setError('Password must contain at least 1 number.'); return; }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':",./<>?]/.test(form.newPw)) { setError('Password must contain at least 1 special character.'); return; }
     if (form.newPw !== form.confirm)  { setError('Passwords do not match.'); return; }
     setSaving(true);
     try {
@@ -689,7 +692,7 @@ function AdminDetailsTab({ profileData }) {
 function CashierDetailsTab({ profileData }) {
   const data = {
     branch:      profileData?.branch        || '—',
-    counter:     profileData?.counterNumber ? `Counter ${profileData.counterNumber}` : '—',
+    counter:     profileData?.counterNumber ? String(profileData.counterNumber) : '—',
     shift:       profileData?.shiftTiming   || '—',
     status:      profileData?.status        || 'ACTIVE',
     email:       profileData?.email         || '—',

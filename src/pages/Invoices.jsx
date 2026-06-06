@@ -127,50 +127,68 @@ const STYLES = `
   .inv-btn-sm:hover { background:#C6A969; color:#2D2D2D; }
 
   /* ── Invoice Document ── */
-  .inv-doc { background:#FFFFFF; border-radius:12px; padding:44px; box-shadow:0 4px 24px rgba(45,45,45,0.10); max-width:720px; margin:0 auto; }
-  .inv-doc-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:36px; padding-bottom:28px; border-bottom:2px solid #EFE7DE; }
-  .inv-doc-brand-row { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
-  .inv-doc-logo { width:48px; height:48px; background:#2D2D2D; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; color:#C6A969; flex-shrink:0; }
-  .inv-doc-company { font-size:20px; font-weight:800; color:#2D2D2D; margin:0; }
-  .inv-doc-company-sub { font-size:11px; color:#8B7355; margin-top:1px; }
-  .inv-doc-addr { font-size:11.5px; color:#3F3F46; line-height:1.7; }
-  .inv-doc-right { text-align:right; }
-  .inv-doc-title { font-size:30px; font-weight:900; color:#2D2D2D; letter-spacing:-1px; margin-bottom:14px; }
-  .inv-doc-meta-row { display:grid; grid-template-columns:auto auto; gap:4px 20px; justify-content:end; margin-bottom:3px; }
-  .inv-doc-meta-lbl { font-size:11px; color:#8B7355; text-align:right; }
-  .inv-doc-meta-val { font-size:12px; font-weight:600; color:#2D2D2D; text-align:right; }
-
-  .inv-doc-parties { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-bottom:28px; }
-  .inv-doc-party-lbl { font-size:10px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.9px; margin-bottom:8px; }
-  .inv-doc-party-name { font-size:14px; font-weight:700; color:#2D2D2D; margin-bottom:5px; }
-  .inv-doc-party-info { font-size:12px; color:#3F3F46; line-height:1.7; }
-
-  .inv-doc-table { width:100%; border-collapse:collapse; margin-bottom:24px; }
-  .inv-doc-table thead th { background:#2D2D2D; color:#F8F5F2; padding:10px 12px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; text-align:left; }
-  .inv-doc-table thead th:first-child { border-radius:7px 0 0 7px; }
-  .inv-doc-table thead th:last-child  { border-radius:0 7px 7px 0; text-align:right; }
-  .inv-doc-table thead th.right { text-align:right; }
-  .inv-doc-table tbody td { padding:10px 12px; border-bottom:1px solid #EFE7DE; font-size:12.5px; color:#3F3F46; }
-  .inv-doc-table tbody td.right { text-align:right; }
-  .inv-doc-table tbody td.bold { font-weight:700; color:#2D2D2D; }
-  .inv-doc-table tbody tr:hover td { background:#FDFCFB; }
-
-  .inv-doc-totals { display:flex; justify-content:flex-end; margin-bottom:28px; }
-  .inv-doc-totals-inner { min-width:300px; background:#F8F5F2; border-radius:10px; padding:14px 16px; }
-  .inv-doc-tot-row { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; color:#3F3F46; }
-  .inv-doc-tot-row.discount { color:#16a34a; font-weight:500; }
-  .inv-doc-tot-row.grand { border-top:2px solid #EFE7DE; padding-top:10px; margin-top:4px; font-size:15px; font-weight:800; color:#2D2D2D; }
-
-  .inv-doc-footer { display:flex; justify-content:space-between; align-items:flex-end; padding-top:24px; border-top:1px solid #EFE7DE; margin-top:4px; }
-  .inv-doc-terms-lbl { font-size:10px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px; }
-  .inv-doc-terms-txt { font-size:11.5px; color:#3F3F46; line-height:1.7; max-width:340px; }
-  .inv-doc-sig { text-align:center; }
-  .inv-doc-sig-line { width:140px; border-top:1.5px solid #D6D3D1; margin:0 auto 6px; margin-top:36px; }
-  .inv-doc-sig-lbl { font-size:10px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.8px; }
-  .inv-doc-sig-name { font-size:12px; color:#2D2D2D; font-weight:600; margin-top:2px; }
-  .inv-doc-thankyou { text-align:center; margin-top:24px; padding:16px; background:linear-gradient(135deg,#F8F5F2,#EFE7DE); border-radius:10px; border:1px solid #EFE7DE; }
-  .inv-doc-thankyou-title { font-size:13px; font-weight:700; color:#2D2D2D; }
-  .inv-doc-thankyou-sub { font-size:11.5px; color:#8B7355; margin-top:3px; }
+  .inv-doc { background:#FFFFFF; border-radius:12px; overflow:hidden; max-width:740px; margin:0 auto; box-shadow:0 4px 24px rgba(45,45,45,0.12); }
+  .inv-doc-header-band { background:#1a1a1a; padding:18px 28px; display:flex; justify-content:space-between; align-items:center; }
+  .inv-doc-brand  { display:flex; align-items:center; gap:12px; }
+  .inv-doc-logo   { width:42px; height:42px; background:#FFFFFF; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#2D2D2D; flex-shrink:0; overflow:hidden; padding:3px; }
+  .inv-doc-logo img { width:100%; height:100%; object-fit:contain; border-radius:6px; }
+  .inv-doc-company     { font-size:15px; font-weight:800; color:#FFFFFF; }
+  .inv-doc-company-sub { font-size:10px; color:#C6A969; margin-top:2px; }
+  .inv-doc-addr        { font-size:10px; color:#A0A0A0; margin-top:3px; }
+  .inv-doc-inv-label  { text-align:right; }
+  .inv-doc-title      { font-size:20px; font-weight:900; color:#C6A969; letter-spacing:4px; line-height:1; }
+  .inv-doc-inv-num    { font-size:11px; color:#A0A0A0; margin-top:4px; }
+  .inv-doc-gold-strip { height:4px; background:linear-gradient(90deg,#C6A969 0%,#E8D5A0 50%,#8B7355 100%); }
+  .inv-doc-meta-band  { background:#F8F6F3; padding:12px 28px; display:flex; gap:0; border-bottom:1px solid #EDE9E4; }
+  .inv-doc-meta-item  { flex:1; padding-right:20px; border-right:1px solid #E0DBD4; }
+  .inv-doc-meta-item:last-child { border-right:none; padding-right:0; padding-left:20px; text-align:right; }
+  .inv-doc-meta-item:not(:first-child):not(:last-child) { padding-left:20px; }
+  .inv-doc-meta-lbl   { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+  .inv-doc-meta-val   { font-size:12px; font-weight:700; color:#1a1a1a; }
+  .inv-doc-meta-val.accent { color:#C6A969; }
+  .inv-doc-status-chip { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .inv-doc-body { padding:20px 28px; }
+  .inv-doc-parties { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .inv-doc-party   { background:#F8F6F3; border-radius:8px; padding:12px 14px; border:1px solid #EDE9E4; }
+  .inv-doc-party.right { text-align:right; }
+  .inv-doc-party-lbl  { font-size:8.5px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+  .inv-doc-party-name { font-size:13px; font-weight:800; color:#1a1a1a; margin-bottom:3px; }
+  .inv-doc-party-info { font-size:11px; color:#555; line-height:1.6; }
+  .inv-doc-party-gstin{ font-size:10.5px; color:#8B7355; font-weight:600; margin-top:3px; }
+  .inv-doc-stamp { display:inline-block; padding:3px 12px; border-radius:4px; font-size:10px; font-weight:900; letter-spacing:2.5px; text-transform:uppercase; transform:rotate(-7deg); margin-top:10px; }
+  .inv-doc-table-wrap { border-radius:10px; overflow:hidden; border:1px solid #EDE9E4; margin-bottom:16px; }
+  .inv-doc-table { width:100%; border-collapse:collapse; }
+  .inv-doc-table thead tr { background:#1a1a1a; }
+  .inv-doc-table thead th { padding:10px 12px; font-size:9.5px; font-weight:700; color:#C6A969; text-transform:uppercase; letter-spacing:0.8px; text-align:left; }
+  .inv-doc-table thead th.r { text-align:right; }
+  .inv-doc-table thead th.c { text-align:center; }
+  .inv-doc-table tbody tr:nth-child(even) { background:#FAFAF9; }
+  .inv-doc-table tbody tr:nth-child(odd)  { background:#FFFFFF; }
+  .inv-doc-table tbody td { padding:10px 12px; font-size:12.5px; color:#333; border-bottom:1px solid #F0ECE8; }
+  .inv-doc-table tbody tr:last-child td { border-bottom:none; }
+  .inv-doc-table tbody td.r    { text-align:right; font-weight:600; color:#1a1a1a; }
+  .inv-doc-table tbody td.c    { text-align:center; color:#8B7355; font-weight:600; font-size:11px; }
+  .inv-doc-table tbody td.bold { font-weight:700; color:#1a1a1a; }
+  .inv-doc-totals-wrap { display:flex; justify-content:flex-end; margin-bottom:20px; }
+  .inv-doc-totals-box  { width:280px; border-radius:10px; overflow:hidden; border:1px solid #EDE9E4; }
+  .inv-doc-tot-row     { display:flex; justify-content:space-between; padding:8px 14px; font-size:12.5px; border-bottom:1px solid #F0ECE8; }
+  .inv-doc-tot-row:last-child { border-bottom:none; }
+  .inv-doc-tot-lbl { color:#555; font-weight:500; }
+  .inv-doc-tot-val { font-weight:700; color:#1a1a1a; }
+  .inv-doc-tot-disc .inv-doc-tot-lbl, .inv-doc-tot-disc .inv-doc-tot-val { color:#16a34a; }
+  .inv-doc-grand-row { background:#1a1a1a; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
+  .inv-doc-grand-lbl { color:#C6A969; font-size:12px; font-weight:700; }
+  .inv-doc-grand-val { color:#FFFFFF; font-size:18px; font-weight:900; }
+  .inv-doc-footer { display:grid; grid-template-columns:1fr auto; gap:24px; align-items:flex-end; padding-top:16px; border-top:2px solid #F0ECE8; }
+  .inv-doc-terms-lbl { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+  .inv-doc-terms-txt { font-size:11px; color:#555; line-height:1.6; max-width:340px; }
+  .inv-doc-sig       { text-align:center; min-width:140px; }
+  .inv-doc-sig-line  { width:120px; border-top:1.5px solid #CCC; margin:28px auto 6px; }
+  .inv-doc-sig-lbl   { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; }
+  .inv-doc-sig-name  { font-size:11px; color:#1a1a1a; font-weight:700; margin-top:2px; }
+  .inv-doc-thankyou  { background:linear-gradient(135deg,#1a1a1a,#2D2D2D); padding:12px 28px; text-align:center; }
+  .inv-doc-thankyou-title { font-size:12px; font-weight:700; color:#C6A969; }
+  .inv-doc-thankyou-sub   { font-size:10.5px; color:#9E9087; margin-top:2px; }
 
   /* ── Create Invoice Modal ── */
   .inv-create-modal { background:#FFFFFF; border-radius:18px; width:100%; max-width:680px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 28px 72px rgba(45,45,45,0.28); overflow:hidden; }
@@ -267,296 +285,279 @@ function inr(n) {
 }
 
 function badgeClass(status) {
-  if (['Paid','PAID','COMPLETED','paid','completed'].includes(status)) return 'badge-paid';
-  if (['Pending','PENDING','pending'].includes(status))               return 'badge-pending';
-  if (['Overdue','OVERDUE','overdue'].includes(status))               return 'badge-overdue';
-  if (['CANCELLED','cancelled'].includes(status))                     return 'badge-draft';
+  if (status === 'Paid')      return 'badge-paid';
+  if (status === 'Pending')   return 'badge-pending';
+  if (status === 'Overdue')   return 'badge-overdue';
+  if (status === 'Cancelled') return 'badge-draft';
   return 'badge-draft';
 }
 
+// Normalize raw backend status + compute overdue from dueDate
+function normalizeStatus(rawStatus, rawDueDate) {
+  const s = (rawStatus || 'PENDING').toUpperCase();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const isPastDue = rawDueDate && new Date(rawDueDate) < today && !['COMPLETED','PAID','CANCELLED'].includes(s);
+  if (isPastDue)                         return 'Overdue';
+  if (['COMPLETED','PAID'].includes(s))  return 'Paid';
+  if (s === 'CANCELLED')                 return 'Cancelled';
+  return 'Pending';
+}
+
 function stampStyle(status) {
-  const colors = { Paid: '#16a34a', PAID: '#16a34a', COMPLETED: '#16a34a', Pending: '#ca8a04', PENDING: '#ca8a04', Overdue: '#dc2626', OVERDUE: '#dc2626', Draft: '#64748b' };
+  const colors = { Paid: '#16a34a', Pending: '#ca8a04', Overdue: '#dc2626', Cancelled: '#64748b' };
   return { border: `3px solid ${colors[status] || '#64748b'}`, color: colors[status] || '#64748b' };
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PRINT / PDF — Opens a print-ready window
+   AMOUNT IN WORDS
+══════════════════════════════════════════════════════════════════════ */
+function amountInWords(amount) {
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function num(n) {
+    if (n === 0) return '';
+    if (n < 20)  return ones[n] + ' ';
+    if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '') + ' ';
+    if (n < 1000)    return ones[Math.floor(n/100)]  + ' Hundred '  + num(n%100);
+    if (n < 100000)  return num(Math.floor(n/1000))  + 'Thousand '  + num(n%1000);
+    if (n < 10000000)return num(Math.floor(n/100000))+ 'Lakh '      + num(n%100000);
+    return num(Math.floor(n/10000000))+'Crore '+num(n%10000000);
+  }
+  const r = Math.floor(amount), p = Math.round((amount-r)*100);
+  return (num(r).trim()||'Zero')+' Rupees'+(p>0?' and '+num(p).trim()+' Paise':'')+' Only';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PRINT / PDF — REAL ERP TAX INVOICE
 ══════════════════════════════════════════════════════════════════════ */
 function printInvoice(inv, co = {}) {
-  const { subtotal, gstTotal, total } = calcInvoice(inv);
-
-  // Use real company settings, fallback to placeholders
-  const coName    = co.companyName    || 'Your Company';
-  const coTagline = co.tagline        || '';
-  const coAddr    = co.companyAddress || '';
-  const coPhone   = co.companyPhone   || '';
-  const coEmail   = co.companyEmail   || '';
-  const coGST     = co.gstNumber      || '';
-  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval.';
-  const coFooter  = co.invoiceFooterNote   || `For queries: ${co.companyEmail || ''}`;
-  const showLogo  = co.showCompanyLogo        !== false;
-  const showGST   = co.showGstBreakdown       !== false;
-  const showSig   = co.showSignatureArea      !== false;
+  const { subtotal, gstTotal } = calcInvoice(inv);
+  const P = ['Company Name Not Set','Please update Company Name','Please update Address'];
+  const clean = v => (!v || P.includes(v?.trim())) ? '' : v.trim();
+  const coName    = clean(co.companyName) || 'Your Company';
+  const coTagline = co.tagline || '';
+  const coAddr    = clean(co.companyAddress) || '';
+  const coPhone   = co.companyPhone || '';
+  const coEmail   = co.companyEmail || '';
+  const coGST     = co.gstNumber || '';
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || '';
+  const coFooter  = co.invoiceFooterNote || '';
+  const showSig   = co.showSignatureArea !== false;
   const showTerms = co.showTermsAndConditions !== false;
 
+  const grandTotal = subtotal + gstTotal - (inv.discount || 0);
+  const sColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Cancelled:'#64748b' };
+  const sColor  = sColors[inv.status] || '#16a34a';
+
   const rows = inv.items.map((it, i) => {
-    const lineAmt = it.qty * it.rate;
-    const lineGst = (lineAmt * it.gst) / 100;
-    const cgst = lineGst / 2;
-    const sgst = lineGst / 2;
-    return `
-      <tr>
-        <td style="color:#8B7355;text-align:center">${i + 1}</td>
-        <td style="font-weight:600;color:#2D2D2D">${it.name}</td>
-        <td style="text-align:right">${it.qty}</td>
-        <td style="text-align:right">${inr(it.rate)}</td>
-        <td style="text-align:right">${inr(lineAmt)}</td>
-        <td style="text-align:right">${it.gst/2}%<br><span style="color:#8B7355;font-size:10px">${inr(cgst)}</span></td>
-        <td style="text-align:right">${it.gst/2}%<br><span style="color:#8B7355;font-size:10px">${inr(sgst)}</span></td>
-        <td style="text-align:right;font-weight:700;color:#2D2D2D">${inr(lineAmt + lineGst)}</td>
-      </tr>`;
+    const taxable = it.qty * it.rate;
+    const gstAmt  = taxable * it.gst / 100;
+    return `<tr>
+      <td class="c">${i+1}</td>
+      <td><strong>${it.name}</strong></td>
+      <td class="c">${it.qty}</td>
+      <td class="r">${inr(it.rate)}</td>
+      <td class="r">${inr(taxable)}</td>
+      <td class="c">${it.gst}%</td>
+      <td class="r">${inr(gstAmt)}</td>
+      <td class="r bold">${inr(taxable+gstAmt)}</td>
+    </tr>`;
   }).join('');
 
-  const stampColor = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Draft:'#64748b' }[inv.status] || '#64748b';
+  const taxMap = {};
+  inv.items.forEach(it => {
+    const taxable = it.qty * it.rate;
+    if (!taxMap[it.gst]) taxMap[it.gst] = { taxable:0, gst:0 };
+    taxMap[it.gst].taxable += taxable;
+    taxMap[it.gst].gst     += taxable * it.gst / 100;
+  });
+  const taxRows = Object.entries(taxMap).map(([rate, v]) =>
+    '<tr><td>' + rate + '%</td><td class="r">' + inr(v.taxable) + '</td><td class="r bold">' + inr(v.gst) + '</td></tr>'
+  ).join('');
 
-  const statusColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Draft:'#64748b', CANCELLED:'#64748b', COMPLETED:'#16a34a' };
-  const sColor = statusColors[inv.status] || '#64748b';
-  const grandTotal = subtotal + gstTotal - (inv.discount || 0);
+  const discountHtml = inv.discount > 0
+    ? '<div class="tot-row tot-disc"><span class="tot-lbl">Discount</span><span class="tot-val">-' + inr(inv.discount) + '</span></div>'
+    : '';
+  const termsHtml = showTerms
+    ? '<div><div class="terms-lbl">Terms &amp; Conditions</div><div class="terms-txt">' + coTerms + '</div></div>'
+    : '<div></div>';
+  const sigHtml = showSig
+    ? '<div class="sig-area"><div class="sig-line"></div><div class="sig-lbl">Authorized Signatory</div><div class="sig-name">' + coName + '</div><div class="eoe">E. &amp; O.E.</div></div>'
+    : '';
+  const footerHtml = (showTerms || showSig)
+    ? '<div class="footer">' + termsHtml + sigHtml + '</div>'
+    : '';
 
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Invoice ${inv.id} — ${coName}</title>
+  <title>TAX INVOICE — ${inv.id}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    @page{margin:0;size:A4}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:#f4f4f4;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.08)}
-
-    /* ── HEADER BAND ── */
-    .header-band{background:#1a1a1a;padding:18px 32px;display:flex;justify-content:space-between;align-items:center}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo-box{width:40px;height:40px;background:linear-gradient(135deg,#C6A969,#8B7355);border-radius:9px;
-      display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0}
-    .co-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.2px}
-    .co-tag{font-size:10px;color:#C6A969;margin-top:1px;font-weight:500}
-    .inv-label{text-align:right}
-    .inv-word{font-size:28px;font-weight:900;color:#C6A969;letter-spacing:3px;line-height:1}
-    .inv-num{font-size:11.5px;color:#a0a0a0;margin-top:4px;font-weight:500}
-
-    /* ── GOLD STRIP ── */
-    .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969 0%,#E8D5A0 50%,#8B7355 100%)}
-
-    /* ── META ROW ── */
-    .meta-band{background:#f8f6f3;padding:16px 40px;display:flex;gap:0;border-bottom:1px solid #ede9e4}
-    .meta-item{flex:1;padding-right:24px;border-right:1px solid #e0dbd4}
-    .meta-item:last-child{border-right:none;padding-right:0;padding-left:24px;text-align:right}
-    .meta-item:not(:first-child):not(:last-child){padding-left:24px}
-    .meta-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-    .meta-val{font-size:13px;font-weight:700;color:#1a1a1a}
-    .meta-val.accent{color:#C6A969}
-    .status-chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
-      background:${sColor}18;color:${sColor};border:1.5px solid ${sColor}40}
-
-    /* ── BODY ── */
-    .body{padding:24px 40px}
-
-    /* ── PARTIES ── */
-    .parties{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;align-items:start}
-    .party-box{background:#f8f6f3;border-radius:8px;padding:12px 16px;border:1px solid #ede9e4}
-    .party-box.right{text-align:right}
-    .party-lbl{font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
-    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:3px}
-    .party-info{font-size:11px;color:#555;line-height:1.6}
-    .party-gstin{font-size:10.5px;color:#8B7355;font-weight:600;margin-top:3px}
-    .co-info{font-size:11px;color:#888;line-height:1.6;margin-top:4px}
-    .stamp-wrap{margin-top:10px}
-    .stamp{display:inline-block;padding:3px 12px;border:2px solid ${sColor};color:${sColor};
-      border-radius:4px;font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;
-      transform:rotate(-7deg)}
-
-    /* ── TABLE ── */
-    .tbl-wrap{border-radius:10px;overflow:hidden;border:1px solid #ede9e4;margin-bottom:24px}
-    table{width:100%;border-collapse:collapse}
-    thead tr{background:#1a1a1a}
-    thead th{padding:11px 14px;font-size:9.5px;font-weight:700;color:#C6A969;text-transform:uppercase;letter-spacing:0.8px;text-align:left}
-    thead th.r{text-align:right}
-    thead th.c{text-align:center}
-    tbody tr:nth-child(even){background:#fafaf9}
-    tbody tr:nth-child(odd){background:#fff}
-    tbody td{padding:11px 14px;font-size:12.5px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:top}
-    tbody tr:last-child td{border-bottom:none}
-    .td-num{text-align:center;color:#8B7355;font-weight:600;font-size:11px}
-    .td-desc{font-weight:600;color:#1a1a1a}
-    .td-sub{font-size:10.5px;color:#888;margin-top:2px}
-    .td-r{text-align:right;font-weight:600;color:#1a1a1a}
-    .td-gst{text-align:right;color:#555}
-    .td-gst-amt{font-size:10px;color:#8B7355;margin-top:2px}
-    .td-total{text-align:right;font-weight:800;color:#1a1a1a}
-
-    /* ── TOTALS ── */
-    .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:28px}
-    .totals-box{width:300px;border-radius:10px;overflow:hidden;border:1px solid #ede9e4}
-    .tot-row{display:flex;justify-content:space-between;padding:9px 16px;font-size:12.5px;border-bottom:1px solid #f0ece8}
+    body{font-family:'Inter',sans-serif;background:#f0f0f0;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px}
+    .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.1)}
+    @media print{body{background:#fff;padding:0}.page{box-shadow:none;max-width:100%}}
+    .hdr{background:#1a1a1a;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+    .hdr-brand{display:flex;align-items:center;gap:12px}
+    .hdr-logo{width:44px;height:44px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;flex-shrink:0}
+    .hdr-logo img{width:100%;height:100%;object-fit:contain}
+    .hdr-name{font-size:17px;font-weight:800;color:#fff}
+    .hdr-tag{font-size:10px;color:#C6A969;margin-top:2px}
+    .hdr-addr{font-size:9.5px;color:#aaa;margin-top:3px;line-height:1.6}
+    .hdr-right{text-align:right}
+    .hdr-inv-type{font-size:22px;font-weight:900;color:#C6A969;letter-spacing:4px;line-height:1}
+    .hdr-inv-num{font-size:11px;color:#aaa;margin-top:4px;font-weight:500}
+    .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969,#E8D5A0,#8B7355)}
+    .info-band{background:#f8f6f3;border-bottom:1px solid #e8e2da;display:flex}
+    .info-col{flex:1;padding:12px 20px;border-right:1px solid #e0dbd4}
+    .info-col:last-child{border-right:none}
+    .info-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px}
+    .info-val{font-size:12px;font-weight:700;color:#1a1a1a}
+    .info-val.gold{color:#C6A969}
+    .status-pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${sColor}20;color:${sColor};border:1.5px solid ${sColor}50}
+    .body{padding:20px 32px}
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+    .party{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:12px 16px}
+    .party.seller{text-align:right}
+    .party-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;border-bottom:1px solid #e8e2da;padding-bottom:5px}
+    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
+    .party-detail{font-size:10.5px;color:#555;line-height:1.7}
+    .party-gstin{font-size:10px;color:#8B7355;font-weight:600;margin-top:4px;padding-top:4px;border-top:1px dashed #e0dbd4}
+    .stamp{display:inline-block;margin-top:8px;padding:3px 14px;border:2.5px solid ${sColor};color:${sColor};border-radius:3px;font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;transform:rotate(-5deg)}
+    .tbl-wrap{border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:16px}
+    .tbl{width:100%;border-collapse:collapse;font-size:11px}
+    .tbl thead tr{background:#1a1a1a}
+    .tbl thead th{padding:9px 10px;color:#C6A969;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
+    .tbl thead th.r{text-align:right}
+    .tbl thead th.c{text-align:center}
+    .tbl thead th.group{text-align:center;background:#2a2a2a;border-bottom:1px solid #3a3a3a;font-size:8.5px;letter-spacing:0.5px}
+    .tbl tbody tr:nth-child(even){background:#fafafa}
+    .tbl tbody tr:nth-child(odd){background:#fff}
+    .tbl tbody td{padding:9px 10px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:middle}
+    .tbl tbody tr:last-child td{border-bottom:none}
+    .tbl td.c{text-align:center}
+    .tbl td.r{text-align:right}
+    .tbl td.bold{font-weight:700;color:#1a1a1a}
+    .bottom{display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:16px}
+    .tax-summary{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
+    .tax-title{background:#f0ede8;padding:7px 12px;font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e8e2da}
+    .tax-tbl{width:100%;border-collapse:collapse;font-size:10.5px}
+    .tax-tbl thead th{padding:7px 10px;background:#f8f6f3;font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;text-align:right;border-bottom:1px solid #e8e2da}
+    .tax-tbl thead th:first-child{text-align:left}
+    .tax-tbl tbody td{padding:7px 10px;border-bottom:1px solid #f5f2ef;text-align:right;color:#333}
+    .tax-tbl tbody td:first-child{text-align:left;font-weight:600;color:#1a1a1a}
+    .tax-tbl tbody tr:last-child td{border-bottom:none}
+    .totals{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
+    .tot-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f5f2ef}
     .tot-row:last-child{border-bottom:none}
-    .tot-lbl{color:#555;font-weight:500}
+    .tot-lbl{color:#666;font-weight:500}
     .tot-val{font-weight:700;color:#1a1a1a}
     .tot-disc .tot-lbl,.tot-disc .tot-val{color:#16a34a}
-    .tot-grand-row{background:#1a1a1a;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
-    .tot-grand-lbl{color:#C6A969;font-size:13px;font-weight:700;letter-spacing:0.3px}
-    .tot-grand-val{color:#fff;font-size:18px;font-weight:900}
-
-    /* ── FOOTER ── */
-    .footer-band{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;padding-top:24px;border-top:2px solid #f0ece8;margin-bottom:0}
-    .terms-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-    .terms-txt{font-size:11px;color:#666;line-height:1.7;max-width:360px}
+    .tot-grand{background:#1a1a1a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+    .tot-grand-lbl{color:#C6A969;font-size:12px;font-weight:700;letter-spacing:0.5px}
+    .tot-grand-val{color:#fff;font-size:17px;font-weight:900}
+    .amt-words{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px}
+    .amt-words-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+    .amt-words-val{font-weight:600;color:#1a1a1a;font-style:italic}
+    .footer{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:flex-end;padding-top:16px;border-top:2px solid #f0ece8}
+    .terms-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+    .terms-txt{font-size:10.5px;color:#666;line-height:1.7;max-width:380px}
     .sig-area{text-align:center;min-width:160px}
-    .sig-line{width:140px;border-top:1.5px solid #ccc;margin:32px auto 8px}
-    .sig-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
-    .sig-name{font-size:12px;color:#1a1a1a;font-weight:700;margin-top:3px}
-
-    /* ── THANK YOU ── */
-    .thankyou{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);padding:12px 32px;text-align:center}
-    .ty-title{font-size:12px;font-weight:700;color:#C6A969;letter-spacing:0.5px}
-    .ty-sub{font-size:10.5px;color:#a0a0a0;margin-top:3px}
-
-    @media print{
-      body{background:#fff}
-      .page{box-shadow:none}
-    }
+    .sig-line{width:140px;border-top:1.5px solid #ccc;margin:36px auto 7px}
+    .sig-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
+    .sig-name{font-size:11px;color:#1a1a1a;font-weight:700;margin-top:3px}
+    .eoe{font-size:9px;color:#aaa;margin-top:4px;font-style:italic}
+    .ty-band{background:#1a1a1a;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+    .ty-title{font-size:12px;font-weight:700;color:#C6A969}
+    .ty-note{font-size:9.5px;color:#888}
+    .comp-gen{font-size:8.5px;color:#aaa;text-align:center;padding:6px;background:#f8f6f3;border-top:1px solid #e8e2da}
   </style>
 </head>
 <body>
 <div class="page">
-
-  <!-- HEADER -->
-  <div class="header-band">
-    <div class="brand">
-      <div class="logo-box">${coName[0]?.toUpperCase() || 'C'}</div>
+  <div class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">${co.logoUrl?`<img src="${co.logoUrl}">`:`<span>${coName[0]?.toUpperCase()||'C'}</span>`}</div>
       <div>
-        <div class="co-name">${coName}</div>
-        ${coTagline ? `<div class="co-tag">${coTagline}</div>` : ''}
+        <div class="hdr-name">${coName}</div>
+        ${coTagline?`<div class="hdr-tag">${coTagline}</div>`:''}
+        <div class="hdr-addr">${[coAddr,coPhone,coEmail].filter(Boolean).join(' &nbsp;|&nbsp; ')}${coGST?` &nbsp;|&nbsp; GSTIN: ${coGST}`:''}</div>
       </div>
     </div>
-    <div class="inv-label">
-      <div class="inv-word">INVOICE</div>
-      <div class="inv-num">${inv.id}</div>
+    <div class="hdr-right">
+      <div class="hdr-inv-type">TAX INVOICE</div>
+      <div class="hdr-inv-num"># ${inv.id}</div>
     </div>
   </div>
   <div class="gold-strip"></div>
-
-  <!-- META BAND -->
-  <div class="meta-band">
-    <div class="meta-item">
-      <div class="meta-lbl">Invoice Date</div>
-      <div class="meta-val">${inv.date}</div>
-    </div>
-    <div class="meta-item">
-      <div class="meta-lbl">Due Date</div>
-      <div class="meta-val">${inv.dueDate && inv.dueDate !== '—' ? inv.dueDate : 'On Receipt'}</div>
-    </div>
-    <div class="meta-item">
-      <div class="meta-lbl">Payment Mode</div>
-      <div class="meta-val accent">${inv.payment}</div>
-    </div>
-    <div class="meta-item">
-      <div class="meta-lbl">Status</div>
-      <div class="meta-val"><span class="status-chip">${inv.status}</span></div>
-    </div>
+  <div class="info-band">
+    <div class="info-col"><div class="info-lbl">Invoice Date</div><div class="info-val">${inv.date||'—'}</div></div>
+    <div class="info-col"><div class="info-lbl">Due Date</div><div class="info-val">${inv.dueDate&&inv.dueDate!=='—'?inv.dueDate:'On Receipt'}</div></div>
+    <div class="info-col"><div class="info-lbl">Payment Mode</div><div class="info-val gold">${inv.payment||'—'}</div></div>
+    <div class="info-col"><div class="info-lbl">Place of Supply</div><div class="info-val">${coAddr?coAddr.split(',').pop()?.trim()||'':''}</div></div>
+    <div class="info-col" style="text-align:right"><div class="info-lbl">Status</div><div class="info-val"><span class="status-pill">${inv.status}</span></div></div>
   </div>
-
-  <!-- BODY -->
   <div class="body">
-
-    <!-- PARTIES -->
     <div class="parties">
-      <div class="party-box">
+      <div class="party">
         <div class="party-lbl">Bill To</div>
-        <div class="party-name">${inv.customer}</div>
-        <div class="party-info">
-          ${inv.address ? inv.address + '<br>' : ''}
-          ${inv.phone ? inv.phone + '<br>' : ''}
-          ${inv.email ? inv.email : ''}
-        </div>
-        ${inv.gstNo ? `<div class="party-gstin">GSTIN: ${inv.gstNo}</div>` : ''}
+        <div class="party-name">${inv.customer||'Walk-in Customer'}</div>
+        <div class="party-detail">${inv.phone?`<div>${inv.phone}</div>`:''}${inv.email?`<div>${inv.email}</div>`:''}${inv.address?`<div>${inv.address}</div>`:''}</div>
+        ${inv.gstNo?`<div class="party-gstin">GSTIN: ${inv.gstNo}</div>`:''}
       </div>
-      <div class="party-box right">
-        <div class="party-lbl">From</div>
+      <div class="party seller">
+        <div class="party-lbl">Seller Details</div>
         <div class="party-name">${coName}</div>
-        <div class="co-info">
-          ${coAddr ? coAddr + '<br>' : ''}
-          ${coPhone ? coPhone + '<br>' : ''}
-          ${coEmail ? coEmail : ''}
-        </div>
-        ${coGST ? `<div class="party-gstin">GSTIN: ${coGST}</div>` : ''}
-        <div class="stamp-wrap"><span class="stamp">${inv.status}</span></div>
+        <div class="party-detail">${coPhone?`<div>${coPhone}</div>`:''}${coEmail?`<div>${coEmail}</div>`:''}${coAddr?`<div>${coAddr}</div>`:''}</div>
+        ${coGST?`<div class="party-gstin">GSTIN: ${coGST}</div>`:''}
+        <div><span class="stamp">${inv.status}</span></div>
       </div>
     </div>
-
-    <!-- ITEMS TABLE -->
     <div class="tbl-wrap">
-      <table>
+      <table class="tbl">
         <thead>
           <tr>
-            <th class="c" style="width:36px">#</th>
+            <th class="c" style="width:30px">#</th>
             <th>Description</th>
-            <th class="r">Qty</th>
+            <th class="c">Qty</th>
             <th class="r">Rate</th>
             <th class="r">Taxable Amt</th>
-            <th class="r">CGST</th>
-            <th class="r">SGST</th>
+            <th class="c">GST %</th>
+            <th class="r">GST Amt</th>
             <th class="r">Total</th>
           </tr>
         </thead>
-        <tbody>
-          ${rows}
-        </tbody>
+        <tbody>${rows}</tbody>
       </table>
     </div>
-
-    <!-- TOTALS -->
-    <div class="totals-wrap">
-      <div class="totals-box">
-        <div class="tot-row">
-          <span class="tot-lbl">Subtotal</span>
-          <span class="tot-val">${inr(subtotal)}</span>
-        </div>
-        <div class="tot-row">
-          <span class="tot-lbl">GST Total</span>
-          <span class="tot-val">${inr(gstTotal)}</span>
-        </div>
-        ${inv.discount > 0 ? `<div class="tot-row tot-disc"><span class="tot-lbl">Discount</span><span class="tot-val">-${inr(inv.discount)}</span></div>` : ''}
-        <div class="tot-grand-row">
-          <span class="tot-grand-lbl">GRAND TOTAL</span>
-          <span class="tot-grand-val">${inr(grandTotal)}</span>
-        </div>
+    <div class="bottom">
+      <div class="tax-summary">
+        <div class="tax-title">Tax Summary</div>
+        <table class="tax-tbl">
+          <thead><tr><th>GST Rate</th><th>Taxable Amt</th><th>GST Amount</th></tr></thead>
+          <tbody>${taxRows}</tbody>
+        </table>
+      </div>
+      <div class="totals">
+        <div class="tot-row"><span class="tot-lbl">Subtotal</span><span class="tot-val">${inr(subtotal)}</span></div>
+        <div class="tot-row"><span class="tot-lbl">GST</span><span class="tot-val">${inr(gstTotal)}</span></div>
+        ${discountHtml}
+        <div class="tot-grand"><span class="tot-grand-lbl">GRAND TOTAL</span><span class="tot-grand-val">${inr(grandTotal)}</span></div>
       </div>
     </div>
-
-    <!-- FOOTER -->
-    <div class="footer-band">
-      <div>
-        <div class="terms-lbl">Terms &amp; Conditions</div>
-        <div class="terms-txt">${coTerms}</div>
-      </div>
-      <div class="sig-area">
-        <div class="sig-line"></div>
-        <div class="sig-lbl">Authorized Signatory</div>
-        <div class="sig-name">${coName}</div>
-      </div>
+    <div class="amt-words">
+      <div class="amt-words-lbl">Amount in Words</div>
+      <div class="amt-words-val">${amountInWords(grandTotal)}</div>
     </div>
-
-  </div><!-- /body -->
-
-  <!-- THANK YOU -->
-  <div class="thankyou">
-    <div class="ty-title">Thank you for your business!</div>
-    <div class="ty-sub">${coFooter}</div>
+    ${footerHtml}
   </div>
-
-</div><!-- /page -->
-<script>window.onload = function(){ window.print(); }</script>
+  ${coFooter ? '<div class="ty-band"><div class="ty-title">' + coFooter + '</div></div>' : ''}
+  <div class="comp-gen">This is a computer generated invoice and does not require a physical signature.</div>
+</div>
+<script>window.onload=function(){window.print()}</script>
 </body>
 </html>`;
 
@@ -571,165 +572,191 @@ function printInvoice(inv, co = {}) {
 ══════════════════════════════════════════════════════════════════════ */
 function PDFPreviewModal({ invoice, onClose, co = {} }) {
   const { subtotal, gstTotal, total } = calcInvoice(invoice);
-  const coName    = co.companyName    || 'Your Company';
+  const PLACEHOLDERS = ['Company Name Not Set','Please update Company Name','Please update Address'];
+  const clean = v => (!v || PLACEHOLDERS.includes(v.trim())) ? '' : v.trim();
+  const coName    = clean(co.companyName) || 'Your Company';
   const coTagline = co.tagline        || '';
-  const coAddr    = co.companyAddress || '';
+  const coAddr    = clean(co.companyAddress) || '';
   const coPhone   = co.companyPhone   || '';
   const coEmail   = co.companyEmail   || '';
   const coGST     = co.gstNumber      || '';
-  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || 'Payment is due within 7 days of invoice date. Late payments attract 2% monthly interest.';
-  const coFooter  = co.invoiceFooterNote   || (co.companyEmail ? `For queries: ${co.companyEmail}` : 'Thank you for your business!');
+  const coLogo    = co.logoUrl        || null;
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || '';
+  const coFooter  = co.invoiceFooterNote || '';
   const showLogo  = co.showCompanyLogo        !== false;
   const showGST   = co.showGstBreakdown       !== false;
   const showSig   = co.showSignatureArea      !== false;
   const showTerms = co.showTermsAndConditions !== false;
 
+  const statusColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Cancelled:'#64748b' };
+  const sColor = statusColors[invoice.status] || '#64748b';
+
   return (
     <div className="inv-overlay" onClick={onClose}>
       <div className="inv-pdf-modal" onClick={e => e.stopPropagation()}>
-        {/* Modal Header */}
         <div className="inv-pdf-modal-head">
           <div className="inv-pdf-modal-left">
             <FileText size={16} color="#8B7355" />
             <div className="inv-pdf-modal-title">{invoice.id}</div>
-            <span className={`inv-pdf-status-badge inv-badge ${badgeClass(invoice.status)}`}>
-              {invoice.status}
-            </span>
+            <span className={`inv-pdf-status-badge inv-badge ${badgeClass(invoice.status)}`}>{invoice.status}</span>
           </div>
           <div className="inv-pdf-modal-acts">
-            <button className="inv-btn-sm" onClick={() => printInvoice(invoice, co)}>
-              <Printer size={13} /> Print / PDF
-            </button>
+            <button className="inv-btn-sm" onClick={() => printInvoice(invoice, co)}><Printer size={13} /> Print / PDF</button>
             <button className="inv-close-btn" onClick={onClose}><X size={15} /></button>
           </div>
         </div>
 
-        {/* Invoice Document */}
         <div className="inv-pdf-modal-body">
           <div className="inv-doc">
-            {/* Company Header */}
-            <div className="inv-doc-head">
-              <div>
-                <div className="inv-doc-brand-row">
-                  {showLogo && <div className="inv-doc-logo">{coName[0]?.toUpperCase() || 'C'}</div>}
-                  <div>
-                    <div className="inv-doc-company">{coName}</div>
-                    {coTagline && <div className="inv-doc-company-sub">{coTagline}</div>}
-                  </div>
+
+            {/* Header */}
+            <div className="inv-doc-header-band">
+              <div className="inv-doc-brand">
+                <div className="inv-doc-logo">
+                  {coLogo ? <img src={coLogo} alt="logo" /> : coName[0]?.toUpperCase()}
                 </div>
-                <div className="inv-doc-addr">
-                  {coAddr}{coAddr && <br />}
-                  {coPhone}{coPhone && coEmail && ' | '}{coEmail}{(coPhone || coEmail) && <br />}
-                  {coGST && <>GSTIN: {coGST}</>}
+                <div>
+                  <div className="inv-doc-company">{coName}</div>
+                  {coTagline && <div className="inv-doc-company-sub">{coTagline}</div>}
+                  <div className="inv-doc-addr">{[coAddr,coPhone,coEmail].filter(Boolean).join(' · ')}{coGST && ` | GSTIN: ${coGST}`}</div>
                 </div>
               </div>
-              <div className="inv-doc-right">
-                <div className="inv-doc-title">INVOICE</div>
-                {[
-                  ['Invoice No.', invoice.id],
-                  ['Date', invoice.date],
-                  ['Due Date', invoice.dueDate],
-                  ['Payment Mode', invoice.payment],
-                ].map(([l, v]) => (
-                  <div className="inv-doc-meta-row" key={l}>
-                    <span className="inv-doc-meta-lbl">{l}</span>
-                    <span className="inv-doc-meta-val">{v}</span>
-                  </div>
-                ))}
+              <div className="inv-doc-inv-label">
+                <div className="inv-doc-title">TAX INVOICE</div>
+                <div className="inv-doc-inv-num"># {invoice.id}</div>
               </div>
             </div>
+            <div className="inv-doc-gold-strip" />
 
-            {/* Bill To / Handled By */}
-            <div className="inv-doc-parties">
-              <div>
-                <div className="inv-doc-party-lbl">Bill To</div>
-                <div className="inv-doc-party-name">{invoice.customer}</div>
-                <div className="inv-doc-party-info">
-                  {invoice.address}<br />
-                  {invoice.phone}<br />
-                  {invoice.email}<br />
-                  {invoice.gstNo && <>GSTIN: {invoice.gstNo}</>}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="inv-doc-party-lbl">Handled By</div>
-                <div className="inv-doc-party-name">{invoice.cashier}</div>
-                <div className="inv-doc-party-info">{invoice.counter}</div>
-                <div style={{ marginTop: 16 }}>
-                  <span style={{ ...stampStyle(invoice.status), display:'inline-block', padding:'4px 14px', borderRadius:6, fontSize:12, fontWeight:900, letterSpacing:2, textTransform:'uppercase', transform:'rotate(-10deg)' }}>
-                    {invoice.status}
-                  </span>
-                </div>
-              </div>
+            {/* Info Band */}
+            <div className="inv-doc-meta-band">
+              <div className="inv-doc-meta-item"><div className="inv-doc-meta-lbl">Invoice Date</div><div className="inv-doc-meta-val">{invoice.date||'—'}</div></div>
+              <div className="inv-doc-meta-item"><div className="inv-doc-meta-lbl">Due Date</div><div className="inv-doc-meta-val">{invoice.dueDate&&invoice.dueDate!=='—'?invoice.dueDate:'On Receipt'}</div></div>
+              <div className="inv-doc-meta-item"><div className="inv-doc-meta-lbl">Payment Mode</div><div className="inv-doc-meta-val accent">{invoice.payment}</div></div>
+              <div className="inv-doc-meta-item"><div className="inv-doc-meta-lbl">Place of Supply</div><div className="inv-doc-meta-val">{coAddr?coAddr.split(',').pop()?.trim()||'':''}</div></div>
+              <div className="inv-doc-meta-item"><div className="inv-doc-meta-lbl">Status</div><div className="inv-doc-meta-val"><span className="inv-doc-status-chip" style={{background:`${sColor}20`,color:sColor,border:`1.5px solid ${sColor}50`}}>{invoice.status}</span></div></div>
             </div>
 
-            {/* Items Table */}
-            <table className="inv-doc-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 28, textAlign: 'center' }}>#</th>
-                  <th>Description</th>
-                  <th className="right">Qty</th>
-                  <th className="right">Rate</th>
-                  {showGST && <th className="right">GST%</th>}
-                  {showGST && <th className="right">GST Amt</th>}
-                  <th className="right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.items.map((it, i) => {
-                  const lineAmt = it.qty * it.rate;
-                  const lineGst = (lineAmt * it.gst) / 100;
-                  return (
-                    <tr key={i}>
-                      <td style={{ textAlign: 'center', color: '#8B7355' }}>{i + 1}</td>
-                      <td className="bold">{it.name}</td>
-                      <td className="right">{it.qty}</td>
-                      <td className="right">{inr(it.rate)}</td>
-                      {showGST && <td className="right">{it.gst}%</td>}
-                      {showGST && <td className="right">{inr(lineGst)}</td>}
-                      <td className="right bold">{inr(lineAmt + lineGst)}</td>
+            {/* Body */}
+            <div className="inv-doc-body">
+
+              {/* Parties */}
+              <div className="inv-doc-parties">
+                <div className="inv-doc-party">
+                  <div className="inv-doc-party-lbl">Bill To</div>
+                  <div className="inv-doc-party-name">{invoice.customer||'Walk-in Customer'}</div>
+                  <div className="inv-doc-party-info">
+                    {invoice.phone&&<div>{invoice.phone}</div>}
+                    {invoice.email&&<div>{invoice.email}</div>}
+                    {invoice.address&&<div>{invoice.address}</div>}
+                  </div>
+                  {invoice.gstNo&&<div className="inv-doc-party-gstin">GSTIN: {invoice.gstNo}</div>}
+                </div>
+                <div className="inv-doc-party right">
+                  <div className="inv-doc-party-lbl">Seller Details</div>
+                  <div className="inv-doc-party-name">{coName}</div>
+                  <div className="inv-doc-party-info">
+                    {coPhone&&<div>{coPhone}</div>}
+                    {coEmail&&<div>{coEmail}</div>}
+                    {coAddr&&<div>{coAddr}</div>}
+                  </div>
+                  {coGST&&<div className="inv-doc-party-gstin">GSTIN: {coGST}</div>}
+                  <div><span className="inv-doc-stamp" style={{border:`2px solid ${sColor}`,color:sColor}}>{invoice.status}</span></div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="inv-doc-table-wrap">
+                <table className="inv-doc-table">
+                  <thead>
+                    <tr>
+                      <th className="c" style={{width:28}}>#</th>
+                      <th>Description</th>
+                      <th className="r">Qty</th>
+                      <th className="r">Rate</th>
+                      <th className="r">Taxable Amt</th>
+                      <th className="c">GST %</th>
+                      <th className="r">GST Amt</th>
+                      <th className="r">Total</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {/* Totals */}
-            <div className="inv-doc-totals">
-              <div className="inv-doc-totals-inner">
-                <div className="inv-doc-tot-row"><span>Subtotal</span><span>{inr(subtotal)}</span></div>
-                {showGST && <div className="inv-doc-tot-row"><span>GST Total</span><span>{inr(gstTotal)}</span></div>}
-                {invoice.discount > 0 && (
-                  <div className="inv-doc-tot-row discount"><span>Discount</span><span>-{inr(invoice.discount)}</span></div>
-                )}
-                <div className="inv-doc-tot-row grand"><span>Grand Total</span><span>{inr(total)}</span></div>
+                  </thead>
+                  <tbody>
+                    {invoice.items.map((it,i)=>{
+                      const taxable=it.qty*it.rate; const gstAmt=taxable*it.gst/100;
+                      return(<tr key={i}>
+                        <td className="c">{i+1}</td>
+                        <td className="bold">{it.name}</td>
+                        <td className="r">{it.qty}</td>
+                        <td className="r">{inr(it.rate)}</td>
+                        <td className="r">{inr(taxable)}</td>
+                        <td className="c">{it.gst}%</td>
+                        <td className="r">{inr(gstAmt)}</td>
+                        <td className="r bold">{inr(taxable+gstAmt)}</td>
+                      </tr>);
+                    })}
+                  </tbody>
+                </table>
               </div>
+
+              {/* Bottom: Tax Summary + Totals */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 260px',gap:16,marginBottom:14}}>
+                <div style={{border:'1px solid #e8e2da',borderRadius:8,overflow:'hidden'}}>
+                  <div style={{background:'#f0ede8',padding:'6px 12px',fontSize:9,fontWeight:700,color:'#8B7355',textTransform:'uppercase',letterSpacing:1,borderBottom:'1px solid #e8e2da'}}>Tax Summary</div>
+                  <table style={{width:'100%',borderCollapse:'collapse',fontSize:10.5}}>
+                    <thead><tr style={{background:'#f8f6f3'}}>
+                      <th style={{padding:'6px 10px',fontSize:8,fontWeight:700,color:'#8B7355',textTransform:'uppercase',textAlign:'left',borderBottom:'1px solid #e8e2da'}}>GST Rate</th>
+                      <th style={{padding:'6px 10px',fontSize:8,fontWeight:700,color:'#8B7355',textTransform:'uppercase',textAlign:'right',borderBottom:'1px solid #e8e2da'}}>Taxable Amt</th>
+                      <th style={{padding:'6px 10px',fontSize:8,fontWeight:700,color:'#8B7355',textTransform:'uppercase',textAlign:'right',borderBottom:'1px solid #e8e2da'}}>GST Amount</th>
+                    </tr></thead>
+                    <tbody>
+                      {(() => {
+                        const tm = {};
+                        invoice.items.forEach(it => {
+                          const t = it.qty*it.rate;
+                          if (!tm[it.gst]) tm[it.gst]={taxable:0,gst:0};
+                          tm[it.gst].taxable+=t; tm[it.gst].gst+=t*it.gst/100;
+                        });
+                        return Object.entries(tm).map(([rate,v])=>(
+                          <tr key={rate}>
+                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',fontWeight:600,color:'#1a1a1a'}}>{rate}%</td>
+                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',textAlign:'right',color:'#333'}}>{inr(v.taxable)}</td>
+                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',textAlign:'right',fontWeight:700,color:'#1a1a1a'}}>{inr(v.gst)}</td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="inv-doc-totals-box">
+                  <div className="inv-doc-tot-row"><span className="inv-doc-tot-lbl">Subtotal</span><span className="inv-doc-tot-val">{inr(subtotal)}</span></div>
+                  <div className="inv-doc-tot-row"><span className="inv-doc-tot-lbl">GST</span><span className="inv-doc-tot-val">{inr(gstTotal)}</span></div>
+                  {invoice.discount>0&&<div className="inv-doc-tot-row inv-doc-tot-disc"><span className="inv-doc-tot-lbl">Discount</span><span className="inv-doc-tot-val">-{inr(invoice.discount)}</span></div>}
+                  <div className="inv-doc-grand-row"><span className="inv-doc-grand-lbl">GRAND TOTAL</span><span className="inv-doc-grand-val">{inr(total)}</span></div>
+                </div>
+              </div>
+
+              {/* Amount in Words */}
+              <div style={{background:'#f8f6f3',border:'1px solid #e8e2da',borderRadius:8,padding:'8px 12px',marginBottom:14}}>
+                <div style={{fontSize:8,fontWeight:700,color:'#8B7355',textTransform:'uppercase',letterSpacing:1,marginBottom:3}}>Amount in Words</div>
+                <div style={{fontSize:11,fontWeight:600,color:'#1a1a1a',fontStyle:'italic'}}>{amountInWords(total)}</div>
+              </div>
+
+              {/* Footer */}
+              {(showTerms||showSig)&&(
+                <div className="inv-doc-footer">
+                  {showTerms?<div><div className="inv-doc-terms-lbl">Terms &amp; Conditions</div><div className="inv-doc-terms-txt">{coTerms}</div></div>:<div/>}
+                  {showSig&&<div className="inv-doc-sig"><div className="inv-doc-sig-line"/><div className="inv-doc-sig-lbl">Authorized Signatory</div><div className="inv-doc-sig-name">{coName}</div><div style={{fontSize:9,color:'#aaa',marginTop:3,fontStyle:'italic'}}>E. &amp; O.E.</div></div>}
+                </div>
+              )}
             </div>
 
-            {/* Footer */}
-            {(showTerms || showSig) && (
-              <div className="inv-doc-footer">
-                {showTerms && (
-                  <div>
-                    <div className="inv-doc-terms-lbl">Terms &amp; Conditions</div>
-                    <div className="inv-doc-terms-txt">{coTerms}</div>
-                  </div>
-                )}
-                {showSig && (
-                  <div className="inv-doc-sig">
-                    <div className="inv-doc-sig-line" />
-                    <div className="inv-doc-sig-lbl">Authorized Signatory</div>
-                    <div className="inv-doc-sig-name">{coName}</div>
-                  </div>
-                )}
+            {coFooter && (
+              <div className="inv-doc-thankyou" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 24px'}}>
+                <div className="inv-doc-thankyou-title">{coFooter}</div>
               </div>
             )}
-
-            {/* Thank You */}
-            <div className="inv-doc-thankyou">
-              <div className="inv-doc-thankyou-title">Thank you for your business!</div>
-              <div className="inv-doc-thankyou-sub">{coFooter}</div>
+            <div style={{fontSize:8,color:'#aaa',textAlign:'center',padding:4,background:'#f8f6f3',borderTop:'1px solid #e8e2da'}}>
+              This is a computer generated invoice and does not require a physical signature.
             </div>
           </div>
         </div>
@@ -744,7 +771,7 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
 function CreateInvoiceModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
     customer: '', email: '', phone: '', address: '', gstNo: '',
-    dueDate: '', payment: 'Cash', discount: '', notes: '',
+    dueDate: '', payment: 'Cash', status: 'Pending', discount: '', notes: '',
   });
   const [items, setItems]   = useState([{ ...EMPTY_ITEM }]);
   const [saving, setSaving] = useState(false);
@@ -761,6 +788,37 @@ function CreateInvoiceModal({ onClose, onCreate }) {
   const addItem    = () => setItems(it => [...it, { ...EMPTY_ITEM }]);
   const removeItem = (i) => setItems(it => it.filter((_, idx) => idx !== i));
 
+  // Product search state
+  const [products, setProducts]         = useState([]);
+  const [productSearch, setProductSearch] = useState({});
+  const [showDropdown, setShowDropdown]  = useState({});
+
+  useEffect(() => {
+    api.get('/api/products/all').then(res => {
+      const prods = res.data || [];
+      setProducts(prods.map(p => ({
+        id:    p.id,
+        name:  p.name,
+        rate:  parseFloat(p.sellingPrice || p.price || 0),
+        gst:   parseFloat(p.gstPercentage || p.gstRate || 0),
+        stock: p.stock ?? null,
+        sku:   p.sku || '',
+      })));
+    }).catch(() => {});
+  }, []);
+
+  const filteredProducts = (search) =>
+    search.length < 1 ? [] :
+    products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())).slice(0, 8);
+
+  const selectProduct = (i, p) => {
+    const next = [...items];
+    next[i] = { ...next[i], name: p.name, rate: p.rate, gst: p.gst };
+    setItems(next);
+    setProductSearch(s => ({ ...s, [i]: p.name }));
+    setShowDropdown(s => ({ ...s, [i]: false }));
+  };
+
   const subtotal     = items.reduce((s, it) => s + it.qty * it.rate, 0);
   const gstTotal     = items.reduce((s, it) => s + (it.qty * it.rate * it.gst) / 100, 0);
   const discountAmt  = ((subtotal + gstTotal) * Math.min(Number(form.discount || 0), 100)) / 100;
@@ -772,16 +830,27 @@ function CreateInvoiceModal({ onClose, onCreate }) {
     setError('');
     setSaving(true);
     try {
-      const res = await api.post('/api/billing/checkout', {
+      // Map UI labels → backend enum values
+      const PAY_ENUM = {
+        Cash: 'CASH', Card: 'CARD', UPI: 'UPI',
+        'Net Banking': 'NET_BANKING', Cheque: 'CHEQUE',
+      };
+      const discountPct = form.discount ? Number(form.discount) : 0;
+      const subtotalVal = items.reduce((s, it) => s + it.qty * it.rate, 0);
+      const gstVal      = items.reduce((s, it) => s + it.qty * it.rate * it.gst / 100, 0);
+      const discountAmt = ((subtotalVal + gstVal) * discountPct) / 100;
+
+      const res = await api.post('/api/billing/create', {
         customerName:    form.customer,
-        customerEmail:   form.email,
-        customerPhone:   form.phone,
-        customerAddress: form.address,
-        customerGstNo:   form.gstNo,
-        paymentMethod:   form.payment,
-        dueDate:         form.dueDate   || null,
-        discount:        form.discount  ? Number(form.discount) : 0,
-        notes:           form.notes     || '',
+        customerEmail:   form.email    || null,
+        customerPhone:   form.phone    || null,
+        customerAddress: form.address  || null,
+        customerGstNo:   form.gstNo    || null,
+        paymentMethod:   PAY_ENUM[form.payment] || form.payment.toUpperCase(),
+        status:          form.status === 'Paid' ? 'COMPLETED' : 'PENDING',
+        dueDate:         form.dueDate  || null,
+        discount:        discountPct,
+        notes:           form.notes    || null,
         items: items.map(it => ({
           name: it.name,
           qty:  it.qty,
@@ -807,9 +876,13 @@ function CreateInvoiceModal({ onClose, onCreate }) {
         gstTotal:   parseFloat(inv.gstTotal      || 0),
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
-        status:     inv.status       || 'Draft',
+        status:     inv.status || inv.paymentStatus || 'Pending',
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-        dueDate:    inv.dueDate   ? new Date(inv.dueDate).toLocaleDateString('en-IN',   { day: '2-digit', month: 'short', year: 'numeric' }) : form.dueDate || '—',
+        dueDate:    inv.dueDate
+          ? new Date(inv.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : form.dueDate
+          ? new Date(form.dueDate + 'T12:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—',
         cashier:    inv.cashierName   || '—',
         counter:    inv.counter       || '—',
         payment:    inv.paymentMethod || form.payment,
@@ -817,11 +890,14 @@ function CreateInvoiceModal({ onClose, onCreate }) {
       onCreate(newInv);
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to create invoice.';
+      const data = err.response?.data;
+      // Surface the exact backend validation message
+      const msg = (typeof data === 'string' ? data : data?.message || data?.error || JSON.stringify(data)) || err.message || 'Failed to create invoice.';
+      console.error('[billing/create] 400 body:', data);
       if (err.response?.status === 401 || err.response?.status === 403) {
         setError('Permission denied: only Cashiers can create invoices. Ask a cashier to generate it.');
       } else {
-        setError(msg);
+        setError(`(${err.response?.status || 'error'}) ${msg}`);
       }
     } finally {
       setSaving(false);
@@ -886,13 +962,37 @@ function CreateInvoiceModal({ onClose, onCreate }) {
                 const rowTotal = it.qty * it.rate * (1 + it.gst / 100);
                 return (
                   <tr key={i}>
-                    <td>
+                    <td style={{ position: 'relative' }}>
                       <input
                         className="inv-item-input"
-                        placeholder="Item name"
-                        value={it.name}
-                        onChange={e => setItem(i, 'name', e.target.value)}
+                        placeholder="Search product…"
+                        value={productSearch[i] !== undefined ? productSearch[i] : it.name}
+                        onChange={e => {
+                          setProductSearch(s => ({ ...s, [i]: e.target.value }));
+                          setItem(i, 'name', e.target.value);
+                          setShowDropdown(s => ({ ...s, [i]: true }));
+                        }}
+                        onFocus={() => setShowDropdown(s => ({ ...s, [i]: true }))}
+                        onBlur={() => setTimeout(() => setShowDropdown(s => ({ ...s, [i]: false })), 180)}
+                        autoComplete="off"
                       />
+                      {showDropdown[i] && filteredProducts(productSearch[i] || it.name).length > 0 && (
+                        <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'#FFFFFF', border:'1px solid #EFE7DE', borderRadius:9, boxShadow:'0 4px 16px rgba(45,45,45,0.12)', zIndex:999, maxHeight:200, overflowY:'auto' }}>
+                          {filteredProducts(productSearch[i] || it.name).map(p => (
+                            <div key={p.id}
+                              onMouseDown={() => selectProduct(i, p)}
+                              style={{ padding:'9px 12px', cursor:'pointer', borderBottom:'1px solid #F8F5F2', fontSize:13 }}
+                              onMouseEnter={e => e.currentTarget.style.background='#F8F5F2'}
+                              onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                            >
+                              <div style={{ fontWeight:600, color:'#2D2D2D' }}>{p.name}</div>
+                              <div style={{ fontSize:11, color:'#8B7355', marginTop:2 }}>
+                                ₹{p.rate} &nbsp;|&nbsp; GST: {p.gst}% {p.sku && `| SKU: ${p.sku}`}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <input
@@ -975,7 +1075,14 @@ function CreateInvoiceModal({ onClose, onCreate }) {
             <div className="inv-field">
               <label>Payment Method</label>
               <select value={form.payment} onChange={e => set('payment', e.target.value)}>
-                {['Cash','Card','UPI','Bank Transfer','Cheque','Pending'].map(p => <option key={p}>{p}</option>)}
+                {['Cash','Card','UPI','Net Banking','Cheque'].map(p => <option key={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="inv-field">
+              <label>Status</label>
+              <select value={form.status} onChange={e => set('status', e.target.value)}>
+                <option value="Pending">Pending</option>
+                <option value="Paid">Paid</option>
               </select>
             </div>
           </div>
@@ -1023,7 +1130,7 @@ export default function AdminInvoices() {
   const [invoices, setInvoices]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
-  const [statusFilter, setStatus]   = useState('Active');
+  const [statusFilter, setStatus]   = useState('All');
   const [page, setPage]             = useState(1);
   const [previewInv, setPreview]    = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -1035,11 +1142,11 @@ export default function AdminInvoices() {
       const res = await api.get('/api/billing/history');
       const data = (res.data || []).map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
-        customer:   inv.customer?.name    || inv.customerName || 'Walk-in Customer',
-        email:      inv.customer?.email   || '',
-        phone:      inv.customer?.phone   || '',
-        address:    inv.customer?.address || '',
-        gstNo:      inv.customer?.gstNo   || '',
+        customer:   inv.customerName  || inv.customer?.name    || 'Walk-in Customer',
+        email:      inv.customerEmail || inv.customer?.email  || '',
+        phone:      inv.customerPhone || inv.customer?.phone  || '',
+        address:    inv.customerAddress || inv.customer?.address || '',
+        gstNo:      inv.customerGstNo || inv.customer?.gstNo   || '',
         items: (inv.items || []).map(it => ({
           name: it.productName,
           qty:  parseFloat(it.quantity      || 0),
@@ -1051,9 +1158,11 @@ export default function AdminInvoices() {
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
         totalItems: inv.totalItems || 0,
-        status:     inv.status     || 'Paid',
+        status:     normalizeStatus(inv.status || inv.paymentStatus, inv.dueDate),
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-        dueDate:    inv.dueDate   ? new Date(inv.dueDate).toLocaleDateString('en-IN',   { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+        dueDate:    inv.dueDate
+          ? new Date(inv.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—',
         cashier:    inv.cashierName   || inv.cashierId || '—',
         counter:    inv.counter       || '—',
         payment:    inv.paymentMethod || 'CASH',
@@ -1081,23 +1190,28 @@ export default function AdminInvoices() {
     const matchSearch = inv.id.toLowerCase().includes(q)
       || inv.customer.toLowerCase().includes(q)
       || inv.email.toLowerCase().includes(q);
-    const matchStatus = statusFilter === 'All'
-      ? true
-      : statusFilter === 'Active'
-      ? inv.status !== 'CANCELLED'
-      : inv.status === statusFilter;
+    const matchStatus = statusFilter === 'All' || inv.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Mark as paid endpoint not available in backend — button hidden
+  const handleMarkPaid = async (id) => {
+    try {
+      await api.put(`/api/billing/pay/${id}`);
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Paid' } : inv));
+      showToast(`Invoice ${id} marked as paid.`);
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.response?.data || 'Failed to mark as paid.';
+      showToast(typeof msg === 'string' ? msg : JSON.stringify(msg), 'error');
+    }
+  };
 
   const handleDelete = async (id) => {
     try {
       await api.put(`/api/billing/cancel/${id}`);
-      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'CANCELLED' } : inv));
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'Cancelled' } : inv));
       showToast(`Invoice ${id} cancelled successfully.`, 'error');
     } catch {
       showToast('Failed to cancel invoice. Try again.', 'error');
@@ -1111,14 +1225,11 @@ export default function AdminInvoices() {
 
   // send-email endpoint not available in backend
 
-  // KPI stats — handle backend status variants (COMPLETED = Paid, PENDING = Pending etc.)
-  const isPaid    = s => ['Paid','PAID','COMPLETED','paid','completed'].includes(s);
-  const isPending = s => ['Pending','PENDING','pending'].includes(s);
-  const isOverdue = s => ['Overdue','OVERDUE','overdue'].includes(s);
-  const totalRevenue = invoices.filter(i => isPaid(i.status)).reduce((s, i) => s + calcInvoice(i).total, 0);
-  const paidCount    = invoices.filter(i => isPaid(i.status)).length;
-  const pendingCount = invoices.filter(i => isPending(i.status)).length;
-  const overdueCount = invoices.filter(i => isOverdue(i.status)).length;
+  // KPI stats — statuses are already normalized by normalizeStatus()
+  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.grandTotal || calcInvoice(i).total), 0);
+  const paidCount    = invoices.filter(i => i.status === 'Paid').length;
+  const pendingCount = invoices.filter(i => i.status === 'Pending').length;
+  const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
 
   return (
     <>
@@ -1201,7 +1312,7 @@ export default function AdminInvoices() {
           <Filter size={15} color="#8B7355" style={{ flexShrink: 0 }} />
           <select className="inv-select" value={statusFilter}
             onChange={e => { setStatus(e.target.value); setPage(1); }}>
-            {['Active','All','Paid','Pending','CANCELLED'].map(s => <option key={s}>{s}</option>)}
+            {['All','Paid','Pending','Overdue','Cancelled'].map(s => <option key={s}>{s}</option>)}
           </select>
           <button className="inv-btn-primary" onClick={() => setShowCreate(true)}>
             <Plus size={15} /> New Invoice
@@ -1245,7 +1356,7 @@ export default function AdminInvoices() {
                         <div className="inv-customer-sub">{inv.email}</div>
                       </td>
                       <td style={{ color: '#8B7355' }}>{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
-                      <td><span className="inv-amount">{inr(total)}</span></td>
+                      <td><span className="inv-amount">{inr(inv.grandTotal || total)}</span></td>
                       <td>
                         <span className={`inv-badge ${badgeClass(inv.status)}`}>
                           {inv.status}
@@ -1264,7 +1375,12 @@ export default function AdminInvoices() {
                           <button className="inv-act-btn" title="Download PDF" onClick={() => printInvoice(inv, co)}>
                             <Download size={14} />
                           </button>
-                          {!['CANCELLED','COMPLETED','Paid','PAID','paid','completed'].includes(inv.status) && (
+                          {inv.status === 'Pending' && (
+                            <button className="inv-act-btn btn-green" title="Mark as Paid" onClick={() => handleMarkPaid(inv.id)}>
+                              <CheckCircle size={14} />
+                            </button>
+                          )}
+                          {inv.status === 'Pending' && (
                             <button className="inv-act-btn btn-red" title="Cancel Invoice" onClick={() => handleDelete(inv.id)}>
                               <X size={14} />
                             </button>

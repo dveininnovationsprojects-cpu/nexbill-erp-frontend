@@ -191,7 +191,13 @@ export default function CashierBilling() {
     setPaymentStatus('processing');
     try {
       const res = await api.post('/api/billing/checkout', {
-        paymentMethod: paymentMethod,
+        paymentMethod,
+        customerId:      customerId || null,
+        customerName:    selectedCustomer?.name  || null,
+        customerPhone:   selectedCustomer?.mobile || selectedCustomer?.phone || null,
+        customerEmail:   selectedCustomer?.email  || null,
+        discountAmount:  discountType === 'flat'    ? parseFloat(discount) || 0 : 0,
+        discountPercent: discountType === 'percent' ? parseFloat(discount) || 0 : 0,
       });
       setInvoiceResponse(res.data);
       setPaymentStatus('success');

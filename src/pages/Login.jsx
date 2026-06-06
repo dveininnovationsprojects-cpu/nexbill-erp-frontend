@@ -14,6 +14,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const successMsg = location.state?.message;
 
+  // Read saved company branding (set by Layout after login)
+  const savedCompany = (() => {
+    try { return JSON.parse(localStorage.getItem('nexbill_company') || '{}'); } catch { return {}; }
+  })();
+  const companyName    = savedCompany.name    || 'NexBill ERP';
+  const companyLogo    = savedCompany.logoUrl || null;
+  const companyTagline = savedCompany.tagline || '';
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
@@ -21,8 +29,8 @@ export default function Login() {
     setError(''); setPending(false); setLoading(true);
     try {
       const data = await login(form.email, form.password);
-      if (data.role === 'ADMIN') navigate('/admin/dashboard');
-      else navigate('/cashier/dashboard');
+      const dest = data.role === 'ADMIN' ? '/admin/dashboard' : '/cashier/dashboard';
+      navigate(dest, { state: { loginMsg: 'Login successful! Welcome back.' } });
     } catch (err) {
       if (err.isPending) setPending(true);
       else setError(err.response?.data?.message || 'Invalid credentials. Please try again.');
@@ -37,7 +45,8 @@ export default function Login() {
         .login-left::before{content:'';position:absolute;top:-120px;right:-120px;width:400px;height:400px;border-radius:50%;background:rgba(198,169,105,0.08);pointer-events:none}
         .login-left::after{content:'';position:absolute;bottom:-80px;left:-80px;width:300px;height:300px;border-radius:50%;background:rgba(198,169,105,0.05);pointer-events:none}
         .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:56px}
-        .login-logo{width:40px;height:40px;background:#C6A969;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#2D2D2D}
+        .login-logo{width:40px;height:40px;background:transparent;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#2D2D2D;overflow:hidden}
+        .login-logo img{width:100%;height:100%;object-fit:contain;border-radius:10px;display:block}
         .login-brand-name{font-size:20px;font-weight:600;color:#F8F5F2;letter-spacing:-0.3px}
         .login-tagline{font-size:38px;font-weight:700;color:#F8F5F2;line-height:1.2;letter-spacing:-0.8px;margin:0 0 16px}
         .login-sub{font-size:15px;color:#8B7355;margin:0 0 48px;line-height:1.6}
@@ -80,7 +89,12 @@ export default function Login() {
       <div className="login-page">
         <div className="login-left">
           <div className="login-brand">
-            <div className="login-logo">N</div>
+            <div className="login-logo">
+              {companyLogo
+                ? <img src={companyLogo} alt="logo" />
+                : companyName[0]?.toUpperCase()
+              }
+            </div>
             <span className="login-brand-name">NexBill ERP</span>
           </div>
           <h1 className="login-tagline">Smart Billing &<br />Inventory Management</h1>
@@ -110,7 +124,6 @@ export default function Login() {
                 <div><strong>Awaiting Admin Approval</strong><p>Your account is under review. You'll be notified once approved.</p></div>
               </div>
             )}
-
             <form onSubmit={handleSubmit} className="login-form">
               <div className="login-field">
                 <label>Email Address</label>
@@ -133,7 +146,6 @@ export default function Login() {
                 {loading ? <span className="login-spinner" /> : <><LogIn size={16} /> Sign In</>}
               </button>
             </form>
-
             <p className="login-register-note">
               New cashier? <Link to="/register" className="login-register-link">Request access</Link>
             </p>

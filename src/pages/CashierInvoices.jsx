@@ -20,7 +20,7 @@ import api from '../api';
 ══════════════════════════════════════════════════════════════════════ */
 const STYLES = `
   *, *::before, *::after { box-sizing: border-box; }
-  .ci-page { display:flex; flex-direction:column; gap:20px; font-family:'Inter',system-ui,sans-serif; }
+  .ci-page { display:flex; flex-direction:column; gap:20px; font-family:'Inter',system-ui,sans-serif; width:100%; overflow-x:hidden; }
 
   /* ── Cashier Info Strip ── */
   .ci-info-card {
@@ -65,7 +65,7 @@ const STYLES = `
   .trend-up { background:#DCFCE7; color:#16a34a; }
 
   /* ── Toolbar ── */
-  .ci-toolbar { background:#FFFFFF; border:1px solid #EFE7DE; border-radius:14px; padding:14px 18px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 1px 4px rgba(45,45,45,0.05); }
+  .ci-toolbar { background:#FFFFFF; border:1px solid #EFE7DE; border-radius:14px; padding:14px 18px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; box-shadow:0 1px 4px rgba(45,45,45,0.05); width:100%; box-sizing:border-box; }
   .ci-search-box { flex:1; min-width:200px; display:flex; align-items:center; gap:8px; background:#F8F5F2; border:1.5px solid #EFE7DE; border-radius:9px; padding:0 12px; height:38px; transition:border-color 0.2s; }
   .ci-search-box:focus-within { border-color:#C6A969; }
   .ci-search-box input { flex:1; border:none; background:transparent; outline:none; font-size:13px; color:#2D2D2D; font-family:inherit; }
@@ -74,7 +74,7 @@ const STYLES = `
   .ci-select:focus { border-color:#C6A969; }
 
   /* ── Table Card ── */
-  .ci-table-card { background:#FFFFFF; border:1px solid #EFE7DE; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(45,45,45,0.05); }
+  .ci-table-card { background:#FFFFFF; border:1px solid #EFE7DE; border-radius:14px; overflow:hidden; box-shadow:0 1px 4px rgba(45,45,45,0.05); width:100%; box-sizing:border-box; }
   .ci-table-scroll { overflow-x:auto; }
   .ci-table { width:100%; border-collapse:collapse; font-size:13px; }
   .ci-table thead th { background:#F8F5F2; padding:10px 14px; text-align:left; font-size:10.5px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid #EFE7DE; white-space:nowrap; }
@@ -133,88 +133,100 @@ const STYLES = `
   .ci-btn-sm:hover { background:#C6A969; color:#2D2D2D; }
 
   /* ── Invoice Document ── */
-  .ci-doc { background:#FFFFFF; border-radius:12px; overflow:hidden; max-width:740px; margin:0 auto; box-shadow:0 4px 24px rgba(45,45,45,0.12); }
-
-  /* Header band */
-  .ci-doc-header-band { background:#1a1a1a; padding:18px 28px; display:flex; justify-content:space-between; align-items:center; }
+  .ci-doc { background:#FFFFFF; border-radius:12px; overflow:hidden; max-width:760px; margin:0 auto; box-shadow:0 4px 24px rgba(45,45,45,0.12); font-size:12px; }
+  .ci-doc-header-band { background:#1a1a1a; padding:18px 28px; display:flex; justify-content:space-between; align-items:flex-start; }
   .ci-doc-brand  { display:flex; align-items:center; gap:12px; }
-  .ci-doc-logo   { width:42px; height:42px; background:linear-gradient(135deg,#C6A969,#8B7355); border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#fff; flex-shrink:0; overflow:hidden; }
+  .ci-doc-logo   { width:42px; height:42px; background:transparent; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#C6A969; flex-shrink:0; overflow:hidden; }
   .ci-doc-logo img { width:100%; height:100%; object-fit:contain; }
   .ci-doc-company     { font-size:15px; font-weight:800; color:#FFFFFF; }
   .ci-doc-company-sub { font-size:10px; color:#C6A969; margin-top:2px; }
+  .ci-doc-addr        { font-size:9.5px; color:#aaa; margin-top:3px; line-height:1.5; }
   .ci-doc-inv-label  { text-align:right; }
-  .ci-doc-title      { font-size:26px; font-weight:900; color:#C6A969; letter-spacing:3px; line-height:1; }
+  .ci-doc-title      { font-size:20px; font-weight:900; color:#C6A969; letter-spacing:4px; line-height:1; }
   .ci-doc-inv-num    { font-size:11px; color:#A0A0A0; margin-top:4px; }
-
-  /* Gold strip */
   .ci-doc-gold-strip { height:4px; background:linear-gradient(90deg,#C6A969 0%,#E8D5A0 50%,#8B7355 100%); }
 
-  /* Meta band */
-  .ci-doc-meta-band { background:#F8F6F3; padding:12px 28px; display:flex; gap:0; border-bottom:1px solid #EDE9E4; }
-  .ci-doc-meta-item { flex:1; padding-right:20px; border-right:1px solid #E0DBD4; }
-  .ci-doc-meta-item:last-child { border-right:none; padding-right:0; padding-left:20px; text-align:right; }
-  .ci-doc-meta-item:not(:first-child):not(:last-child) { padding-left:20px; }
-  .ci-doc-meta-lbl { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
-  .ci-doc-meta-val { font-size:12px; font-weight:700; color:#1a1a1a; }
-  .ci-doc-meta-val.accent { color:#C6A969; }
-  .ci-doc-status-chip { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  /* Info band */
+  .ci-doc-info-band { background:#F8F6F3; display:flex; border-bottom:1px solid #E8E2DA; }
+  .ci-doc-info-col  { flex:1; padding:10px 14px; border-right:1px solid #E0DBD4; }
+  .ci-doc-info-col:last-child { border-right:none; text-align:right; }
+  .ci-doc-info-lbl  { font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+  .ci-doc-info-val  { font-size:11.5px; font-weight:700; color:#1a1a1a; }
+  .ci-doc-info-val.gold { color:#C6A969; }
+  .ci-doc-status-chip { display:inline-block; padding:2px 10px; border-radius:20px; font-size:10px; font-weight:700; }
 
   /* Body */
-  .ci-doc-body { padding:20px 28px; }
+  .ci-doc-body { padding:16px 24px; }
 
-  /* Parties row */
-  .ci-doc-parties { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
-  .ci-doc-party   { background:#F8F6F3; border-radius:8px; padding:12px 14px; border:1px solid #EDE9E4; }
+  /* Parties */
+  .ci-doc-parties { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .ci-doc-party   { background:#F8F6F3; border-radius:8px; padding:10px 14px; border:1px solid #EDE9E4; }
   .ci-doc-party.right { text-align:right; }
-  .ci-doc-party-lbl  { font-size:8.5px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+  .ci-doc-party-lbl  { font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; border-bottom:1px solid #EDE9E4; padding-bottom:4px; }
   .ci-doc-party-name { font-size:13px; font-weight:800; color:#1a1a1a; margin-bottom:3px; }
-  .ci-doc-party-info { font-size:11px; color:#555; line-height:1.6; }
-  .ci-doc-party-gstin{ font-size:10.5px; color:#8B7355; font-weight:600; margin-top:3px; }
-  .ci-doc-stamp { display:inline-block; padding:3px 12px; border-radius:4px; font-size:10px; font-weight:900; letter-spacing:2.5px; text-transform:uppercase; transform:rotate(-7deg); margin-top:10px; }
+  .ci-doc-party-info { font-size:10.5px; color:#555; line-height:1.6; }
+  .ci-doc-party-gstin{ font-size:10px; color:#8B7355; font-weight:600; margin-top:4px; border-top:1px dashed #E0DBD4; padding-top:4px; }
+  .ci-doc-stamp { display:inline-block; padding:3px 12px; border-radius:3px; font-size:9px; font-weight:900; letter-spacing:3px; text-transform:uppercase; transform:rotate(-5deg); margin-top:8px; }
 
   /* Table */
-  .ci-doc-table-wrap { border-radius:10px; overflow:hidden; border:1px solid #EDE9E4; margin-bottom:16px; }
-  .ci-doc-table { width:100%; border-collapse:collapse; }
-  .ci-doc-table thead tr { background:#1a1a1a; }
-  .ci-doc-table thead th { padding:10px 12px; font-size:9.5px; font-weight:700; color:#C6A969; text-transform:uppercase; letter-spacing:0.8px; text-align:left; }
+  .ci-doc-table-wrap { border-radius:8px; overflow:hidden; border:1px solid #DDD; margin-bottom:14px; }
+  .ci-doc-table { width:100%; border-collapse:collapse; font-size:11px; }
+  .ci-doc-table thead tr.main-hdr { background:#1a1a1a; }
+  .ci-doc-table thead tr.sub-hdr  { background:#222; }
+  .ci-doc-table thead th { padding:8px 10px; font-size:8.5px; font-weight:700; color:#C6A969; text-transform:uppercase; letter-spacing:0.7px; text-align:left; white-space:nowrap; }
   .ci-doc-table thead th.r { text-align:right; }
   .ci-doc-table thead th.c { text-align:center; }
-  .ci-doc-table tbody tr:nth-child(even) { background:#FAFAF9; }
+  .ci-doc-table thead th.grp { text-align:center; font-size:8px; color:#bbb; }
+  .ci-doc-table tbody tr:nth-child(even) { background:#FAFAFA; }
   .ci-doc-table tbody tr:nth-child(odd)  { background:#FFFFFF; }
-  .ci-doc-table tbody td { padding:10px 12px; font-size:12.5px; color:#333; border-bottom:1px solid #F0ECE8; }
+  .ci-doc-table tbody td { padding:8px 10px; font-size:11px; color:#333; border-bottom:1px solid #F0ECE8; }
   .ci-doc-table tbody tr:last-child td { border-bottom:none; }
   .ci-doc-table tbody td.r    { text-align:right; font-weight:600; color:#1a1a1a; }
-  .ci-doc-table tbody td.c    { text-align:center; color:#8B7355; font-weight:600; font-size:11px; }
+  .ci-doc-table tbody td.c    { text-align:center; }
   .ci-doc-table tbody td.bold { font-weight:700; color:#1a1a1a; }
 
+  /* Bottom grid */
+  .ci-doc-bottom { display:grid; grid-template-columns:1fr 240px; gap:14px; margin-bottom:12px; }
+
+  /* Tax summary */
+  .ci-doc-tax-box   { border:1px solid #E8E2DA; border-radius:8px; overflow:hidden; }
+  .ci-doc-tax-title { background:#F0EDE8; padding:6px 12px; font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #E8E2DA; }
+  .ci-doc-tax-table { width:100%; border-collapse:collapse; font-size:10px; }
+  .ci-doc-tax-table th { padding:5px 10px; background:#F8F6F3; font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.5px; text-align:right; border-bottom:1px solid #E8E2DA; }
+  .ci-doc-tax-table th:first-child { text-align:left; }
+  .ci-doc-tax-table td { padding:5px 10px; border-bottom:1px solid #F5F2EF; text-align:right; color:#333; }
+  .ci-doc-tax-table td:first-child { text-align:left; font-weight:600; color:#1a1a1a; }
+  .ci-doc-tax-table tr:last-child td { border-bottom:none; }
+
   /* Totals */
-  .ci-doc-totals-wrap { display:flex; justify-content:flex-end; margin-bottom:20px; }
-  .ci-doc-totals-box  { width:280px; border-radius:10px; overflow:hidden; border:1px solid #EDE9E4; }
-  .ci-doc-tot-row     { display:flex; justify-content:space-between; padding:8px 14px; font-size:12.5px; border-bottom:1px solid #F0ECE8; }
+  .ci-doc-totals-box  { border:1px solid #E8E2DA; border-radius:8px; overflow:hidden; }
+  .ci-doc-tot-row     { display:flex; justify-content:space-between; padding:7px 12px; font-size:11.5px; border-bottom:1px solid #F5F2EF; }
   .ci-doc-tot-row:last-child { border-bottom:none; }
-  .ci-doc-tot-lbl { color:#555; font-weight:500; }
+  .ci-doc-tot-lbl { color:#666; font-weight:500; }
   .ci-doc-tot-val { font-weight:700; color:#1a1a1a; }
   .ci-doc-tot-disc .ci-doc-tot-lbl, .ci-doc-tot-disc .ci-doc-tot-val { color:#16a34a; }
-  .ci-doc-grand-row { background:#1a1a1a; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
-  .ci-doc-grand-lbl { color:#C6A969; font-size:12px; font-weight:700; letter-spacing:0.3px; }
-  .ci-doc-grand-val { color:#FFFFFF; font-size:18px; font-weight:900; }
+  .ci-doc-grand-row { background:#1a1a1a; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
+  .ci-doc-grand-lbl { color:#C6A969; font-size:11px; font-weight:700; letter-spacing:0.3px; }
+  .ci-doc-grand-val { color:#FFFFFF; font-size:15px; font-weight:900; }
+
+  /* Amount in words */
+  .ci-doc-amt-words { background:#F8F6F3; border:1px solid #E8E2DA; border-radius:8px; padding:8px 12px; margin-bottom:12px; }
+  .ci-doc-amt-lbl { font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
+  .ci-doc-amt-val { font-size:11px; font-weight:600; color:#1a1a1a; font-style:italic; }
 
   /* Footer */
-  .ci-doc-footer { display:grid; grid-template-columns:1fr auto; gap:24px; align-items:flex-end; padding-top:16px; border-top:2px solid #F0ECE8; }
-  .ci-doc-terms-lbl { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
-  .ci-doc-terms-txt { font-size:11px; color:#555; line-height:1.6; max-width:340px; }
-  .ci-doc-sig       { text-align:center; min-width:140px; }
-  .ci-doc-sig-line  { width:120px; border-top:1.5px solid #CCC; margin:28px auto 6px; }
-  .ci-doc-sig-lbl   { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; }
+  .ci-doc-footer { display:grid; grid-template-columns:1fr auto; gap:20px; align-items:flex-end; padding-top:12px; border-top:2px solid #F0ECE8; }
+  .ci-doc-terms-lbl { font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+  .ci-doc-terms-txt { font-size:10.5px; color:#555; line-height:1.6; max-width:340px; }
+  .ci-doc-sig       { text-align:center; min-width:130px; }
+  .ci-doc-sig-line  { width:110px; border-top:1.5px solid #CCC; margin:28px auto 6px; }
+  .ci-doc-sig-lbl   { font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; }
   .ci-doc-sig-name  { font-size:11px; color:#1a1a1a; font-weight:700; margin-top:2px; }
-
-  /* Thank you */
-  .ci-doc-thankyou  { background:linear-gradient(135deg,#1a1a1a,#2D2D2D); padding:12px 28px; text-align:center; }
-  .ci-doc-ty-title  { font-size:12px; font-weight:700; color:#C6A969; letter-spacing:0.5px; }
-  .ci-doc-ty-sub    { font-size:10.5px; color:#9E9087; margin-top:2px; }
-
-  /* Addr line */
-  .ci-doc-addr { font-size:10px; color:#A0A0A0; margin-top:3px; }
+  .ci-doc-sig-eoe   { font-size:9px; color:#aaa; margin-top:3px; font-style:italic; }
+  .ci-doc-thankyou  { background:#1a1a1a; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; }
+  .ci-doc-ty-title  { font-size:11px; font-weight:700; color:#C6A969; }
+  .ci-doc-ty-sub    { font-size:9.5px; color:#888; }
+  .ci-doc-comp-gen  { font-size:8px; color:#aaa; text-align:center; padding:4px; background:#F8F6F3; border-top:1px solid #E8E2DA; }
 
   /* ── Empty State ── */
   .ci-empty { display:flex; flex-direction:column; align-items:center; padding:48px 24px; color:#D6D3D1; gap:10px; }
@@ -241,194 +253,337 @@ function inr(n) {
 }
 
 function badgeClass(status) {
-  if (['Paid','PAID','COMPLETED','paid','completed'].includes(status)) return 'cbadge-paid';
-  if (['Pending','PENDING','pending'].includes(status))               return 'cbadge-pending';
-  if (['Overdue','OVERDUE','overdue'].includes(status))               return 'cbadge-overdue';
-  if (['CANCELLED','cancelled'].includes(status))                     return 'cbadge-draft';
+  if (status === 'Paid')      return 'cbadge-paid';
+  if (status === 'Pending')   return 'cbadge-pending';
+  if (status === 'Overdue')   return 'cbadge-overdue';
+  if (status === 'Cancelled') return 'cbadge-draft';
   return 'cbadge-draft';
 }
 
 function stampColor(status) {
-  return { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Draft:'#64748b' }[status] || '#64748b';
+  return { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Cancelled:'#64748b' }[status] || '#64748b';
+}
+
+function normalizeStatus(rawStatus, rawDueDate) {
+  const s = (rawStatus || 'PENDING').toUpperCase();
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const isPastDue = rawDueDate && new Date(rawDueDate) < today && !['COMPLETED','PAID','CANCELLED'].includes(s);
+  if (isPastDue)                        return 'Overdue';
+  if (['COMPLETED','PAID'].includes(s)) return 'Paid';
+  if (s === 'CANCELLED')                return 'Cancelled';
+  return 'Pending';
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PRINT / PDF
+   AMOUNT IN WORDS
+══════════════════════════════════════════════════════════════════════ */
+function amountInWords(amount) {
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function num(n) {
+    if (n === 0) return '';
+    if (n < 20)  return ones[n] + ' ';
+    if (n < 100) return tens[Math.floor(n/10)] + (n%10 ? ' '+ones[n%10] : '') + ' ';
+    if (n < 1000)    return ones[Math.floor(n/100)]  + ' Hundred '  + num(n%100);
+    if (n < 100000)  return num(Math.floor(n/1000))  + 'Thousand '  + num(n%1000);
+    if (n < 10000000)return num(Math.floor(n/100000))+ 'Lakh '      + num(n%100000);
+    return num(Math.floor(n/10000000))+'Crore '+num(n%10000000);
+  }
+  const r = Math.floor(amount), p = Math.round((amount-r)*100);
+  return (num(r).trim()||'Zero')+' Rupees'+(p>0?' and '+num(p).trim()+' Paise':'')+' Only';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PRINT / PDF — REAL ERP INVOICE
 ══════════════════════════════════════════════════════════════════════ */
 function printInvoice(inv, co = {}) {
-  const { subtotal, gstTotal, total } = calcInvoice(inv);
-  const sc = stampColor(inv.status);
-  const _PLACEHOLDERS = ['Company Name Not Set','Please update Company Name','Please update Address'];
-  const _clean = (v) => (!v || _PLACEHOLDERS.includes(v.trim())) ? '' : v.trim();
-  const coName    = _clean(co.companyName) || 'Your Company';
-  const coTagline = co.tagline        || '';
-  const coAddr    = _clean(co.companyAddress) || '';
-  const coPhone   = co.companyPhone   || '';
-  const coEmail   = co.companyEmail   || '';
-  const coGST     = co.gstNumber      || '';
-  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || 'Payment due within 7 days. Late payments attract 2% monthly interest. Goods once sold cannot be returned without prior approval.';
-  const coFooter  = co.invoiceFooterNote   || (co.companyEmail ? `For queries: ${co.companyEmail}` : 'Thank you for your business!');
-  const showLogo  = co.showCompanyLogo        !== false;
-  const showGST   = co.showGstBreakdown       !== false;
-  const showSig   = co.showSignatureArea      !== false;
+  const { subtotal, gstTotal } = calcInvoice(inv);
+  const P = ['Company Name Not Set','Please update Company Name','Please update Address'];
+  const clean = v => (!v || P.includes(v?.trim())) ? '' : v.trim();
+  const coName    = clean(co.companyName) || 'Your Company';
+  const coTagline = co.tagline || '';
+  const coAddr    = clean(co.companyAddress) || '';
+  const coPhone   = co.companyPhone || '';
+  const coEmail   = co.companyEmail || '';
+  const coGST     = co.gstNumber || '';
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || '';
+  const coFooter  = co.invoiceFooterNote || '';
+  const showSig   = co.showSignatureArea !== false;
   const showTerms = co.showTermsAndConditions !== false;
 
+  const grandTotal = subtotal + gstTotal - (inv.discount || 0);
+  const sColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Cancelled:'#64748b' };
+  const sColor  = sColors[inv.status] || '#16a34a';
+
   const rows = inv.items.map((it, i) => {
-    const lineAmt = it.qty * it.rate;
-    const lineGst = (lineAmt * it.gst) / 100;
+    const taxable = it.qty * it.rate;
+    const gstAmt  = taxable * it.gst / 100;
     return `<tr>
-      <td style="text-align:center;color:#8B7355">${i + 1}</td>
-      <td style="font-weight:600;color:#2D2D2D">${it.name}</td>
-      <td style="text-align:right">${it.qty}</td>
-      <td style="text-align:right">${inr(it.rate)}</td>
-      ${showGST ? `<td style="text-align:right">${it.gst}%</td><td style="text-align:right">${inr(lineGst)}</td>` : ''}
-      <td style="text-align:right;font-weight:700;color:#2D2D2D">${inr(lineAmt + lineGst)}</td>
+      <td class="c">${i+1}</td>
+      <td><strong>${it.name}</strong></td>
+      <td class="c">${it.qty}</td>
+      <td class="r">${inr(it.rate)}</td>
+      <td class="r">${inr(taxable)}</td>
+      <td class="c">${it.gst}%</td>
+      <td class="r">${inr(gstAmt)}</td>
+      <td class="r bold">${inr(taxable+gstAmt)}</td>
     </tr>`;
   }).join('');
 
-  const statusColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Draft:'#64748b', CANCELLED:'#64748b', COMPLETED:'#16a34a' };
-  const sColor = statusColors[inv.status] || '#64748b';
-  const grandTotal = subtotal + gstTotal - (inv.discount || 0);
+  const taxMap = {};
+  inv.items.forEach(it => {
+    const taxable = it.qty * it.rate;
+    if (!taxMap[it.gst]) taxMap[it.gst] = { taxable: 0, gst: 0 };
+    taxMap[it.gst].taxable += taxable;
+    taxMap[it.gst].gst     += taxable * it.gst / 100;
+  });
+  const taxRows = Object.entries(taxMap).map(([rate, v]) =>
+    '<tr><td>' + rate + '%</td><td class="r">' + inr(v.taxable) + '</td><td class="r bold">' + inr(v.gst) + '</td></tr>'
+  ).join('');
+
+  // Pre-compute footer to avoid nested template literals (oxc parser issue)
+  const discountHtml = inv.discount > 0
+    ? '<div class="tot-row tot-disc"><span class="tot-lbl">Discount</span><span class="tot-val">-' + inr(inv.discount) + '</span></div>'
+    : '';
+  const termsHtml = showTerms
+    ? '<div><div class="terms-lbl">Terms &amp; Conditions</div><div class="terms-txt">' + coTerms + '</div></div>'
+    : '<div></div>';
+  const sigHtml = showSig
+    ? '<div class="sig-area"><div class="sig-line"></div><div class="sig-lbl">Authorized Signatory</div><div class="sig-name">' + coName + '</div><div class="eoe">E. &amp; O.E.</div></div>'
+    : '';
+  const footerHtml = (showTerms || showSig)
+    ? '<div class="footer">' + termsHtml + sigHtml + '</div>'
+    : '';
 
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Invoice ${inv.id} — ${coName}</title>
+  <title>TAX INVOICE — ${inv.id}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    @page{margin:0;size:A4}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:#f4f4f4;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.08)}
-    .header-band{background:#1a1a1a;padding:18px 32px;display:flex;justify-content:space-between;align-items:center}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo-box{width:40px;height:40px;background:linear-gradient(135deg,#C6A969,#8B7355);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden}
-    .co-name{font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.2px}
-    .co-tag{font-size:10px;color:#C6A969;margin-top:1px;font-weight:500}
-    .inv-label{text-align:right}
-    .inv-word{font-size:28px;font-weight:900;color:#C6A969;letter-spacing:3px;line-height:1}
-    .inv-num{font-size:11.5px;color:#a0a0a0;margin-top:4px;font-weight:500}
-    .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969 0%,#E8D5A0 50%,#8B7355 100%)}
-    .meta-band{background:#f8f6f3;padding:16px 40px;display:flex;gap:0;border-bottom:1px solid #ede9e4}
-    .meta-item{flex:1;padding-right:24px;border-right:1px solid #e0dbd4}
-    .meta-item:last-child{border-right:none;padding-right:0;padding-left:24px;text-align:right}
-    .meta-item:not(:first-child):not(:last-child){padding-left:24px}
-    .meta-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-    .meta-val{font-size:13px;font-weight:700;color:#1a1a1a}
-    .meta-val.accent{color:#C6A969}
-    .status-chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${sColor}18;color:${sColor};border:1.5px solid ${sColor}40}
-    .body{padding:24px 40px}
-    .parties{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;align-items:start}
-    .party-box{background:#f8f6f3;border-radius:8px;padding:12px 16px;border:1px solid #ede9e4}
-    .party-box.right{text-align:right}
-    .party-lbl{font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
-    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:3px}
-    .party-info{font-size:11px;color:#555;line-height:1.6}
-    .party-gstin{font-size:10.5px;color:#8B7355;font-weight:600;margin-top:3px}
-    .co-info{font-size:11px;color:#888;line-height:1.6;margin-top:4px}
-    .stamp-wrap{margin-top:10px}
-    .stamp{display:inline-block;padding:3px 12px;border:2px solid ${sColor};color:${sColor};border-radius:4px;font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;transform:rotate(-7deg)}
-    .tbl-wrap{border-radius:10px;overflow:hidden;border:1px solid #ede9e4;margin-bottom:24px}
-    table{width:100%;border-collapse:collapse}
-    thead tr{background:#1a1a1a}
-    thead th{padding:11px 14px;font-size:9.5px;font-weight:700;color:#C6A969;text-transform:uppercase;letter-spacing:0.8px;text-align:left}
-    thead th.r{text-align:right}
-    thead th.c{text-align:center}
-    tbody tr:nth-child(even){background:#fafaf9}
-    tbody tr:nth-child(odd){background:#fff}
-    tbody td{padding:11px 14px;font-size:12.5px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:top}
-    tbody tr:last-child td{border-bottom:none}
-    .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:28px}
-    .totals-box{width:300px;border-radius:10px;overflow:hidden;border:1px solid #ede9e4}
-    .tot-row{display:flex;justify-content:space-between;padding:9px 16px;font-size:12.5px;border-bottom:1px solid #f0ece8}
+    body{font-family:'Inter',sans-serif;background:#f0f0f0;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px}
+    .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.1)}
+    @media print{body{background:#fff;padding:0}.page{box-shadow:none;max-width:100%}}
+
+    /* ── Header ── */
+    .hdr{background:#1a1a1a;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+    .hdr-brand{display:flex;align-items:center;gap:12px}
+    .hdr-logo{width:44px;height:44px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;flex-shrink:0}
+    .hdr-logo img{width:100%;height:100%;object-fit:contain}
+    .hdr-name{font-size:17px;font-weight:800;color:#fff}
+    .hdr-tag{font-size:10px;color:#C6A969;margin-top:2px}
+    .hdr-addr{font-size:9.5px;color:#aaa;margin-top:3px;line-height:1.6}
+    .hdr-right{text-align:right}
+    .hdr-inv-type{font-size:22px;font-weight:900;color:#C6A969;letter-spacing:4px;line-height:1}
+    .hdr-inv-num{font-size:11px;color:#aaa;margin-top:4px;font-weight:500}
+    .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969,#E8D5A0,#8B7355)}
+
+    /* ── Info Band ── */
+    .info-band{background:#f8f6f3;border-bottom:1px solid #e8e2da;display:flex}
+    .info-col{flex:1;padding:12px 20px;border-right:1px solid #e0dbd4}
+    .info-col:last-child{border-right:none}
+    .info-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px}
+    .info-val{font-size:12px;font-weight:700;color:#1a1a1a}
+    .info-val.gold{color:#C6A969}
+    .status-pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${sColor}20;color:${sColor};border:1.5px solid ${sColor}50}
+
+    /* ── Body ── */
+    .body{padding:20px 32px}
+
+    /* ── Parties ── */
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+    .party{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:12px 16px}
+    .party.seller{text-align:right}
+    .party-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;border-bottom:1px solid #e8e2da;padding-bottom:5px}
+    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
+    .party-detail{font-size:10.5px;color:#555;line-height:1.7}
+    .party-gstin{font-size:10px;color:#8B7355;font-weight:600;margin-top:4px;padding-top:4px;border-top:1px dashed #e0dbd4}
+    .stamp{display:inline-block;margin-top:8px;padding:3px 14px;border:2.5px solid ${sColor};color:${sColor};border-radius:3px;font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;transform:rotate(-5deg)}
+
+    /* ── Items Table ── */
+    .tbl-wrap{border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:16px}
+    .tbl{width:100%;border-collapse:collapse;font-size:11px}
+    .tbl thead tr{background:#1a1a1a}
+    .tbl thead th{padding:9px 10px;color:#C6A969;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
+    .tbl thead th.r{text-align:right}
+    .tbl thead th.c{text-align:center}
+    .tbl thead th.group{text-align:center;background:#2a2a2a;border-bottom:1px solid #3a3a3a;font-size:8.5px;letter-spacing:0.5px}
+    .tbl tbody tr:nth-child(even){background:#fafafa}
+    .tbl tbody tr:nth-child(odd){background:#fff}
+    .tbl tbody td{padding:9px 10px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:middle}
+    .tbl tbody tr:last-child td{border-bottom:none}
+    .tbl td.c{text-align:center}
+    .tbl td.r{text-align:right}
+    .tbl td.bold{font-weight:700;color:#1a1a1a}
+
+    /* ── Bottom Section ── */
+    .bottom{display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:16px}
+
+    /* ── Tax Summary ── */
+    .tax-summary{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
+    .tax-title{background:#f0ede8;padding:7px 12px;font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e8e2da}
+    .tax-tbl{width:100%;border-collapse:collapse;font-size:10.5px}
+    .tax-tbl thead th{padding:7px 10px;background:#f8f6f3;font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;text-align:right;border-bottom:1px solid #e8e2da}
+    .tax-tbl thead th:first-child{text-align:left}
+    .tax-tbl tbody td{padding:7px 10px;border-bottom:1px solid #f5f2ef;text-align:right;color:#333}
+    .tax-tbl tbody td:first-child{text-align:left;font-weight:600;color:#1a1a1a}
+    .tax-tbl tbody tr:last-child td{border-bottom:none}
+
+    /* ── Totals ── */
+    .totals{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
+    .tot-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f5f2ef}
     .tot-row:last-child{border-bottom:none}
-    .tot-lbl{color:#555;font-weight:500}
+    .tot-lbl{color:#666;font-weight:500}
     .tot-val{font-weight:700;color:#1a1a1a}
     .tot-disc .tot-lbl,.tot-disc .tot-val{color:#16a34a}
-    .tot-grand-row{background:#1a1a1a;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
-    .tot-grand-lbl{color:#C6A969;font-size:13px;font-weight:700;letter-spacing:0.3px}
-    .tot-grand-val{color:#fff;font-size:18px;font-weight:900}
-    .footer-band{display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end;padding-top:24px;border-top:2px solid #f0ece8}
-    .terms-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-    .terms-txt{font-size:11px;color:#666;line-height:1.7;max-width:360px}
+    .tot-grand{background:#1a1a1a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+    .tot-grand-lbl{color:#C6A969;font-size:12px;font-weight:700;letter-spacing:0.5px}
+    .tot-grand-val{color:#fff;font-size:17px;font-weight:900}
+
+    /* ── Amount in Words ── */
+    .amt-words{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px}
+    .amt-words-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+    .amt-words-val{font-weight:600;color:#1a1a1a;font-style:italic}
+
+    /* ── Footer ── */
+    .footer{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:flex-end;padding-top:16px;border-top:2px solid #f0ece8;margin-bottom:0}
+    .terms-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+    .terms-txt{font-size:10.5px;color:#666;line-height:1.7;max-width:380px}
     .sig-area{text-align:center;min-width:160px}
-    .sig-line{width:140px;border-top:1.5px solid #ccc;margin:32px auto 8px}
-    .sig-lbl{font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
-    .sig-name{font-size:12px;color:#1a1a1a;font-weight:700;margin-top:3px}
-    .thankyou{background:linear-gradient(135deg,#1a1a1a,#2d2d2d);padding:12px 32px;text-align:center}
-    .ty-title{font-size:12px;font-weight:700;color:#C6A969;letter-spacing:0.5px}
-    .ty-sub{font-size:10.5px;color:#a0a0a0;margin-top:3px}
-    @media print{body{background:#fff}.page{box-shadow:none}}
+    .sig-line{width:140px;border-top:1.5px solid #ccc;margin:36px auto 7px}
+    .sig-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
+    .sig-name{font-size:11px;color:#1a1a1a;font-weight:700;margin-top:3px}
+    .eoe{font-size:9px;color:#aaa;margin-top:4px;font-style:italic}
+
+    /* ── Thank You Band ── */
+    .ty-band{background:#1a1a1a;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+    .ty-title{font-size:12px;font-weight:700;color:#C6A969}
+    .ty-note{font-size:9.5px;color:#888}
+    .comp-gen{font-size:8.5px;color:#aaa;text-align:center;padding:6px;background:#f8f6f3;border-top:1px solid #e8e2da}
   </style>
 </head>
 <body>
 <div class="page">
-  <div class="header-band">
-    <div class="brand">
-      ${showLogo ? `<div class="logo-box">${co.logoUrl ? `<img src="${co.logoUrl}" style="width:100%;height:100%;object-fit:contain">` : (coName[0]?.toUpperCase() || 'C')}</div>` : ''}
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">
+        ${co.logoUrl ? `<img src="${co.logoUrl}">` : `<span>${coName[0]?.toUpperCase()||'C'}</span>`}
+      </div>
       <div>
-        <div class="co-name">${coName}</div>
-        ${coTagline ? `<div class="co-tag">${coTagline}</div>` : ''}
+        <div class="hdr-name">${coName}</div>
+        ${coTagline ? `<div class="hdr-tag">${coTagline}</div>` : ''}
+        <div class="hdr-addr">${[coAddr,coPhone,coEmail].filter(Boolean).join(' &nbsp;|&nbsp; ')}${coGST ? ` &nbsp;|&nbsp; GSTIN: ${coGST}` : ''}</div>
       </div>
     </div>
-    <div class="inv-label">
-      <div class="inv-word">INVOICE</div>
-      <div class="inv-num">${inv.id}</div>
+    <div class="hdr-right">
+      <div class="hdr-inv-type">TAX INVOICE</div>
+      <div class="hdr-inv-num"># ${inv.id}</div>
     </div>
   </div>
   <div class="gold-strip"></div>
-  <div class="meta-band">
-    <div class="meta-item"><div class="meta-lbl">Invoice Date</div><div class="meta-val">${inv.date}</div></div>
-    <div class="meta-item"><div class="meta-lbl">Due Date</div><div class="meta-val">${inv.dueDate && inv.dueDate !== '—' ? inv.dueDate : 'On Receipt'}</div></div>
-    <div class="meta-item"><div class="meta-lbl">Payment Mode</div><div class="meta-val accent">${inv.payment}</div></div>
-    <div class="meta-item"><div class="meta-lbl">Status</div><div class="meta-val"><span class="status-chip">${inv.status}</span></div></div>
+
+  <!-- INFO BAND -->
+  <div class="info-band">
+    <div class="info-col"><div class="info-lbl">Invoice Date</div><div class="info-val">${inv.date||'—'}</div></div>
+    <div class="info-col"><div class="info-lbl">Due Date</div><div class="info-val">${inv.dueDate&&inv.dueDate!=='—'?inv.dueDate:'On Receipt'}</div></div>
+    <div class="info-col"><div class="info-lbl">Payment Mode</div><div class="info-val gold">${inv.payment||'—'}</div></div>
+    <div class="info-col"><div class="info-lbl">Place of Supply</div><div class="info-val">${coAddr ? coAddr.split(',').pop()?.trim() || '' : ''}</div></div>
+    <div class="info-col" style="text-align:right"><div class="info-lbl">Status</div><div class="info-val"><span class="status-pill">${inv.status}</span></div></div>
   </div>
+
+  <!-- BODY -->
   <div class="body">
+
+    <!-- PARTIES -->
     <div class="parties">
-      <div class="party-box">
+      <div class="party">
         <div class="party-lbl">Bill To</div>
-        <div class="party-name">${inv.customer}</div>
-        <div class="party-info">${inv.address ? inv.address + '<br>' : ''}${inv.phone ? inv.phone + '<br>' : ''}${inv.email || ''}</div>
-        ${inv.gstNo ? `<div class="party-gstin">GSTIN: ${inv.gstNo}</div>` : ''}
+        <div class="party-name">${inv.customer||'Walk-in Customer'}</div>
+        <div class="party-detail">
+          ${inv.phone?`<div>${inv.phone}</div>`:''}
+          ${inv.email?`<div>${inv.email}</div>`:''}
+          ${inv.address?`<div>${inv.address}</div>`:''}
+        </div>
+        ${inv.gstNo?`<div class="party-gstin">GSTIN: ${inv.gstNo}</div>`:''}
       </div>
-      <div class="party-box right">
-        <div class="party-lbl">From</div>
+      <div class="party seller">
+        <div class="party-lbl">Seller Details</div>
         <div class="party-name">${coName}</div>
-        <div class="co-info">${coAddr ? coAddr + '<br>' : ''}${coPhone ? coPhone + '<br>' : ''}${coEmail || ''}</div>
-        ${coGST ? `<div class="party-gstin">GSTIN: ${coGST}</div>` : ''}
-        <div class="stamp-wrap"><span class="stamp">${inv.status}</span></div>
+        <div class="party-detail">
+          ${coPhone?`<div>${coPhone}</div>`:''}
+          ${coEmail?`<div>${coEmail}</div>`:''}
+          ${coAddr?`<div>${coAddr}</div>`:''}
+        </div>
+        ${coGST?`<div class="party-gstin">GSTIN: ${coGST}</div>`:''}
+        <div><span class="stamp">${inv.status}</span></div>
       </div>
     </div>
+
+    <!-- ITEMS TABLE -->
     <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th class="c" style="width:36px">#</th><th>Description</th>
-          <th class="r">Qty</th><th class="r">Rate</th>
-          ${showGST ? '<th class="r">GST%</th><th class="r">GST Amt</th>' : ''}
-          <th class="r">Total</th>
-        </tr></thead>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="c" style="width:30px">#</th>
+            <th>Description</th>
+            <th class="c">Qty</th>
+            <th class="r">Rate</th>
+            <th class="r">Taxable Amt</th>
+            <th class="c">GST %</th>
+            <th class="r">GST Amt</th>
+            <th class="r">Total</th>
+          </tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    <div class="totals-wrap">
-      <div class="totals-box">
+
+    <!-- BOTTOM: TAX SUMMARY + TOTALS -->
+    <div class="bottom">
+      <!-- Tax Summary -->
+      <div>
+        <div class="tax-summary">
+          <div class="tax-title">Tax Summary</div>
+          <table class="tax-tbl">
+            <thead><tr>
+              <th>GST Rate</th>
+              <th>Taxable Amt</th>
+              <th>GST Amount</th>
+            </tr></thead>
+            <tbody>${taxRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Totals -->
+      <div class="totals">
         <div class="tot-row"><span class="tot-lbl">Subtotal</span><span class="tot-val">${inr(subtotal)}</span></div>
-        ${showGST ? `<div class="tot-row"><span class="tot-lbl">GST Total</span><span class="tot-val">${inr(gstTotal)}</span></div>` : ''}
-        ${inv.discount > 0 ? `<div class="tot-row tot-disc"><span class="tot-lbl">Discount</span><span class="tot-val">-${inr(inv.discount)}</span></div>` : ''}
-        <div class="tot-grand-row"><span class="tot-grand-lbl">GRAND TOTAL</span><span class="tot-grand-val">${inr(grandTotal)}</span></div>
+        <div class="tot-row"><span class="tot-lbl">GST</span><span class="tot-val">${inr(gstTotal)}</span></div>
+        ${discountHtml}
+        <div class="tot-grand"><span class="tot-grand-lbl">GRAND TOTAL</span><span class="tot-grand-val">${inr(grandTotal)}</span></div>
       </div>
     </div>
-    ${(showTerms || showSig) ? `
-    <div class="footer-band">
-      ${showTerms ? `<div><div class="terms-lbl">Terms &amp; Conditions</div><div class="terms-txt">${coTerms}</div></div>` : '<div></div>'}
-      ${showSig ? `<div class="sig-area"><div class="sig-line"></div><div class="sig-lbl">Authorized Signatory</div><div class="sig-name">${coName}</div></div>` : ''}
-    </div>` : ''}
-  </div>
-  <div class="thankyou">
-    <div class="ty-title">Thank you for your business!</div>
-    <div class="ty-sub">${coFooter}</div>
-  </div>
-</div>
+
+    <!-- AMOUNT IN WORDS -->
+    <div class="amt-words">
+      <div class="amt-words-lbl">Amount in Words</div>
+      <div class="amt-words-val">${amountInWords(grandTotal)}</div>
+    </div>
+
+    <!-- FOOTER: TERMS + SIGNATURE -->
+    ${footerHtml}
+
+  </div><!-- /body -->
+
+  ${coFooter ? '<div class="ty-band"><div class="ty-title">' + coFooter + '</div></div>' : ''}
+  <div class="comp-gen">This is a computer generated invoice and does not require a physical signature.</div>
+
+</div><!-- /page -->
 <script>window.onload=function(){window.print()}</script>
 </body>
 </html>`;
@@ -456,8 +611,8 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
   const coPhone   = co.companyPhone   || '';
   const coEmail   = co.companyEmail   || '';
   const coGST     = co.gstNumber      || '';
-  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || 'Payment due within 7 days. Late payments attract 2% monthly interest.';
-  const coFooter  = co.invoiceFooterNote   || (coEmail ? `For queries: ${coEmail}` : 'Thank you for your business!');
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || '';
+  const coFooter  = co.invoiceFooterNote || '';
   const coLogo    = co.logoUrl        || null;
   const displayName = coName || 'Your Company';
 
@@ -468,7 +623,7 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
   const showQR      = co.showPaymentQrCode      === true;
   const showTerms   = co.showTermsAndConditions !== false;
 
-  const statusColors = { Paid:'#16a34a', PAID:'#16a34a', COMPLETED:'#16a34a', Pending:'#ca8a04', PENDING:'#ca8a04', Overdue:'#dc2626', OVERDUE:'#dc2626', Draft:'#64748b', CANCELLED:'#64748b' };
+  const statusColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Cancelled:'#64748b' };
   const sColor = statusColors[invoice.status] || '#64748b';
 
   return (
@@ -495,82 +650,64 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
         <div className="ci-pdf-modal-body">
           <div className="ci-doc">
 
-            {/* ── Dark Header Band ── */}
+            {/* Header */}
             <div className="ci-doc-header-band">
               <div className="ci-doc-brand">
-                {showLogo && (
-                  <div className="ci-doc-logo">
-                    {coLogo ? <img src={coLogo} alt="logo" /> : (displayName[0]?.toUpperCase() || 'C')}
-                  </div>
-                )}
+                <div className="ci-doc-logo">
+                  {coLogo ? <img src={coLogo} alt="logo" style={{width:'100%',height:'100%',objectFit:'contain'}} /> : displayName[0]?.toUpperCase()}
+                </div>
                 <div>
                   <div className="ci-doc-company">{displayName}</div>
                   {coTagline && <div className="ci-doc-company-sub">{coTagline}</div>}
-                  <div className="ci-doc-addr">
-                    {[coAddr, coPhone, coEmail].filter(Boolean).join(' · ')}
-                    {coGST && ` | GSTIN: ${coGST}`}
-                  </div>
+                  <div className="ci-doc-addr">{[coAddr,coPhone,coEmail].filter(Boolean).join(' · ')}{coGST && ` | GSTIN: ${coGST}`}</div>
                 </div>
               </div>
               <div className="ci-doc-inv-label">
-                <div className="ci-doc-title">INVOICE</div>
-                <div className="ci-doc-inv-num">{invoice.id}</div>
+                <div className="ci-doc-title">TAX INVOICE</div>
+                <div className="ci-doc-inv-num"># {invoice.id}</div>
               </div>
             </div>
-
-            {/* ── Gold Strip ── */}
             <div className="ci-doc-gold-strip" />
 
-            {/* ── Meta Band ── */}
-            <div className="ci-doc-meta-band">
-              <div className="ci-doc-meta-item">
-                <div className="ci-doc-meta-lbl">Invoice Date</div>
-                <div className="ci-doc-meta-val">{invoice.date || '—'}</div>
-              </div>
-              <div className="ci-doc-meta-item">
-                <div className="ci-doc-meta-lbl">Due Date</div>
-                <div className="ci-doc-meta-val">{invoice.dueDate && invoice.dueDate !== '—' ? invoice.dueDate : 'On Receipt'}</div>
-              </div>
-              <div className="ci-doc-meta-item">
-                <div className="ci-doc-meta-lbl">Payment Mode</div>
-                <div className="ci-doc-meta-val accent">{invoice.payment}</div>
-              </div>
-              <div className="ci-doc-meta-item">
-                <div className="ci-doc-meta-lbl">Status</div>
-                <div className="ci-doc-meta-val">
-                  <span className="ci-doc-status-chip" style={{ background:`${sColor}18`, color:sColor, border:`1.5px solid ${sColor}40` }}>
-                    {invoice.status}
-                  </span>
+            {/* Info Band */}
+            <div className="ci-doc-info-band">
+              <div className="ci-doc-info-col"><div className="ci-doc-info-lbl">Invoice Date</div><div className="ci-doc-info-val">{invoice.date||'—'}</div></div>
+              <div className="ci-doc-info-col"><div className="ci-doc-info-lbl">Due Date</div><div className="ci-doc-info-val">{invoice.dueDate&&invoice.dueDate!=='—'?invoice.dueDate:'On Receipt'}</div></div>
+              <div className="ci-doc-info-col"><div className="ci-doc-info-lbl">Payment Mode</div><div className="ci-doc-info-val gold">{invoice.payment}</div></div>
+              <div className="ci-doc-info-col"><div className="ci-doc-info-lbl">Place of Supply</div><div className="ci-doc-info-val">{coAddr ? coAddr.split(',').pop()?.trim() || '' : ''}</div></div>
+              <div className="ci-doc-info-col">
+                <div className="ci-doc-info-lbl">Status</div>
+                <div className="ci-doc-info-val">
+                  <span className="ci-doc-status-chip" style={{background:`${sColor}20`,color:sColor,border:`1.5px solid ${sColor}50`}}>{invoice.status}</span>
                 </div>
               </div>
             </div>
 
-            {/* ── Body ── */}
+            {/* Body */}
             <div className="ci-doc-body">
 
               {/* Parties */}
               <div className="ci-doc-parties">
                 <div className="ci-doc-party">
                   <div className="ci-doc-party-lbl">Bill To</div>
-                  <div className="ci-doc-party-name">{invoice.customer || 'Walk-in Customer'}</div>
+                  <div className="ci-doc-party-name">{invoice.customer||'Walk-in Customer'}</div>
                   <div className="ci-doc-party-info">
+                    {invoice.phone && <div>{invoice.phone}</div>}
+                    {invoice.email && <div>{invoice.email}</div>}
                     {invoice.address && <div>{invoice.address}</div>}
-                    {invoice.phone   && <div>{invoice.phone}</div>}
-                    {invoice.email   && <div>{invoice.email}</div>}
                   </div>
                   {invoice.gstNo && <div className="ci-doc-party-gstin">GSTIN: {invoice.gstNo}</div>}
                 </div>
                 <div className="ci-doc-party right">
-                  <div className="ci-doc-party-lbl">Handled By</div>
-                  <div className="ci-doc-party-name">{invoice.cashier || '—'}</div>
-                  {invoice.counter && invoice.counter !== '—' && (
-                    <div className="ci-doc-party-info">{invoice.counter}</div>
-                  )}
-                  <div>
-                    <span className="ci-doc-stamp" style={{ border:`2px solid ${sc}`, color:sc }}>
-                      {invoice.status}
-                    </span>
+                  <div className="ci-doc-party-lbl">Seller Details</div>
+                  <div className="ci-doc-party-name">{displayName}</div>
+                  <div className="ci-doc-party-info">
+                    {coPhone && <div>{coPhone}</div>}
+                    {coEmail && <div>{coEmail}</div>}
+                    {coAddr  && <div>{coAddr}</div>}
                   </div>
+                  {coGST && <div className="ci-doc-party-gstin">GSTIN: {coGST}</div>}
+                  <div><span className="ci-doc-stamp" style={{border:`2px solid ${sc}`,color:sc}}>{invoice.status}</span></div>
                 </div>
               </div>
 
@@ -578,29 +715,31 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
               <div className="ci-doc-table-wrap">
                 <table className="ci-doc-table">
                   <thead>
-                    <tr>
-                      <th className="c" style={{ width:32 }}>#</th>
+                    <tr className="main-hdr">
+                      <th className="c" style={{width:28}}>#</th>
                       <th>Description</th>
-                      <th className="r">Qty</th>
+                      <th className="c">Qty</th>
                       <th className="r">Rate</th>
-                      {showGST && <th className="r">GST%</th>}
-                      {showGST && <th className="r">GST Amt</th>}
+                      <th className="r">Taxable Amt</th>
+                      <th className="c">GST %</th>
+                      <th className="r">GST Amt</th>
                       <th className="r">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoice.items.map((it, i) => {
-                      const lineAmt = it.qty * it.rate;
-                      const lineGst = (lineAmt * it.gst) / 100;
+                      const taxable = it.qty * it.rate;
+                      const gstAmt  = taxable * it.gst / 100;
                       return (
                         <tr key={i}>
-                          <td className="c">{i + 1}</td>
+                          <td className="c">{i+1}</td>
                           <td className="bold">{it.name}</td>
-                          <td className="r">{it.qty}</td>
+                          <td className="c">{it.qty}</td>
                           <td className="r">{inr(it.rate)}</td>
-                          {showGST && <td className="r">{it.gst}%</td>}
-                          {showGST && <td className="r">{inr(lineGst)}</td>}
-                          <td className="r">{inr(lineAmt + lineGst)}</td>
+                          <td className="r">{inr(taxable)}</td>
+                          <td className="c">{it.gst}%</td>
+                          <td className="r">{inr(gstAmt)}</td>
+                          <td className="r bold">{inr(taxable + gstAmt)}</td>
                         </tr>
                       );
                     })}
@@ -608,11 +747,40 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
                 </table>
               </div>
 
-              {/* Totals */}
-              <div className="ci-doc-totals-wrap">
+              {/* Bottom: Tax Summary + Totals */}
+              <div className="ci-doc-bottom">
+                {/* Tax Summary */}
+                <div className="ci-doc-tax-box">
+                  <div className="ci-doc-tax-title">Tax Summary</div>
+                  <table className="ci-doc-tax-table">
+                    <thead>
+                      <tr><th>GST Rate</th><th>Taxable Amt</th><th>GST Amount</th></tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const taxMap = {};
+                        invoice.items.forEach(it => {
+                          const taxable = it.qty * it.rate;
+                          if (!taxMap[it.gst]) taxMap[it.gst] = {taxable:0, gst:0};
+                          taxMap[it.gst].taxable += taxable;
+                          taxMap[it.gst].gst     += taxable * it.gst / 100;
+                        });
+                        return Object.entries(taxMap).map(([rate, v]) => (
+                          <tr key={rate}>
+                            <td>{rate}%</td>
+                            <td>{inr(v.taxable)}</td>
+                            <td style={{fontWeight:700,color:'#1a1a1a'}}>{inr(v.gst)}</td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Totals */}
                 <div className="ci-doc-totals-box">
                   <div className="ci-doc-tot-row"><span className="ci-doc-tot-lbl">Subtotal</span><span className="ci-doc-tot-val">{inr(subtotal)}</span></div>
-                  {showGST && <div className="ci-doc-tot-row"><span className="ci-doc-tot-lbl">GST Total</span><span className="ci-doc-tot-val">{inr(gstTotal)}</span></div>}
+                  <div className="ci-doc-tot-row"><span className="ci-doc-tot-lbl">GST</span><span className="ci-doc-tot-val">{inr(gstTotal)}</span></div>
                   {invoice.discount > 0 && (
                     <div className="ci-doc-tot-row ci-doc-tot-disc"><span className="ci-doc-tot-lbl">Discount</span><span className="ci-doc-tot-val">-{inr(invoice.discount)}</span></div>
                   )}
@@ -623,32 +791,35 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
                 </div>
               </div>
 
+              {/* Amount in Words */}
+              <div className="ci-doc-amt-words">
+                <div className="ci-doc-amt-lbl">Amount in Words</div>
+                <div className="ci-doc-amt-val">{amountInWords(total)}</div>
+              </div>
+
               {/* Footer */}
               {(showTerms || showSig) && (
                 <div className="ci-doc-footer">
-                  {showTerms ? (
-                    <div>
-                      <div className="ci-doc-terms-lbl">Terms &amp; Conditions</div>
-                      <div className="ci-doc-terms-txt">{coTerms}</div>
-                    </div>
-                  ) : <div />}
+                  {showTerms ? <div><div className="ci-doc-terms-lbl">Terms &amp; Conditions</div><div className="ci-doc-terms-txt">{coTerms}</div></div> : <div />}
                   {showSig && (
                     <div className="ci-doc-sig">
                       <div className="ci-doc-sig-line" />
                       <div className="ci-doc-sig-lbl">Authorized Signatory</div>
                       <div className="ci-doc-sig-name">{displayName}</div>
+                      <div className="ci-doc-sig-eoe">E. &amp; O.E.</div>
                     </div>
                   )}
                 </div>
               )}
-
-            </div>{/* /body */}
-
-            {/* Thank You */}
-            <div className="ci-doc-thankyou">
-              <div className="ci-doc-ty-title">Thank you for your business!</div>
-              <div className="ci-doc-ty-sub">{coFooter}</div>
             </div>
+
+            {/* Thank You — only if set in Settings */}
+            {coFooter && (
+              <div className="ci-doc-thankyou">
+                <div className="ci-doc-ty-title">{coFooter}</div>
+              </div>
+            )}
+            <div className="ci-doc-comp-gen">This is a computer generated invoice and does not require a physical signature.</div>
 
           </div>
         </div>
@@ -668,7 +839,7 @@ export default function CashierInvoices() {
   const [invoices, setInvoices]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
-  const [statusFilter, setStatus] = useState('All');
+  const [statusFilter, setStatus] = useState("Today's Invoices");
   const [page, setPage]           = useState(1);
   const [previewInv, setPreview]  = useState(null);
   const [toast, setToast]         = useState(null);
@@ -686,11 +857,11 @@ export default function CashierInvoices() {
       const all = res.data || [];
       const data = all.map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
-        customer:   inv.customer?.name    || inv.customerName || 'Walk-in Customer',
-        email:      inv.customer?.email   || '',
-        phone:      inv.customer?.phone   || '',
-        address:    inv.customer?.address || '',
-        gstNo:      inv.customer?.gstNo   || '',
+        customer:   inv.customerName    || inv.customer?.name    || 'Walk-in Customer',
+        email:      inv.customerEmail   || inv.customer?.email  || '',
+        phone:      inv.customerPhone   || inv.customer?.phone  || '',
+        address:    inv.customerAddress || inv.customer?.address || '',
+        gstNo:      inv.customerGstNo   || inv.customer?.gstNo  || '',
         items: (inv.items || []).map(it => ({
           name: it.productName,
           qty:  parseFloat(it.quantity      || 0),
@@ -701,7 +872,7 @@ export default function CashierInvoices() {
         gstTotal:   parseFloat(inv.gstTotal      || 0),
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
-        status:     inv.status        || 'Paid',
+        status:     normalizeStatus(inv.status, inv.dueDate),
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         dueDate:    inv.dueDate   ? new Date(inv.dueDate).toLocaleDateString('en-IN',   { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         cashier:    inv.cashierName   || inv.cashierId || '—',
@@ -731,22 +902,21 @@ export default function CashierInvoices() {
   };
 
 
+  // KPI — statuses are already normalized by normalizeStatus()
+  const today     = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const paidInvs  = invoices.filter(i => i.status === 'Paid');
+  const totalRev  = paidInvs.reduce((s, i) => s + i.grandTotal, 0);
+  const todayInvs = invoices.filter(i => i.date === today);
+
   const filtered = invoices.filter(inv => {
     const q = search.toLowerCase();
     const matchSearch = inv.id.toLowerCase().includes(q) || inv.customer.toLowerCase().includes(q);
-    const matchStatus = statusFilter === 'All' || inv.status === statusFilter;
+    const matchStatus = statusFilter === 'All Invoices' || (statusFilter === "Today's Invoices" && inv.date === today);
     return matchSearch && matchStatus;
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  // KPI — handle all backend status variants
-  const isPaid    = s => ['Paid','PAID','COMPLETED','paid','completed'].includes(s);
-  const isPending = s => ['Pending','PENDING','pending'].includes(s);
-  const paidInvs    = invoices.filter(i => isPaid(i.status));
-  const pendingInvs = invoices.filter(i => isPending(i.status));
-  const totalRev    = paidInvs.reduce((s, i) => s + i.grandTotal, 0);
 
   return (
     <>
@@ -810,9 +980,9 @@ export default function CashierInvoices() {
           <div className="ci-kpi-card kpi-amber">
             <div className="ci-kpi-icon ci-icon-amber"><Clock size={20} /></div>
             <div className="ci-kpi-body">
-              <div className="ci-kpi-value">{pendingInvs.length}</div>
-              <div className="ci-kpi-label">Pending</div>
-              <div className="ci-kpi-sub">Awaiting payment</div>
+              <div className="ci-kpi-value">{todayInvs.length}</div>
+              <div className="ci-kpi-label">Today's Bills</div>
+              <div className="ci-kpi-sub">Billed on {today}</div>
             </div>
           </div>
         </div>
@@ -830,7 +1000,7 @@ export default function CashierInvoices() {
           <Filter size={15} color="#8B7355" style={{ flexShrink: 0 }} />
           <select className="ci-select" value={statusFilter}
             onChange={e => { setStatus(e.target.value); setPage(1); }}>
-            {['All', 'Paid', 'Pending', 'Overdue'].map(s => <option key={s}>{s}</option>)}
+            {["Today's Invoices", 'All Invoices'].map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
@@ -847,19 +1017,17 @@ export default function CashierInvoices() {
                   <th>Status</th>
                   <th>Payment</th>
                   <th>Date</th>
-                  <th>Due Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paginated.length === 0 ? (
                   <tr>
-                    <td colSpan={9}>
+                    <td colSpan={8}>
                       <div className="ci-empty"><FileText size={36} /><p>No invoices found</p></div>
                     </td>
                   </tr>
                 ) : paginated.map(inv => {
-                  const { total } = calcInvoice(inv);
                   return (
                     <tr key={inv.id}>
                       <td><span className="ci-id-cell">{inv.id}</span></td>
@@ -868,15 +1036,12 @@ export default function CashierInvoices() {
                         <div className="ci-customer-sub">{inv.email}</div>
                       </td>
                       <td style={{ color: '#8B7355' }}>{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
-                      <td><span className="ci-amount">{inr(total)}</span></td>
+                      <td><span className="ci-amount">{inr(inv.grandTotal)}</span></td>
                       <td>
                         <span className={`ci-badge ${badgeClass(inv.status)}`}>{inv.status}</span>
                       </td>
                       <td><span className="ci-payment-chip">{inv.payment}</span></td>
                       <td style={{ color: '#8B7355' }}>{inv.date}</td>
-                      <td style={{ color: inv.status === 'Overdue' ? '#dc2626' : '#8B7355', fontWeight: inv.status === 'Overdue' ? 600 : 400 }}>
-                        {inv.dueDate}
-                      </td>
                       <td>
                         <div className="ci-actions">
                           <button className="ci-act-btn" title="Preview Invoice" onClick={() => setPreview(inv)}>

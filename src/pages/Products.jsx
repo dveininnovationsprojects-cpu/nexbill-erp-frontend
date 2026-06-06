@@ -110,7 +110,7 @@ export default function Products() {
     const payload = {
       sku: form.sku,
       name: form.name,
-      category: categoryObj ? { id: categoryObj.id, name: categoryObj.name } : { name: form.category },
+      category: categoryObj ? { id: categoryObj.id } : { name: form.category },
       sellingPrice: parseFloat(form.sellingPrice),
       purchasePrice: parseFloat(form.purchasePrice),
       gstPercentage: parseFloat(form.gstRate) || 0,

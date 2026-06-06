@@ -12,7 +12,7 @@ import {
   Save, CheckCircle, AlertCircle, X,
   User, Phone, Mail, MapPin, Globe, Hash,
   ToggleLeft, ToggleRight, Upload,
-  Info, Check,
+  Info, Check, Lock,
 } from 'lucide-react';
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -65,90 +65,6 @@ const STYLES = `
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .st-shell {
-    display: flex;
-    gap: 0;
-    font-family: 'Inter', system-ui, sans-serif;
-    min-height: calc(100vh - 120px);
-    align-items: flex-start;
-  }
-
-  /* ── Sidebar ── */
-  .st-sidebar {
-    width: 224px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    overflow: hidden;
-    box-shadow: none;
-    position: sticky;
-    top: 20px;
-  }
-  .st-sidebar-section {
-    padding: 14px 16px 6px;
-    font-size: 10px; font-weight: 700;
-    color: #8B7355;
-    text-transform: uppercase; letter-spacing: 0.8px;
-    border-top: 1px solid #F8F5F2;
-  }
-  .st-sidebar-section:first-child { border-top: none; }
-  .st-tab {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px;
-    cursor: pointer; transition: all 0.15s;
-    color: #9E9087; font-size: 13px; font-weight: 500;
-    border: none; background: none;
-    font-family: inherit; width: 100%; text-align: left;
-    border-left: 3px solid transparent;
-    position: relative;
-  }
-  .st-tab:hover { background: rgba(198,169,105,0.06); color: #2D2D2D; }
-  .st-tab.active {
-    background: rgba(198,169,105,0.1);
-    color: #C6A969;
-    border-left-color: #C6A969;
-    font-weight: 600;
-  }
-  .st-tab svg { flex-shrink: 0; }
-  .st-tab-dot {
-    width: 6px; height: 6px;
-    background: #C6A969; border-radius: 50%;
-    margin-left: auto; flex-shrink: 0;
-  }
-
-  /* ── Content ── */
-  .st-content {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  /* ── Sub-header ── */
-  .st-subheader {
-    background: #FFFFFF;
-    border: 1px solid #EFE7DE;
-    border-radius: 14px;
-    padding: 18px 22px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    box-shadow: 0 1px 4px rgba(45,45,45,0.05);
-  }
-  .st-subheader-icon {
-    width: 42px; height: 42px;
-    background: #2D2D2D;
-    border-radius: 11px;
-    display: flex; align-items: center; justify-content: center;
-    color: #C6A969; flex-shrink: 0;
-  }
-  .st-subheader-title { font-size: 16px; font-weight: 700; color: #2D2D2D; }
-  .st-subheader-sub   { font-size: 12px; color: #8B7355; margin-top: 3px; }
 
   /* ── Card ── */
   .st-card {
@@ -246,6 +162,10 @@ const STYLES = `
     display: flex; align-items: center; justify-content: center;
     font-size: 32px; font-weight: 900; color: #C6A969;
     flex-shrink: 0; overflow: hidden;
+  }
+  .st-logo-box img {
+    width: 100%; height: 100%;
+    object-fit: contain; border-radius: 12px; display: block;
   }
   .st-logo-info { flex: 1; }
   .st-logo-name { font-size: 16px; font-weight: 700; color: #2D2D2D; }
@@ -623,6 +543,8 @@ function ProfileTab({ onSave }) {
         defaultReorderLevel: s.defaultReorderLevel || 10,
         logoUrl:             s.logoUrl             || null,
       }));
+      // Restore logo preview from saved DB value on page load/refresh
+      if (s.logoUrl) setLogoPreview(s.logoUrl);
       setOrig(prev => ({ ...prev,
         companyName: s.companyName || '', tagline: s.tagline || '',
         email: s.companyEmail || '', phone: s.companyPhone || '',
@@ -661,13 +583,14 @@ function ProfileTab({ onSave }) {
         companyAddress:      form.address,
         city:                form.city                || '',
         state:               form.state               || '',
-        pinCode:             form.pincode             || '',   // backend: pinCode
+        pinCode:             form.pincode             || '',
         gstNumber:           form.gstNo,
         panNumber:           form.pan                 || '',   // backend: panNumber
         cin:                 form.cin                 || '',
         invoicePrefix:       form.invoicePrefix       || 'INV',
         currency:            form.currency            || 'INR',
         defaultReorderLevel: form.defaultReorderLevel || 10,
+        logoUrl:             form.logoUrl ?? '',
       });
       setSaved(true);
       setDirty(false);
@@ -687,10 +610,11 @@ function ProfileTab({ onSave }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { onSave('Please select a valid image file.', 'error'); return; }
+    if (file.size > 1 * 1024 * 1024) { onSave('Logo must be under 1 MB. Please compress the image and try again.', 'error'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setLogoPreview(ev.target.result);
-      set('logoUrl', ev.target.result); // write base64 into form so it's included in Save
+      set('logoUrl', ev.target.result);
       setDirty(true);
     };
     reader.readAsDataURL(file);
@@ -699,21 +623,19 @@ function ProfileTab({ onSave }) {
   const handleDiscard = () => { if (orig) setForm(orig); setDirty(false); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoPreview(null); };
   return (
     <div className="st-card">
-      <div className="st-card-head">
-        <div>
-          <div className="st-card-title"><Building2 size={15} /> Business Profile</div>
-          <div className="st-card-sub">Your company information used on invoices and communications</div>
+      {dirty && (
+        <div style={{ padding: '10px 22px', borderBottom: '1px solid #EFE7DE', background: 'rgba(198,169,105,0.06)', display:'flex', alignItems:'center', justifyContent:'flex-end' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved changes</span>
         </div>
-        {dirty && <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved changes</span>}
-      </div>
+      )}
       <div className="st-card-body">
         <input ref={logoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoChange} />
 
         {/* Logo area */}
         <div className="st-logo-wrap">
-          <div className="st-logo-box" style={logoPreview ? { background: 'transparent', padding: 4 } : {}}>
+          <div className="st-logo-box" style={logoPreview ? { background: '#FFFFFF', padding: 8 } : {}}>
             {logoPreview
-              ? <img src={logoPreview} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 12 }} />
+              ? <img src={logoPreview} alt="Logo" />
               : form.companyName?.[0]?.toUpperCase() || 'N'
             }
           </div>
@@ -730,7 +652,7 @@ function ProfileTab({ onSave }) {
                 </button>
               )}
             </div>
-            <div className="st-logo-hint">PNG, JPG or SVG · Max 2 MB · Recommended 256×256px</div>
+            <div className="st-logo-hint">PNG, JPG or SVG · Max 1 MB · Recommended 256×256px</div>
           </div>
         </div>
 
@@ -837,7 +759,7 @@ function InvoiceSettingsTab({ onSave }) {
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
   // Company profile fields for Live Preview
-  const [company, setCompany] = useState({ name: '', email: '', gstNo: '' });
+  const [company, setCompany] = useState({ name: '', email: '', gstNo: '', logoUrl: null });
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
   const tog = (k)    => { setForm(f => ({ ...f, [k]: !f[k] })); setDirty(true); };
 
@@ -865,6 +787,7 @@ function InvoiceSettingsTab({ onSave }) {
         name:   s.companyName  || 'Your Company',
         email:  s.companyEmail || '',
         gstNo:  s.gstNumber    || '',
+        logoUrl: s.logoUrl     || null,
       });
     }).catch(() => {});
   }, []);
@@ -907,13 +830,11 @@ function InvoiceSettingsTab({ onSave }) {
   return (
     <>
       <div className="st-card">
-        <div className="st-card-head">
-          <div>
-            <div className="st-card-title"><FileText size={15} /> Invoice Settings</div>
-            <div className="st-card-sub">Control how invoices are numbered, formatted and displayed</div>
+        {dirty && (
+          <div style={{ padding: '10px 22px', borderBottom: '1px solid #EFE7DE', background: 'rgba(198,169,105,0.06)', display:'flex', alignItems:'center', justifyContent:'flex-end' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved</span>
           </div>
-          {dirty && <span style={{ fontSize: 11, fontWeight: 600, color: '#C6A969', background: 'rgba(198,169,105,0.12)', padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(198,169,105,0.25)' }}>Unsaved</span>}
-        </div>
+        )}
         <div className="st-card-body">
           <div className="st-section-lbl">Numbering</div>
           <div className="st-grid3">
@@ -991,11 +912,19 @@ function InvoiceSettingsTab({ onSave }) {
             <div className="st-card-sub">How your invoice will look with current settings</div>
           </div>
         </div>
+
         <div className="st-card-body">
           <div className="st-inv-preview">
             <div className="st-inv-prev-head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {form.showLogo && <div className="st-inv-prev-logo">{company.name?.[0]?.toUpperCase() || 'C'}</div>}
+                {form.showLogo && (
+                  <div className="st-inv-prev-logo" style={ company.logoUrl ? { background: 'transparent', padding: 2 } : {} }>
+                    {company.logoUrl
+                      ? <img src={company.logoUrl} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+                      : (company.name?.[0]?.toUpperCase() || 'C')
+                    }
+                  </div>
+                )}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#2D2D2D' }}>{company.name || 'Your Company'}</div>
                   {company.email  && <div style={{ fontSize: 10, color: '#8B7355' }}>{company.email}</div>}
@@ -1094,9 +1023,19 @@ export default function Settings() {
         </div>
       )}
 
-      {isAdmin && (
+      {!isAdmin ? (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'64px 24px', gap:16, background:'#FFFFFF', border:'1px solid #EFE7DE', borderRadius:14, textAlign:'center' }}>
+          <div style={{ width:56, height:56, background:'#EFE7DE', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', color:'#8B7355' }}>
+            <Lock size={24} />
+          </div>
+          <div style={{ fontSize:16, fontWeight:700, color:'#2D2D2D' }}>Admin Access Only</div>
+          <div style={{ fontSize:13, color:'#8B7355', maxWidth:320, lineHeight:1.6 }}>
+            Settings can only be configured by an Administrator. Contact your admin to make changes.
+          </div>
+        </div>
+      ) : (
         <>
-          {/* ── Tab Bar (same style as Profile module) ── */}
+          {/* ── Tab Bar ── */}
           <div className="pr-tab-bar">
             {TABS.map(({ id, label, Icon }) => (
               <button
