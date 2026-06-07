@@ -554,8 +554,17 @@ function PersonalInfoTab({ user, profileData, profileLoading, onSave, onChangePW
                   <label>Phone Number</label>
                   <div className="pr-input-wrap">
                     <Phone size={14} className="pr-input-icon" />
-                    <input style={{ paddingLeft:34 }} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+91 XXXXX XXXXX" />
+                    <input
+                      style={{ paddingLeft:34 }}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={form.phone}
+                      onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="10-digit mobile number"
+                    />
                   </div>
+                  <div className="pr-field-hint">{form.phone.length}/10 digits</div>
                 </div>
               </div>
             </>

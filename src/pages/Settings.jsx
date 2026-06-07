@@ -682,7 +682,7 @@ function ProfileTab({ onSave }) {
             <label>Phone *</label>
             <div className="st-input-wrap">
               <Phone size={14} className="st-input-icon" />
-              <input style={{ paddingLeft: 34 }} value={form.phone} onChange={e => set('phone', e.target.value)} />
+              <input style={{ paddingLeft: 34 }} type="tel" inputMode="numeric" value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             </div>
           </div>
         </div>
@@ -703,9 +703,9 @@ function ProfileTab({ onSave }) {
           </div>
         </div>
         <div className="st-grid3">
-          <div className="st-field"><label>City</label><input value={form.city}    onChange={e => set('city', e.target.value)}    /></div>
-          <div className="st-field"><label>State</label><input value={form.state}   onChange={e => set('state', e.target.value)}   /></div>
-          <div className="st-field"><label>PIN Code</label><input value={form.pincode} onChange={e => set('pincode', e.target.value)} /></div>
+          <div className="st-field"><label>City</label><input value={form.city}    onChange={e => set('city', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}    /></div>
+          <div className="st-field"><label>State</label><input value={form.state}   onChange={e => set('state', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}   /></div>
+          <div className="st-field"><label>PIN Code</label><input type="text" inputMode="numeric" maxLength={6} value={form.pincode} onChange={e => set('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} /></div>
         </div>
 
         <div className="st-section-lbl"><Hash size={11} /> Tax Registration Numbers</div>
@@ -717,11 +717,7 @@ function ProfileTab({ onSave }) {
           <div className="st-field">
             <label>GSTIN <span className="st-field-badge">Verified</span></label>
             <input value={form.gstNo} onChange={e => set('gstNo', e.target.value.toUpperCase().slice(0, 15))} placeholder="29AABCN1234M1Z5" maxLength={15} />
-            <div className="st-field-hint" style={{ color: form.gstNo.length > 0 && form.gstNo.length < 15 ? '#ca8a04' : form.gstNo.length === 15 ? '#16a34a' : '#8B7355' }}>
-              {form.gstNo.length === 0 && '15-character GST identification number'}
-              {form.gstNo.length > 0 && form.gstNo.length < 15 && `${form.gstNo.length}/15 — keep typing`}
-              {form.gstNo.length === 15 && '15/15 ✓'}
-            </div>
+            <div className="st-field-hint">15-character GSTIN ({form.gstNo.length}/15)</div>
           </div>
           <div className="st-field">
             <label>PAN Number <span className="st-field-badge">Verified</span></label>
@@ -845,12 +841,12 @@ function InvoiceSettingsTab({ onSave }) {
             </div>
             <div className="st-field">
               <label>Starting Number</label>
-              <input type="number" value={form.startingNumber} onChange={e => set('startingNumber', e.target.value)} />
+              <input type="text" inputMode="numeric" value={form.startingNumber} onChange={e => set('startingNumber', e.target.value.replace(/\D/g, ''))} />
               <div className="st-field-hint">Next: <strong style={{ color: '#2D2D2D' }}>{form.prefix}{form.startingNumber}</strong></div>
             </div>
             <div className="st-field">
               <label>Payment Due (Days)</label>
-              <input type="number" value={form.dueDays} onChange={e => set('dueDays', e.target.value)} min="0" />
+              <input type="text" inputMode="numeric" value={form.dueDays} onChange={e => set('dueDays', e.target.value.replace(/\D/g, ''))} />
               <div className="st-field-hint">After invoice date</div>
             </div>
           </div>

@@ -368,8 +368,8 @@ export default function CashierManagement() {
                   </div>
                   <div className="cm-field full">
                     <label>Basic Salary (₹)</label>
-                    <input type="number" min="0" placeholder="15000" required value={approveForm.basicSalary}
-                      onChange={e => setApproveForm({...approveForm, basicSalary: e.target.value})} />
+                    <input type="text" inputMode="numeric" placeholder="15000" required value={approveForm.basicSalary}
+                      onChange={e => setApproveForm({...approveForm, basicSalary: e.target.value.replace(/\D/g, '')})} />
                   </div>
                 </div>
                 <div className="cm-modal-actions">
@@ -415,8 +415,8 @@ export default function CashierManagement() {
                   </div>
                   <div className="cm-field">
                     <label>Basic Salary (₹)</label>
-                    <input type="number" min="0" placeholder="15000" value={editForm.basicSalary}
-                      onChange={e => setEditForm({...editForm, basicSalary: e.target.value})} />
+                    <input type="text" inputMode="numeric" placeholder="15000" value={editForm.basicSalary}
+                      onChange={e => setEditForm({...editForm, basicSalary: e.target.value.replace(/\D/g, '')})} />
                   </div>
                   <div className="cm-field">
                     <label>Status</label>

@@ -128,23 +128,23 @@ const STYLES = `
 
   /* ── Invoice Document ── */
   .inv-doc { background:#FFFFFF; border-radius:12px; overflow:hidden; max-width:740px; margin:0 auto; box-shadow:0 4px 24px rgba(45,45,45,0.12); }
-  .inv-doc-header-band { background:#1a1a1a; padding:18px 28px; display:flex; justify-content:space-between; align-items:center; }
+  .inv-doc-header-band { background:#F8F6F3; border-bottom:1px solid #EDE9E4; padding:18px 28px; display:flex; justify-content:space-between; align-items:center; }
   .inv-doc-brand  { display:flex; align-items:center; gap:12px; }
-  .inv-doc-logo   { width:42px; height:42px; background:#FFFFFF; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#2D2D2D; flex-shrink:0; overflow:hidden; padding:3px; }
+  .inv-doc-logo   { width:42px; height:42px; background:#FFFFFF; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#2D2D2D; flex-shrink:0; overflow:hidden; padding:3px; border:1px solid #EDE9E4; }
   .inv-doc-logo img { width:100%; height:100%; object-fit:contain; border-radius:6px; }
-  .inv-doc-company     { font-size:15px; font-weight:800; color:#FFFFFF; }
-  .inv-doc-company-sub { font-size:10px; color:#C6A969; margin-top:2px; }
-  .inv-doc-addr        { font-size:10px; color:#A0A0A0; margin-top:3px; }
+  .inv-doc-company     { font-size:15px; font-weight:800; color:#2D2D2D; }
+  .inv-doc-company-sub { font-size:10px; color:#8B7355; margin-top:2px; }
+  .inv-doc-addr        { font-size:10px; color:#8B7355; margin-top:3px; }
   .inv-doc-inv-label  { text-align:right; }
   .inv-doc-title      { font-size:20px; font-weight:900; color:#C6A969; letter-spacing:4px; line-height:1; }
-  .inv-doc-inv-num    { font-size:11px; color:#A0A0A0; margin-top:4px; }
+  .inv-doc-inv-num    { font-size:11px; color:#8B7355; margin-top:4px; }
   .inv-doc-gold-strip { height:4px; background:linear-gradient(90deg,#C6A969 0%,#E8D5A0 50%,#8B7355 100%); }
   .inv-doc-meta-band  { background:#F8F6F3; padding:12px 28px; display:flex; gap:0; border-bottom:1px solid #EDE9E4; }
   .inv-doc-meta-item  { flex:1; padding-right:20px; border-right:1px solid #E0DBD4; }
   .inv-doc-meta-item:last-child { border-right:none; padding-right:0; padding-left:20px; text-align:right; }
   .inv-doc-meta-item:not(:first-child):not(:last-child) { padding-left:20px; }
   .inv-doc-meta-lbl   { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px; }
-  .inv-doc-meta-val   { font-size:12px; font-weight:700; color:#1a1a1a; }
+  .inv-doc-meta-val   { font-size:12px; font-weight:700; color:#2D2D2D; }
   .inv-doc-meta-val.accent { color:#C6A969; }
   .inv-doc-status-chip { display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:700; }
   .inv-doc-body { padding:20px 28px; }
@@ -152,43 +152,43 @@ const STYLES = `
   .inv-doc-party   { background:#F8F6F3; border-radius:8px; padding:12px 14px; border:1px solid #EDE9E4; }
   .inv-doc-party.right { text-align:right; }
   .inv-doc-party-lbl  { font-size:8.5px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
-  .inv-doc-party-name { font-size:13px; font-weight:800; color:#1a1a1a; margin-bottom:3px; }
+  .inv-doc-party-name { font-size:13px; font-weight:800; color:#2D2D2D; margin-bottom:3px; }
   .inv-doc-party-info { font-size:11px; color:#555; line-height:1.6; }
   .inv-doc-party-gstin{ font-size:10.5px; color:#8B7355; font-weight:600; margin-top:3px; }
   .inv-doc-stamp { display:inline-block; padding:3px 12px; border-radius:4px; font-size:10px; font-weight:900; letter-spacing:2.5px; text-transform:uppercase; transform:rotate(-7deg); margin-top:10px; }
   .inv-doc-table-wrap { border-radius:10px; overflow:hidden; border:1px solid #EDE9E4; margin-bottom:16px; }
   .inv-doc-table { width:100%; border-collapse:collapse; }
-  .inv-doc-table thead tr { background:#1a1a1a; }
-  .inv-doc-table thead th { padding:10px 12px; font-size:9.5px; font-weight:700; color:#C6A969; text-transform:uppercase; letter-spacing:0.8px; text-align:left; }
+  .inv-doc-table thead tr { background:#F8F6F3; border-bottom:1px solid #EDE9E4; }
+  .inv-doc-table thead th { padding:10px 12px; font-size:9.5px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.8px; text-align:left; }
   .inv-doc-table thead th.r { text-align:right; }
   .inv-doc-table thead th.c { text-align:center; }
   .inv-doc-table tbody tr:nth-child(even) { background:#FAFAF9; }
   .inv-doc-table tbody tr:nth-child(odd)  { background:#FFFFFF; }
   .inv-doc-table tbody td { padding:10px 12px; font-size:12.5px; color:#333; border-bottom:1px solid #F0ECE8; }
   .inv-doc-table tbody tr:last-child td { border-bottom:none; }
-  .inv-doc-table tbody td.r    { text-align:right; font-weight:600; color:#1a1a1a; }
+  .inv-doc-table tbody td.r    { text-align:right; font-weight:600; color:#2D2D2D; }
   .inv-doc-table tbody td.c    { text-align:center; color:#8B7355; font-weight:600; font-size:11px; }
-  .inv-doc-table tbody td.bold { font-weight:700; color:#1a1a1a; }
+  .inv-doc-table tbody td.bold { font-weight:700; color:#2D2D2D; }
   .inv-doc-totals-wrap { display:flex; justify-content:flex-end; margin-bottom:20px; }
   .inv-doc-totals-box  { width:280px; border-radius:10px; overflow:hidden; border:1px solid #EDE9E4; }
   .inv-doc-tot-row     { display:flex; justify-content:space-between; padding:8px 14px; font-size:12.5px; border-bottom:1px solid #F0ECE8; }
   .inv-doc-tot-row:last-child { border-bottom:none; }
   .inv-doc-tot-lbl { color:#555; font-weight:500; }
-  .inv-doc-tot-val { font-weight:700; color:#1a1a1a; }
+  .inv-doc-tot-val { font-weight:700; color:#2D2D2D; }
   .inv-doc-tot-disc .inv-doc-tot-lbl, .inv-doc-tot-disc .inv-doc-tot-val { color:#16a34a; }
-  .inv-doc-grand-row { background:#1a1a1a; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
-  .inv-doc-grand-lbl { color:#C6A969; font-size:12px; font-weight:700; }
-  .inv-doc-grand-val { color:#FFFFFF; font-size:18px; font-weight:900; }
+  .inv-doc-grand-row { background:#F8F6F3; border-top:2px solid #C6A969; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; }
+  .inv-doc-grand-lbl { color:#8B7355; font-size:12px; font-weight:700; }
+  .inv-doc-grand-val { color:#2D2D2D; font-size:18px; font-weight:900; }
   .inv-doc-footer { display:grid; grid-template-columns:1fr auto; gap:24px; align-items:flex-end; padding-top:16px; border-top:2px solid #F0ECE8; }
   .inv-doc-terms-lbl { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
   .inv-doc-terms-txt { font-size:11px; color:#555; line-height:1.6; max-width:340px; }
   .inv-doc-sig       { text-align:center; min-width:140px; }
   .inv-doc-sig-line  { width:120px; border-top:1.5px solid #CCC; margin:28px auto 6px; }
   .inv-doc-sig-lbl   { font-size:9px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; }
-  .inv-doc-sig-name  { font-size:11px; color:#1a1a1a; font-weight:700; margin-top:2px; }
-  .inv-doc-thankyou  { background:linear-gradient(135deg,#1a1a1a,#2D2D2D); padding:12px 28px; text-align:center; }
-  .inv-doc-thankyou-title { font-size:12px; font-weight:700; color:#C6A969; }
-  .inv-doc-thankyou-sub   { font-size:10.5px; color:#9E9087; margin-top:2px; }
+  .inv-doc-sig-name  { font-size:11px; color:#2D2D2D; font-weight:700; margin-top:2px; }
+  .inv-doc-thankyou  { background:#F8F6F3; border-top:1px solid #EDE9E4; padding:12px 28px; text-align:center; }
+  .inv-doc-thankyou-title { font-size:12px; font-weight:700; color:#8B7355; }
+  .inv-doc-thankyou-sub   { font-size:10.5px; color:#8B7355; margin-top:2px; }
 
   /* ── Create Invoice Modal ── */
   .inv-create-modal { background:#FFFFFF; border-radius:18px; width:100%; max-width:680px; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 28px 72px rgba(45,45,45,0.28); overflow:hidden; }
@@ -397,25 +397,25 @@ function printInvoice(inv, co = {}) {
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     @page{margin:0;size:A4}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',sans-serif;background:#f0f0f0;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px}
+    body{font-family:'Inter',sans-serif;background:#f0f0f0;color:#2D2D2D;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px}
     .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.1)}
     @media print{body{background:#fff;padding:0}.page{box-shadow:none;max-width:100%}}
-    .hdr{background:#1a1a1a;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+    .hdr{background:#F8F6F3;border-bottom:1px solid #EDE9E4;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
     .hdr-brand{display:flex;align-items:center;gap:12px}
-    .hdr-logo{width:44px;height:44px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;flex-shrink:0}
+    .hdr-logo{width:44px;height:44px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;flex-shrink:0;border:1px solid #EDE9E4;background:#fff}
     .hdr-logo img{width:100%;height:100%;object-fit:contain}
-    .hdr-name{font-size:17px;font-weight:800;color:#fff}
-    .hdr-tag{font-size:10px;color:#C6A969;margin-top:2px}
-    .hdr-addr{font-size:9.5px;color:#aaa;margin-top:3px;line-height:1.6}
+    .hdr-name{font-size:17px;font-weight:800;color:#2D2D2D}
+    .hdr-tag{font-size:10px;color:#8B7355;margin-top:2px}
+    .hdr-addr{font-size:9.5px;color:#8B7355;margin-top:3px;line-height:1.6}
     .hdr-right{text-align:right}
     .hdr-inv-type{font-size:22px;font-weight:900;color:#C6A969;letter-spacing:4px;line-height:1}
-    .hdr-inv-num{font-size:11px;color:#aaa;margin-top:4px;font-weight:500}
+    .hdr-inv-num{font-size:11px;color:#8B7355;margin-top:4px;font-weight:500}
     .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969,#E8D5A0,#8B7355)}
     .info-band{background:#f8f6f3;border-bottom:1px solid #e8e2da;display:flex}
     .info-col{flex:1;padding:12px 20px;border-right:1px solid #e0dbd4}
     .info-col:last-child{border-right:none}
     .info-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px}
-    .info-val{font-size:12px;font-weight:700;color:#1a1a1a}
+    .info-val{font-size:12px;font-weight:700;color:#2D2D2D}
     .info-val.gold{color:#C6A969}
     .status-pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${sColor}20;color:${sColor};border:1.5px solid ${sColor}50}
     .body{padding:20px 32px}
@@ -423,14 +423,14 @@ function printInvoice(inv, co = {}) {
     .party{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:12px 16px}
     .party.seller{text-align:right}
     .party-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;border-bottom:1px solid #e8e2da;padding-bottom:5px}
-    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
+    .party-name{font-size:13px;font-weight:800;color:#2D2D2D;margin-bottom:4px}
     .party-detail{font-size:10.5px;color:#555;line-height:1.7}
     .party-gstin{font-size:10px;color:#8B7355;font-weight:600;margin-top:4px;padding-top:4px;border-top:1px dashed #e0dbd4}
     .stamp{display:inline-block;margin-top:8px;padding:3px 14px;border:2.5px solid ${sColor};color:${sColor};border-radius:3px;font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;transform:rotate(-5deg)}
     .tbl-wrap{border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:16px}
     .tbl{width:100%;border-collapse:collapse;font-size:11px}
-    .tbl thead tr{background:#1a1a1a}
-    .tbl thead th{padding:9px 10px;color:#C6A969;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
+    .tbl thead tr{background:#F8F6F3;border-bottom:1px solid #EDE9E4}
+    .tbl thead th{padding:9px 10px;color:#8B7355;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
     .tbl thead th.r{text-align:right}
     .tbl thead th.c{text-align:center}
     .tbl thead th.group{text-align:center;background:#2a2a2a;border-bottom:1px solid #3a3a3a;font-size:8.5px;letter-spacing:0.5px}
@@ -440,7 +440,7 @@ function printInvoice(inv, co = {}) {
     .tbl tbody tr:last-child td{border-bottom:none}
     .tbl td.c{text-align:center}
     .tbl td.r{text-align:right}
-    .tbl td.bold{font-weight:700;color:#1a1a1a}
+    .tbl td.bold{font-weight:700;color:#2D2D2D}
     .bottom{display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:16px}
     .tax-summary{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
     .tax-title{background:#f0ede8;padding:7px 12px;font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e8e2da}
@@ -448,31 +448,31 @@ function printInvoice(inv, co = {}) {
     .tax-tbl thead th{padding:7px 10px;background:#f8f6f3;font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;text-align:right;border-bottom:1px solid #e8e2da}
     .tax-tbl thead th:first-child{text-align:left}
     .tax-tbl tbody td{padding:7px 10px;border-bottom:1px solid #f5f2ef;text-align:right;color:#333}
-    .tax-tbl tbody td:first-child{text-align:left;font-weight:600;color:#1a1a1a}
+    .tax-tbl tbody td:first-child{text-align:left;font-weight:600;color:#2D2D2D}
     .tax-tbl tbody tr:last-child td{border-bottom:none}
     .totals{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
     .tot-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f5f2ef}
     .tot-row:last-child{border-bottom:none}
     .tot-lbl{color:#666;font-weight:500}
-    .tot-val{font-weight:700;color:#1a1a1a}
+    .tot-val{font-weight:700;color:#2D2D2D}
     .tot-disc .tot-lbl,.tot-disc .tot-val{color:#16a34a}
-    .tot-grand{background:#1a1a1a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
-    .tot-grand-lbl{color:#C6A969;font-size:12px;font-weight:700;letter-spacing:0.5px}
-    .tot-grand-val{color:#fff;font-size:17px;font-weight:900}
+    .tot-grand{background:#F8F6F3;border-top:2px solid #C6A969;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+    .tot-grand-lbl{color:#8B7355;font-size:12px;font-weight:700;letter-spacing:0.5px}
+    .tot-grand-val{color:#2D2D2D;font-size:17px;font-weight:900}
     .amt-words{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px}
     .amt-words-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
-    .amt-words-val{font-weight:600;color:#1a1a1a;font-style:italic}
+    .amt-words-val{font-weight:600;color:#2D2D2D;font-style:italic}
     .footer{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:flex-end;padding-top:16px;border-top:2px solid #f0ece8}
     .terms-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
     .terms-txt{font-size:10.5px;color:#666;line-height:1.7;max-width:380px}
     .sig-area{text-align:center;min-width:160px}
     .sig-line{width:140px;border-top:1.5px solid #ccc;margin:36px auto 7px}
     .sig-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
-    .sig-name{font-size:11px;color:#1a1a1a;font-weight:700;margin-top:3px}
+    .sig-name{font-size:11px;color:#2D2D2D;font-weight:700;margin-top:3px}
     .eoe{font-size:9px;color:#aaa;margin-top:4px;font-style:italic}
-    .ty-band{background:#1a1a1a;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
-    .ty-title{font-size:12px;font-weight:700;color:#C6A969}
-    .ty-note{font-size:9.5px;color:#888}
+    .ty-band{background:#F8F6F3;border-top:1px solid #EDE9E4;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+    .ty-title{font-size:12px;font-weight:700;color:#8B7355}
+    .ty-note{font-size:9.5px;color:#8B7355}
     .comp-gen{font-size:8.5px;color:#aaa;text-align:center;padding:6px;background:#f8f6f3;border-top:1px solid #e8e2da}
   </style>
 </head>
@@ -718,9 +718,9 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
                         });
                         return Object.entries(tm).map(([rate,v])=>(
                           <tr key={rate}>
-                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',fontWeight:600,color:'#1a1a1a'}}>{rate}%</td>
+                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',fontWeight:600,color:'#2D2D2D'}}>{rate}%</td>
                             <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',textAlign:'right',color:'#333'}}>{inr(v.taxable)}</td>
-                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',textAlign:'right',fontWeight:700,color:'#1a1a1a'}}>{inr(v.gst)}</td>
+                            <td style={{padding:'6px 10px',borderBottom:'1px solid #f5f2ef',textAlign:'right',fontWeight:700,color:'#2D2D2D'}}>{inr(v.gst)}</td>
                           </tr>
                         ));
                       })()}
@@ -738,7 +738,7 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
               {/* Amount in Words */}
               <div style={{background:'#f8f6f3',border:'1px solid #e8e2da',borderRadius:8,padding:'8px 12px',marginBottom:14}}>
                 <div style={{fontSize:8,fontWeight:700,color:'#8B7355',textTransform:'uppercase',letterSpacing:1,marginBottom:3}}>Amount in Words</div>
-                <div style={{fontSize:11,fontWeight:600,color:'#1a1a1a',fontStyle:'italic'}}>{amountInWords(total)}</div>
+                <div style={{fontSize:11,fontWeight:600,color:'#2D2D2D',fontStyle:'italic'}}>{amountInWords(total)}</div>
               </div>
 
               {/* Footer */}
@@ -876,7 +876,7 @@ function CreateInvoiceModal({ onClose, onCreate }) {
         gstTotal:   parseFloat(inv.gstTotal      || 0),
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
-        status:     inv.status || inv.paymentStatus || 'Pending',
+        status:     normalizeStatus(inv.status || inv.paymentStatus, inv.dueDate),
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
         dueDate:    inv.dueDate
           ? new Date(inv.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -926,7 +926,7 @@ function CreateInvoiceModal({ onClose, onCreate }) {
             </div>
             <div className="inv-field">
               <label>Phone</label>
-              <input placeholder="+91 9876543210" value={form.phone} onChange={e => set('phone', e.target.value)} />
+              <input type="tel" inputMode="numeric" placeholder="10-digit mobile number" maxLength={10} value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             </div>
           </div>
           <div className="inv-field">
@@ -936,7 +936,7 @@ function CreateInvoiceModal({ onClose, onCreate }) {
           <div className="inv-grid2">
             <div className="inv-field">
               <label>GST Number</label>
-              <input placeholder="29AABCN1234M1Z5" value={form.gstNo} onChange={e => set('gstNo', e.target.value)} />
+              <input placeholder="29AABCN1234M1Z5" maxLength={15} value={form.gstNo} onChange={e => set('gstNo', e.target.value.toUpperCase().slice(0, 15))} />
             </div>
             <div className="inv-field">
               <label>Due Date</label>
