@@ -398,8 +398,8 @@ function ChangePasswordModal({ onClose, onSave }) {
     setSaving(true);
     try {
       await api.put('/api/profile/update', {
-        currentPassword: form.current,
-        password:        form.newPw,
+        oldPassword: form.current,
+        password:    form.newPw,
       });
       onSave('Password updated successfully!');
       onClose();
