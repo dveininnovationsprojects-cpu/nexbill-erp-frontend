@@ -194,6 +194,7 @@ export default function CashierBilling() {
         paymentMethod,
         customerName: selectedCustomer?.name || 'Walk-in Customer',
         customerPhone: selectedCustomer?.mobile || '',
+        customerEmail: selectedCustomer?.email || '',
         ...(selectedCustomer?.id ? { customerId: selectedCustomer.id } : {}),
         ...(discountVal > 0 ? { discountAmount: parseFloat(discountVal.toFixed(2)) } : {}),
       };
