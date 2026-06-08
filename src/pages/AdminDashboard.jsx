@@ -56,7 +56,8 @@ export default function AdminDashboard() {
       setActiveCashiers(cashiersList);
       setKpis({ revenue: `₹${Number(revenue).toLocaleString('en-IN')}`, products: products.length, lowStock, cashiers: cashiersList.length });
       setAllBilling(billing);
-      setRecentTxns(billing.slice(0, 5));
+      const sorted = [...billing].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setRecentTxns(sorted.slice(0, 5));
       console.log('BILLING DATA:', billing.length, billing.slice(0,2).map(b => ({createdAt: b.createdAt, grandTotal: b.grandTotal})));
     } catch (err) { console.error('fetchKpis error:', err?.response?.status, err?.message); }
   };
@@ -118,7 +119,12 @@ export default function AdminDashboard() {
         .ad-table td{padding:12px;border-bottom:1px solid #F8F5F2;color:#3F3F46}
         .ad-skeleton{display:inline-block;height:12px;background:#EFE7DE;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-        .ad-note{font-size:12px;color:#D6D3D1;text-align:center;margin:12px 0 0}
+        .ad-chart-wrap{display:flex;flex-direction:column;gap:12px}
+        .ad-chart-labels{display:flex;align-items:center;gap:12px;margin-bottom:4px;padding:0 4px;font-size:11px;color:#8B7355}
+        .ad-chart-label{display:flex;align-items:center;gap:4px}
+        .ad-chart-current{width:10px;height:10px;background:#C6A969;border-radius:2px}
+        .ad-chart-other{width:10px;height:10px;background:#EFE7DE;border-radius:2px}
+        .ad-chart-container{display:flex;align-items:flex-end;gap:8px;height:160px;padding:0 4px}
         .ad-overlay{position:fixed;inset:0;background:rgba(45,45,45,0.4);backdrop-filter:blur(2px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
         .ad-modal{background:#FFFFFF;border-radius:18px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(45,45,45,0.2);overflow:hidden}
         .ad-modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 16px;border-bottom:1px solid #EFE7DE}
@@ -328,14 +334,22 @@ function BarChartMock({ billing = [] }) {
     }
   });
   const max = Math.max(...data, 1);
+  const totalSales = data.reduce((s, v) => s + v, 0);
   return (
-    <div style={{display:'flex',alignItems:'flex-end',gap:8,height:140,padding:'0 4px'}}>
-      {data.map((val, i) => (
-        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-          <div style={{width:'100%',height:`${Math.max((val/max)*100, 2)}%`,background:i===currentMonth?'#C6A969':'#EFE7DE',borderRadius:'4px 4px 0 0',transition:'height 0.3s'}} />
-          <span style={{fontSize:9,color:'#8B7355'}}>{months[i]}</span>
-        </div>
-      ))}
+    <div className="ad-chart-wrap">
+      <div className="ad-chart-labels">
+        <div className="ad-chart-label"><div className="ad-chart-current" /><span>Current Month</span></div>
+        <div className="ad-chart-label"><div className="ad-chart-other" /><span>Other Months</span></div>
+        <span style={{marginLeft:'auto',fontWeight:600}}>Total: ₹{Number(totalSales).toLocaleString('en-IN')}</span>
+      </div>
+      <div className="ad-chart-container">
+        {data.map((val, i) => (
+          <div key={i} style={{flex:'1 1 0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',gap:6,height:'100%'}}>
+            <div style={{width:'100%',height:`${Math.max((val/max)*120, 4)}px`,background:i===currentMonth?'#C6A969':'#EFE7DE',borderRadius:'4px 4px 0 0',transition:'all 0.3s'}} />
+            <span style={{fontSize:10,color:'#8B7355',fontWeight:500,whiteSpace:'nowrap'}}>{months[i]}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

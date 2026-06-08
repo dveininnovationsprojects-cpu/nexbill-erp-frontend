@@ -761,7 +761,7 @@ export default function Layout({ children }) {
                   </button>
                   <hr />
                   <button onClick={handleLogout} className={styles.dropLogout}>
-                    <LogOut size={14} /> Sign Out
+                    <LogOut size={14} /> Logout
                   </button>
                 </div>
               )}

@@ -847,7 +847,7 @@ export default function AdminInvoices() {
   const fetchInvoices = async () => {
     try {
       const res = await api.get('/api/billing/history');
-      const data = (res.data || []).map(inv => ({
+      const data = [...(res.data || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
         customer:   inv.customerName || 'Walk-in Customer',
         email:      '',

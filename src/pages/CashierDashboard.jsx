@@ -96,7 +96,8 @@ export default function CashierDashboard() {
         totalDiscountsGiven: totalDiscount,
         paymentBreakdown: Object.values(payMap),
         topProducts,
-        cashierPerformances
+        cashierPerformances,
+        allFiltered: filtered,
       });
     } catch (err) {
       console.error('Dashboard error:', err?.response?.data || err.message);
@@ -112,10 +113,10 @@ export default function CashierDashboard() {
   }[m] || m);
 
   const kpis = [
-    { label: "Today's Bills",    value: loading ? '...' : (data?.totalInvoicesGenerated || 0),  icon: Receipt,    sub: 'Invoices generated' },
-    { label: "Today's Sales",    value: loading ? '...' : `₹${fmt(data?.totalGrossRevenue)}`, icon: TrendingUp, sub: 'Total collected' },
-    { label: 'Tax Collected',    value: loading ? '...' : `₹${fmt(data?.totalTaxCollected)}`,  icon: Tag,        sub: 'GST collected' },
-    { label: 'Discounts Given',  value: loading ? '...' : `₹${fmt(data?.totalDiscountsGiven)}`, icon: Package,   sub: 'Total discounts' },
+    { label: range === 'today' ? "Today's Bills" : range === 'week' ? "This Week Bills" : "This Month Bills", value: loading ? '...' : (data?.totalInvoicesGenerated || 0), icon: Receipt },
+    { label: range === 'today' ? "Today's Sales" : range === 'week' ? "This Week Sales" : "This Month Sales", value: loading ? '...' : `₹${fmt(data?.totalGrossRevenue)}`, icon: TrendingUp },
+    { label: 'Tax Collected',   value: loading ? '...' : `₹${fmt(data?.totalTaxCollected)}`,   icon: Tag },
+    { label: 'Discounts Given', value: loading ? '...' : `₹${fmt(data?.totalDiscountsGiven)}`, icon: Package },
   ];
 
   return (
@@ -151,14 +152,15 @@ export default function CashierDashboard() {
         .cd-table{width:100%;border-collapse:collapse;font-size:13px}
         .cd-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #EFE7DE}
         .cd-table td{padding:11px 10px;border-bottom:1px solid #F8F5F2}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-        .cd-skeleton{display:inline-block;height:12px;background:#EFE7DE;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
+        .cd-chart-wrap{display:flex;align-items:flex-end;gap:6px;height:140px;padding-top:8px}
+        .cd-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+        .cd-bar{width:100%;background:#C6A969;border-radius:4px 4px 0 0;transition:height 0.3s;min-height:4px}
+        .cd-bar-lbl{font-size:9px;color:#8B7355;font-weight:500;white-space:nowrap}
       `}</style>
 
       <div className="cd-page">
         {/* Header */}
         <div className="cd-header">
-          <h1 className="cd-title">My Dashboard</h1>
           <div className="cd-filters">
             {['today', 'week', 'month'].map(r => (
               <button
@@ -174,13 +176,12 @@ export default function CashierDashboard() {
 
         {/* KPI Cards */}
         <div className="cd-kpi-grid">
-          {kpis.map(({ label, value, icon: Icon, sub }) => (
+          {kpis.map(({ label, value, icon: Icon }) => (
             <div key={label} className="cd-kpi-card">
               <div className="cd-kpi-icon"><Icon size={20} /></div>
               <div>
                 <div className="cd-kpi-value">{value}</div>
                 <div className="cd-kpi-label">{label}</div>
-                <div className="cd-kpi-sub">{sub}</div>
               </div>
             </div>
           ))}
@@ -217,6 +218,8 @@ export default function CashierDashboard() {
             )}
           </div>
         </div>
+
+
 
         {/* Top Products + Performance */}
         <div className="cd-grid2">

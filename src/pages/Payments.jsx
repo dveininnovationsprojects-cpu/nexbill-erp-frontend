@@ -30,70 +30,22 @@ export default function Payments() {
   const fetchPaymentStats = async () => {
     try {
       setLoading(true);
-      console.log('Fetching payment stats...');
-      
-      // Try payment stats endpoint first
-      try {
-        const res = await api.get('/api/payments/stats');
-        console.log('Payment stats response:', res.data);
-        
-        if (res.data && res.data.length > 0) {
-          const transformedPayments = [];
-          for (const stat of res.data) {
-            try {
-              const txnRes = await api.get(`/api/payments/transactions/${stat.paymentMode}`);
-              console.log(`💳 ${stat.paymentMode} transactions:`, txnRes.data);
-              const transactions = txnRes.data.map(order => {
-                console.log('📦 Transaction order:', order);
-                return {
-                  id: `PAY-${order.id}`,
-                  invoice: order.invoiceNumber || `INV-${order.id}`,
-                  cashier: order.cashierName || order.cashier?.name || order.cashier?.username || order.cashierId || 'Cashier',
-                  customer: order.customerName || order.customer?.name || 'Walk-in',
-                  amount: parseFloat(order.grandTotal || 0),
-                  method: order.paymentMethod || stat.paymentMode,
-                  status: 'SUCCESS',
-                  date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
-                };
-              });
-              transformedPayments.push(...transactions);
-            } catch (err) {
-              console.error(`Error fetching transactions for ${stat.paymentMode}:`, err);
-            }
-          }
-          setPayments(transformedPayments);
-        } else {
-          throw new Error('Payment stats endpoint returned empty');
-        }
-      } catch (err) {
-        console.warn('Payment stats endpoint failed, trying billing history:', err);
-        
-        // Fallback: Use billing history
-        const billRes = await api.get('/api/billing/history');
-        console.log('📋 Billing history response:', billRes.data);
-        console.log('📋 First order sample:', billRes.data[0]);
-        
-        if (billRes.data && billRes.data.length > 0) {
-          const transformedPayments = billRes.data.map(order => {
-            console.log('📦 Order data:', order);
-            return {
-              id: `PAY-${order.id}`,
-              invoice: order.invoiceNumber || `INV-${order.id}`,
-              cashier: order.cashierName || order.cashier?.name || order.cashier?.username || order.cashierId || 'Cashier',
-              customer: order.customerName || order.customer?.name || 'Walk-in',
-              amount: parseFloat(order.grandTotal || 0),
-              method: order.paymentMethod || 'CASH',
-              status: 'SUCCESS',
-              date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
-            };
-          });
-          setPayments(transformedPayments);
-        } else {
-          setPayments([]);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching payment data:', err);
+      const billRes = await api.get('/api/billing/history');
+      const data = Array.isArray(billRes.data) ? billRes.data : [];
+      const transformed = [...data]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .map(order => ({
+          id: `PAY-${order.id}`,
+          invoice: order.invoiceNumber || `INV-${order.id}`,
+          cashier: order.cashierName || order.cashierId || 'Cashier',
+          customer: order.customerName || 'Walk-in',
+          amount: parseFloat(order.grandTotal || 0),
+          method: order.paymentMethod || 'CASH',
+          status: order.status === 'CANCELLED' ? 'FAILED' : order.status === 'PENDING' ? 'PENDING' : 'SUCCESS',
+          date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
+        }));
+      setPayments(transformed);
+    } catch {
       setPayments([]);
     } finally {
       setLoading(false);

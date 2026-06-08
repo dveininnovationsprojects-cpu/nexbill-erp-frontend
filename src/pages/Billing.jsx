@@ -20,7 +20,9 @@ export default function Billing() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    api.get('/api/billing/history').then(res => setBills(res.data || [])).catch(() => setBills([]));
+    api.get('/api/billing/history')
+      .then(res => setBills([...(res.data || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))))
+      .catch(() => setBills([]));
   }, []);
 
   const cashiers = [...new Set(bills.map(b => b.cashierId || b.cashier).filter(Boolean))];
@@ -148,7 +150,7 @@ export default function Billing() {
                 const discountDisplay = discount > 0 ? `-₹${discount.toLocaleString('en-IN')}` : '—';
                 return (
                   <tr key={b.id || b.invoiceNumber}>
-                    <td><span className="ab-inv">{invoice}</span></td>
+                    <td style={{fontWeight:600,color:'#2D2D2D'}}>{invoice}</td>
                     <td>
                       <div className="ab-cashier">
                         <div className="ab-avatar">{cashier[0]}</div>
