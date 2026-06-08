@@ -865,7 +865,7 @@ export default function AdminInvoices() {
         discount:   parseFloat(inv.discountTotal || 0),
         grandTotal: parseFloat(inv.grandTotal    || 0),
         totalItems: inv.totalItems || 0,
-        status:     inv.status     || 'Paid',
+        status:     ['COMPLETED','PAID'].includes(inv.status) ? 'Paid' : (inv.status || 'Paid'),
         date:       inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         dueDate:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
         cashier:    inv.cashierId    || '—',
@@ -934,7 +934,7 @@ export default function AdminInvoices() {
   };
 
   // KPI stats
-  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + calcInvoice(i).total, 0);
+  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + i.grandTotal, 0);
   const paidCount    = invoices.filter(i => i.status === 'Paid').length;
   const pendingCount = invoices.filter(i => i.status === 'Pending').length;
   const overdueCount = invoices.filter(i => i.status === 'Overdue').length;
@@ -1055,7 +1055,7 @@ export default function AdminInvoices() {
                     </td>
                   </tr>
                 ) : paginated.map(inv => {
-                  const { total } = calcInvoice(inv);
+                  const total = inv.grandTotal || calcInvoice(inv).total;
                   return (
                     <tr key={inv.id}>
                       <td><span className="inv-id-cell">{inv.id}</span></td>
