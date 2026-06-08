@@ -41,9 +41,9 @@ export default function Billing() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const totalRevenue = bills.filter(b => (b.status || b.paymentStatus) === 'PAID').reduce((s, b) => s + (b.grandTotal || b.total || 0), 0);
+  const totalRevenue = bills.filter(b => ['PAID','COMPLETED'].includes(b.status || b.paymentStatus)).reduce((s, b) => s + (b.grandTotal || b.total || 0), 0);
   const totalBills = bills.length;
-  const paidBills = bills.filter(b => (b.status || b.paymentStatus) === 'PAID').length;
+  const paidBills = bills.filter(b => ['PAID','COMPLETED'].includes(b.status || b.paymentStatus)).length;
   const pendingBills = bills.filter(b => (b.status || b.paymentStatus) === 'PENDING').length;
 
   return (
@@ -138,7 +138,8 @@ export default function Billing() {
                 <tr><td colSpan={10} className="ab-empty">No bills found.</td></tr>
               ) : paginated.map(b => {
                 const status = b.status || b.paymentStatus || 'PENDING';
-                const s = STATUS_STYLE[status] || STATUS_STYLE.PENDING;
+                const displayStatus = status === 'COMPLETED' ? 'PAID' : status;
+                const s = STATUS_STYLE[displayStatus] || STATUS_STYLE[status] || STATUS_STYLE.PENDING;
                 const cashier = b.cashierId || b.cashier || '—';
                 const invoice = b.invoiceNumber || b.invoice || '—';
                 const total = b.grandTotal || b.total || 0;
@@ -163,7 +164,7 @@ export default function Billing() {
                     <td style={{color:'#5A7A5A'}}>{discountDisplay}</td>
                     <td><span className="ab-total">₹{Number(total).toLocaleString()}</span></td>
                     <td><span className="ab-method">{method}</span></td>
-                    <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{status}</span></td>
+                    <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{displayStatus}</span></td>
                     <td><span className="ab-date">{date}</span></td>
                   </tr>
                 );
