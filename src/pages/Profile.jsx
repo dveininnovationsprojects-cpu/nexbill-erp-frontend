@@ -457,8 +457,8 @@ function LogoutModal({ user, onCancel, onConfirm, loading }) {
     <div className="pr-overlay" onClick={onCancel}>
       <div className="pr-logout-modal" onClick={e => e.stopPropagation()}>
         <div className="pr-logout-icon-wrap"><LogOut size={30} /></div>
-        <div className="pr-logout-title">Sign Out of NexBill?</div>
-        <div className="pr-logout-desc">You're about to sign out. Any unsaved changes will be lost.</div>
+        <div className="pr-logout-title">Logout of NexBill?</div>
+        <div className="pr-logout-desc">You're about to logout. Any unsaved changes will be lost.</div>
         <div className="pr-logout-user">
           <div className="pr-logout-user-avatar">{user?.email?.[0]?.toUpperCase()}</div>
           <div>
@@ -467,9 +467,9 @@ function LogoutModal({ user, onCancel, onConfirm, loading }) {
           </div>
         </div>
         <div className="pr-logout-actions">
-          <button className="pr-btn-secondary" onClick={onCancel}>Stay Signed In</button>
+          <button className="pr-btn-secondary" onClick={onCancel}>Stay Logged In</button>
           <button className="pr-btn-logout" onClick={onConfirm} disabled={loading}>
-            {loading ? <span className="pr-spinner" style={{ borderTopColor:'#fff' }} /> : <><LogOut size={15} /> Sign Out</>}
+            {loading ? <span className="pr-spinner" style={{ borderTopColor:'#fff' }} /> : <><LogOut size={15} /> Logout</>}
           </button>
         </div>
       </div>

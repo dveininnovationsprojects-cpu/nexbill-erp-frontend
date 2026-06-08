@@ -267,6 +267,7 @@ const STYLES = `
 `;
 
 import api from '../api';
+import { getPageNumbers } from '../utils/pagination';
 
 const EMPTY_ITEM = { name: '', qty: '', rate: '', gst: 18 };
 
@@ -1140,7 +1141,7 @@ export default function AdminInvoices() {
   const fetchInvoices = async () => {
     try {
       const res = await api.get('/api/billing/history');
-      const data = (res.data || []).map(inv => ({
+      const data = [...(res.data || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(inv => ({
         id:         inv.invoiceNumber || String(inv.id),
         customer:   inv.customerName  || inv.customer?.name    || 'Walk-in Customer',
         email:      inv.customerEmail || inv.customer?.email  || '',
@@ -1347,13 +1348,12 @@ export default function AdminInvoices() {
                     </td>
                   </tr>
                 ) : paginated.map(inv => {
-                  const { total } = calcInvoice(inv);
+                  const total = inv.grandTotal || calcInvoice(inv).total;
                   return (
                     <tr key={inv.id}>
                       <td><span className="inv-id-cell">{inv.id}</span></td>
                       <td>
                         <div className="inv-customer-name">{inv.customer}</div>
-                        <div className="inv-customer-sub">{inv.email}</div>
                       </td>
                       <td style={{ color: '#8B7355' }}>{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
                       <td><span className="inv-amount">{inr(inv.grandTotal || total)}</span></td>
@@ -1400,15 +1400,15 @@ export default function AdminInvoices() {
               Showing {filtered.length === 0 ? 0 : Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} invoices
             </div>
             <div className="inv-page-btns">
-              <button className="inv-page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+              <button className="inv-page-btn" disabled={page === 1 || totalPages === 0} onClick={() => setPage(p => Math.max(1, p - 1))}>
                 <ChevronLeft size={14} />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              {totalPages > 0 && getPageNumbers(page, totalPages).map(p => (
                 <button key={p} className={`inv-page-btn ${p === page ? 'active' : ''}`} onClick={() => setPage(p)}>
                   {p}
                 </button>
               ))}
-              <button className="inv-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => p + 1)}>
+              <button className="inv-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
                 <ChevronRight size={14} />
               </button>
             </div>

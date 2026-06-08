@@ -1,4 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  Users,
+  TrendingUp,
+  Gem,
+  IndianRupee,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CheckCircle,
+  Eye,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 
 const API_BASE_URL = "/api/customers";
 const CUSTOMERS_PER_PAGE = 5;
@@ -31,47 +45,41 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   const [form, setForm] = useState(emptyCustomer);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const canAccess =
-    role === "admin" ||
-    role === "cashier" ||
-    role === "ADMIN" ||
-    role === "CASHIER";
+  const userRole = String(role || "").toUpperCase();
+  const isAdmin = userRole === "ADMIN";
+  const isCashier = userRole === "CASHIER";
+  const canAccess = isAdmin || isCashier;
+  const canAddCustomer = isAdmin || isCashier;
+  const canViewCustomer = isAdmin || isCashier;
+  const canEditCustomer = isAdmin || isCashier;
+  const canUpdateLedger = isAdmin || isCashier;
+  const canChangeStatus = isAdmin || isCashier;
+  const canDeleteCustomer = isAdmin;
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    if (canAccess) loadCustomers();
+  }, [canAccess]);
 
   const filteredCustomers = useMemo(() => {
     return customers
-      .filter((customer) => {
-        const searchableText = `
-          ${customer.id || ""}
-          ${customer.name || ""}
-          ${customer.mobile || ""}
-          ${customer.email || ""}
-          ${customer.tier || ""}
-          ${customer.status || ""}
-          ${customer.totalSpentAmount || ""}
-          ${customer.creditLimit || ""}
-          ${customer.outstandingDebt || ""}
-        `.toLowerCase();
-
+      .filter((c) => {
+        const text = `${c.id} ${c.name} ${c.mobile} ${c.email} ${c.tier} ${c.status} ${c.totalSpentAmount} ${c.creditLimit} ${c.outstandingDebt}`.toLowerCase();
         const statusMatch =
           statusFilter === "All" ||
-          String(customer.status || "").toUpperCase() === statusFilter;
-
+          String(c.status || "").toUpperCase() === statusFilter;
         const tierMatch =
           tierFilter === "All" ||
-          String(customer.tier || "").toUpperCase() === tierFilter;
-
-        return (
-          searchableText.includes(search.toLowerCase()) &&
-          statusMatch &&
-          tierMatch
-        );
+          String(c.tier || "").toUpperCase() === tierFilter;
+        return text.includes(search.toLowerCase()) && statusMatch && tierMatch;
       })
-      .sort((a, b) => Number(a.id || 0) - Number(b.id || 0));
+      .sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
   }, [customers, search, statusFilter, tierFilter]);
 
   const totalPages = Math.max(
@@ -80,56 +88,36 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   );
 
   const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * CUSTOMERS_PER_PAGE;
-    const endIndex = startIndex + CUSTOMERS_PER_PAGE;
-    return filteredCustomers.slice(startIndex, endIndex);
+    const start = (currentPage - 1) * CUSTOMERS_PER_PAGE;
+    return filteredCustomers.slice(start, start + CUSTOMERS_PER_PAGE);
   }, [filteredCustomers, currentPage]);
 
+  useEffect(() => setCurrentPage(1), [search, statusFilter, tierFilter]);
   useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter, tierFilter]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
   function getToken() {
-    const possibleKeys = [
-      "token",
-      "authToken",
-      "accessToken",
-      "jwt",
-      "user",
-      "auth",
-      "nexbill_user",
-      "nexbill_auth_user",
-    ];
-
-    for (const key of possibleKeys) {
+    const keys = ["token","authToken","accessToken","jwt","user","auth","nexbill_user","nexbill_auth_user"];
+    for (const key of keys) {
       const value = localStorage.getItem(key);
       if (!value) continue;
-
       try {
         const parsed = JSON.parse(value);
-
         if (parsed?.token) return parsed.token;
         if (parsed?.accessToken) return parsed.accessToken;
         if (parsed?.jwt) return parsed.jwt;
         if (parsed?.user?.token) return parsed.user.token;
-        if (parsed?.user?.accessToken) return parsed.user.accessToken;
+        if (parsed?.data?.token) return parsed.data.token;
       } catch {
-        if (value.length > 20) return value;
+        if (value.startsWith("eyJ") || value.length > 40) return value;
       }
     }
-
     return "";
   }
 
   function getHeaders() {
     const token = getToken();
-
     return {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -137,160 +125,74 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   }
 
   async function readResponse(response) {
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType && contentType.includes("application/json");
+    const isJson = response.headers.get("content-type")?.includes("application/json");
     const data = isJson ? await response.json() : await response.text();
-
-    if (!response.ok) {
-      const message =
-        data?.message ||
-        data?.error ||
-        data ||
-        `Request failed. Status: ${response.status}`;
-
-      throw new Error(message);
-    }
-
+    if (!response.ok) throw new Error(data?.message || data?.error || data || `Request failed: ${response.status}`);
     return data;
   }
 
   async function loadCustomers() {
     if (!canAccess) return;
-
     try {
       setLoading(true);
-
-      const response = await fetch(API_BASE_URL, {
-        method: "GET",
-        headers: getHeaders(),
-      });
-
-      const data = await readResponse(response);
+      const res = await fetch(API_BASE_URL, { method: "GET", headers: getHeaders() });
+      const data = await readResponse(res);
       setCustomers(Array.isArray(data) ? data : []);
-    } catch (error) {
+    } catch (err) {
       setCustomers([]);
-      alert(error.message || "Unable to load customers.");
+      showToast(err.message || "Unable to load customers.");
     } finally {
       setLoading(false);
     }
   }
 
-  function handleFrontendSearch() {
-    const searchText = search.trim().toLowerCase();
-
-    if (!searchText) {
-      setCurrentPage(1);
-      return;
-    }
-
-    const matchedCustomer = customers.find((customer) => {
-      const customerText = `
-        ${customer.id || ""}
-        ${customer.name || ""}
-        ${customer.mobile || ""}
-        ${customer.email || ""}
-        ${customer.tier || ""}
-        ${customer.status || ""}
-      `.toLowerCase();
-
-      return customerText.includes(searchText);
-    });
-
-    if (!matchedCustomer) {
-      alert("No customer found for this search.");
-      return;
-    }
-
-    setCurrentPage(1);
-  }
-
   async function saveCustomer(event) {
     event.preventDefault();
-
-    if (!form.name.trim()) {
-      alert("Customer name is required.");
-      return;
-    }
-
-    if (!form.mobile.trim()) {
-      alert("Mobile number is required.");
-      return;
-    }
-
-    if (!/^\d{10}$/.test(form.mobile)) {
-      alert("Mobile number must be 10 digits.");
-      return;
-    }
-
+    if (!form.name.trim()) { showToast("Customer name is required."); return; }
+    if (!form.mobile.trim()) { showToast("Mobile number is required."); return; }
+    if (!/^\d{10}$/.test(form.mobile)) { showToast("Mobile number must be 10 digits."); return; }
     const payload = {
       name: form.name.trim(),
       mobile: form.mobile.trim(),
       email: form.email.trim(),
       creditLimit: Number(form.creditLimit || 0),
     };
-
     try {
       setLoading(true);
-
       if (editingId) {
-        const response = await fetch(`${API_BASE_URL}/${editingId}`, {
-          method: "PUT",
-          headers: getHeaders(),
-          body: JSON.stringify(payload),
-        });
-
-        const updatedCustomer = await readResponse(response);
-
-        setCustomers((previous) =>
-          previous.map((customer) =>
-            customer.id === editingId ? updatedCustomer : customer
-          )
-        );
-
-        setSelectedCustomer(updatedCustomer);
+        const res = await fetch(`${API_BASE_URL}/${editingId}`, { method: "PUT", headers: getHeaders(), body: JSON.stringify(payload) });
+        const updated = await readResponse(res);
+        setCustomers((prev) => prev.map((c) => (c.id === editingId ? updated : c)));
+        setSelectedCustomer(updated);
         setView("details");
+        showToast("Customer updated successfully.");
       } else {
-        const response = await fetch(API_BASE_URL, {
-          method: "POST",
-          headers: getHeaders(),
-          body: JSON.stringify(payload),
-        });
-
-        const newCustomer = await readResponse(response);
-
-        setCustomers((previous) => [...previous, newCustomer]);
-        setSelectedCustomer(newCustomer);
-        setCurrentPage(Math.ceil((customers.length + 1) / CUSTOMERS_PER_PAGE));
+        const res = await fetch(API_BASE_URL, { method: "POST", headers: getHeaders(), body: JSON.stringify(payload) });
+        const newC = await readResponse(res);
+        setCustomers((prev) => [...prev, newC]);
+        setSelectedCustomer(newC);
         setView("details");
+        showToast("Customer added successfully.");
       }
-    } catch (error) {
-      alert(error.message || "Unable to save customer.");
+    } catch (err) {
+      showToast(err.message || "Unable to save customer.");
     } finally {
       setLoading(false);
     }
   }
 
   async function deleteCustomer(customer) {
+    if (!canDeleteCustomer) { showToast("Only admin can delete customer."); return; }
     if (!window.confirm(`Delete ${customer.name}?`)) return;
-
     try {
       setLoading(true);
-
-      const response = await fetch(`${API_BASE_URL}/${customer.id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-
-      await readResponse(response);
-
-      setCustomers((previous) =>
-        previous.filter((item) => item.id !== customer.id)
-      );
-
-      setSelectedCustomer(null);
+      const res = await fetch(`${API_BASE_URL}/${customer.id}`, { method: "DELETE", headers: getHeaders() });
+      await readResponse(res);
+      setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
       setView("list");
-    } catch (error) {
-      alert(error.message || "Unable to delete customer.");
+      showToast("Customer deleted.");
+    } catch (err) {
+      showToast(err.message || "Unable to delete customer.");
     } finally {
       setLoading(false);
     }
@@ -299,28 +201,13 @@ function Customers({ role = "admin", initialCustomers = [] }) {
   async function changeCustomerStatus(customer, status) {
     try {
       setLoading(true);
-
-      const response = await fetch(
-        `${API_BASE_URL}/${customer.id}/status?status=${encodeURIComponent(
-          status
-        )}`,
-        {
-          method: "PUT",
-          headers: getHeaders(),
-        }
-      );
-
-      const updatedCustomer = await readResponse(response);
-
-      setCustomers((previous) =>
-        previous.map((item) =>
-          item.id === updatedCustomer.id ? updatedCustomer : item
-        )
-      );
-
-      setSelectedCustomer(updatedCustomer);
-    } catch (error) {
-      alert(error.message || "Unable to update customer status.");
+      const res = await fetch(`${API_BASE_URL}/${customer.id}/status?status=${encodeURIComponent(status)}`, { method: "PUT", headers: getHeaders() });
+      const updated = await readResponse(res);
+      setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setSelectedCustomer(updated);
+      showToast(`Status updated to ${status === "ACTIVE" ? "Active" : "Inactive"}.`);
+    } catch (err) {
+      showToast(err.message || "Unable to update status.");
     } finally {
       setLoading(false);
     }
@@ -328,1440 +215,430 @@ function Customers({ role = "admin", initialCustomers = [] }) {
 
   async function updateLedger(event) {
     event.preventDefault();
-
-    if (!selectedCustomer?.id) {
-      alert("Select a customer first.");
-      return;
-    }
-
+    if (!selectedCustomer?.id) { showToast("Select a customer first."); return; }
     const bill = Number(form.billAmount || 0);
     const paid = Number(form.paidAmount || 0);
-
-    if (bill < 0 || paid < 0) {
-      alert("Bill amount and paid amount cannot be negative.");
-      return;
-    }
-
-    if (bill === 0 && paid === 0) {
-      alert("Enter bill amount or paid amount.");
-      return;
-    }
-
+    if (bill < 0 || paid < 0) { showToast("Amounts cannot be negative."); return; }
+    if (bill === 0 && paid === 0) { showToast("Enter bill or paid amount."); return; }
     try {
       setLoading(true);
-
-      const response = await fetch(
-        `${API_BASE_URL}/${selectedCustomer.id}/ledger?bill=${encodeURIComponent(
-          bill
-        )}&paid=${encodeURIComponent(paid)}`,
-        {
-          method: "PUT",
-          headers: getHeaders(),
-        }
-      );
-
-      const updatedCustomer = await readResponse(response);
-
-      setCustomers((previous) =>
-        previous.map((item) =>
-          item.id === updatedCustomer.id ? updatedCustomer : item
-        )
-      );
-
-      setSelectedCustomer(updatedCustomer);
-      setForm((previous) => ({
-        ...previous,
-        billAmount: "",
-        paidAmount: "",
-      }));
-
-      alert("Ledger updated successfully.");
-    } catch (error) {
-      alert(error.message || "Unable to update ledger.");
+      const res = await fetch(`${API_BASE_URL}/${selectedCustomer.id}/ledger?bill=${bill}&paid=${paid}`, { method: "PUT", headers: getHeaders() });
+      const updated = await readResponse(res);
+      setCustomers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setSelectedCustomer(updated);
+      setForm((prev) => ({ ...prev, billAmount: "", paidAmount: "" }));
+      showToast("Ledger updated successfully.");
+    } catch (err) {
+      showToast(err.message || "Unable to update ledger.");
     } finally {
       setLoading(false);
     }
   }
 
   function openAdd() {
-    setForm(emptyCustomer);
-    setEditingId(null);
-    setSelectedCustomer(null);
-    setView("form");
+    setForm(emptyCustomer); setEditingId(null); setSelectedCustomer(null); setView("form");
   }
-
   function openEdit(customer) {
-    setForm({
-      id: customer.id || "",
-      name: customer.name || "",
-      mobile: customer.mobile || "",
-      email: customer.email || "",
-      creditLimit: customer.creditLimit ?? "",
-      billAmount: "",
-      paidAmount: "",
-    });
-
-    setEditingId(customer.id);
-    setSelectedCustomer(customer);
-    setView("form");
+    setForm({ id: customer.id || "", name: customer.name || "", mobile: customer.mobile || "", email: customer.email || "", creditLimit: customer.creditLimit ?? "", billAmount: "", paidAmount: "" });
+    setEditingId(customer.id); setSelectedCustomer(customer); setView("form");
   }
-
   function openView(customer) {
     setSelectedCustomer(customer);
-    setForm({
-      id: customer.id || "",
-      name: customer.name || "",
-      mobile: customer.mobile || "",
-      email: customer.email || "",
-      creditLimit: customer.creditLimit ?? "",
-      billAmount: "",
-      paidAmount: "",
-    });
+    setForm({ id: customer.id || "", name: customer.name || "", mobile: customer.mobile || "", email: customer.email || "", creditLimit: customer.creditLimit ?? "", billAmount: "", paidAmount: "" });
     setView("details");
   }
 
   function money(value) {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(Number(value || 0));
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value || 0));
   }
-
-  function formatCustomerId(id) {
-    return `CUS-${String(id || 0).padStart(4, "0")}`;
-  }
-
+  function formatCustomerId(id) { return `CUS-${String(id || 0).padStart(4, "0")}`; }
   function formatTier(tier) {
-    if (!tier) return "Regular";
-
-    const value = String(tier).toUpperCase();
-
-    if (value === "VIP") return "VIP";
-    if (value === "CORPORATE") return "Corporate";
+    const v = String(tier || "").toUpperCase();
+    if (v === "VIP") return "VIP";
+    if (v === "CORPORATE") return "Corporate";
     return "Regular";
   }
-
   function formatStatus(status) {
-    const value = String(status || "").toUpperCase();
-
-    if (value === "BLACKLISTED") return "Inactive";
-    if (value === "ACTIVE") return "Active";
-
-    return "-";
+    const v = String(status || "").toUpperCase();
+    if (v === "BLACKLISTED") return "Inactive";
+    if (v === "ACTIVE") return "Active";
+    return "—";
   }
-
   function formatDateTime(value) {
-    if (!value) return "-";
-
+    if (!value) return "—";
     try {
-      return new Date(value).toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "-";
-    }
+      return new Date(value).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch { return "—"; }
   }
 
   if (!canAccess) {
     return (
-      <section style={styles.page}>
-        <div style={styles.card}>
-          <h2 style={styles.cardTitle}>Access Denied</h2>
-          <p style={styles.muted}>
-            Only admin and cashier can access this module.
-          </p>
+      <div className="cus-page">
+        <div className="cus-form-card" style={{ padding: 32, textAlign: "center" }}>
+          <p style={{ color: "#8B7355", fontSize: 14 }}>Only admin and cashier can access this module.</p>
         </div>
-      </section>
+      </div>
     );
   }
 
-  const totalValue = customers.reduce(
-    (sum, customer) => sum + Number(customer.totalSpentAmount || 0),
-    0
-  );
-
-  const activeCustomers = customers.filter(
-    (customer) => String(customer.status).toUpperCase() === "ACTIVE"
-  ).length;
-
-  const premiumCustomers = customers.filter((customer) => {
-    const tier = String(customer.tier || "").toUpperCase();
-    return tier === "VIP" || tier === "CORPORATE";
+  const totalValue = customers.reduce((sum, c) => sum + Number(c.totalSpentAmount || 0), 0);
+  const activeCount = customers.filter((c) => String(c.status).toUpperCase() === "ACTIVE").length;
+  const inactiveCount = customers.filter((c) => String(c.status).toUpperCase() === "BLACKLISTED").length;
+  const premiumCount = customers.filter((c) => {
+    const t = String(c.tier || "").toUpperCase();
+    return t === "VIP" || t === "CORPORATE";
   }).length;
 
   return (
     <>
       <style>{`
-        .nb-btn {
-          transition: all 0.2s ease;
-        }
-
-        .nb-primary:hover {
-          background: #C6A969 !important;
-          color: #2D2D2D !important;
-          border-color: #C6A969 !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-primary:active {
-          background: #C6A969 !important;
-          color: #2D2D2D !important;
-          border-color: #C6A969 !important;
-          transform: translateY(0);
-        }
-
-        .nb-ghost:hover {
-          background: #EFE7DE !important;
-          border-color: #C6A969 !important;
-          color: #2D2D2D !important;
-        }
-
-        .nb-view-btn:hover {
-          background: #C6A969 !important;
-          color: #2D2D2D !important;
-          border-color: #C6A969 !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-edit-btn:hover {
-          background: #2D2D2D !important;
-          color: #F8F5F2 !important;
-          border-color: #2D2D2D !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-delete-btn:hover {
-          background: #9B4444 !important;
-          color: #FFFFFF !important;
-          border-color: #9B4444 !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-filter-btn:hover {
-          border-color: #C6A969 !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-page-btn {
-          transition: all 0.2s ease;
-        }
-
-        .nb-page-btn:hover:not(:disabled) {
-          background: #C6A969 !important;
-          color: #2D2D2D !important;
-          border-color: #C6A969 !important;
-          transform: translateY(-1px);
-        }
-
-        .nb-table-row:hover td {
-          background: #FFFDFB;
-        }
-
-        .nb-input:focus {
-          border-color: #C6A969 !important;
-          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
-          background: #FFFFFF !important;
-        }
-
-        .nb-customer-search:focus-within {
-          border-color: #C6A969 !important;
-          box-shadow: 0 0 0 3px rgba(198,169,105,0.13);
-          background: #FFFFFF !important;
-        }
-
-        .nb-custom-option:hover {
-          background: #C6A969 !important;
-          color: #2D2D2D !important;
-        }
-
-        @media (max-width: 900px) {
-          .customer-toolbar {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-
-          .customer-filter-buttons {
-            justify-content: flex-start !important;
-          }
-
-          .customer-kpi-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .customer-form-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .customer-info-grid {
-            grid-template-columns: 1fr !important;
-          }
-
-          .customer-pagination {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-          }
-
-          .ledger-actions {
-            justify-content: flex-start !important;
-          }
+        .cus-page{display:flex;flex-direction:column;gap:20px;font-family:'Inter',system-ui,sans-serif}
+        .cus-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .cus-kpi{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 4px rgba(45,45,45,0.05);transition:all 0.2s}
+        .cus-kpi:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(45,45,45,0.08);border-color:#C6A969}
+        .cus-kpi-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .cus-kpi-icon.brown{background:#F4EBDD;color:#8B7355}
+        .cus-kpi-icon.green{background:#F0F7F0;color:#5A7A5A}
+        .cus-kpi-icon.amber{background:#FDF8EE;color:#C6A969}
+        .cus-kpi-icon.red{background:#FDF0F0;color:#9B4444}
+        .cus-kpi-val{font-size:22px;font-weight:700;color:#2D2D2D;line-height:1;margin-bottom:3px}
+        .cus-kpi-label{font-size:12px;color:#8B7355;font-weight:500}
+        .cus-topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+        .cus-search-wrap{position:relative;flex:1;min-width:200px}
+        .cus-search-wrap input{width:100%;padding:10px 14px 10px 38px;border:1.5px solid #EFE7DE;border-radius:10px;font-size:13px;background:#FFFFFF;outline:none;font-family:inherit;color:#2D2D2D;box-sizing:border-box}
+        .cus-search-wrap input:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12)}
+        .cus-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8B7355;pointer-events:none}
+        .cus-filter-btns{display:flex;gap:6px;flex-wrap:wrap}
+        .cus-filter-btn{padding:9px 16px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#FFFFFF;color:#8B7355;transition:all 0.2s}
+        .cus-filter-btn:hover{border-color:#C6A969;color:#2D2D2D}
+        .cus-filter-btn.all.active{background:#2D2D2D;color:#F8F5F2;border-color:#2D2D2D}
+        .cus-filter-btn.ok.active{background:#2F5D3A;color:#FFFFFF;border-color:#2F5D3A}
+        .cus-filter-btn.danger.active{background:#7A1F1F;color:#FFFFFF;border-color:#7A1F1F}
+        .cus-tier-select{padding:9px 14px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#FFFFFF;color:#8B7355;outline:none;transition:all 0.2s;min-width:130px}
+        .cus-tier-select:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12)}
+        .cus-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .cus-table-scroll{overflow-x:auto}
+        .cus-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
+        .cus-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;background:#F8F5F2;border-bottom:1px solid #EFE7DE}
+        .cus-table td{padding:13px 16px;border-bottom:1px solid #F8F5F2;color:#3F3F46;vertical-align:middle}
+        .cus-table tr:last-child td{border-bottom:none}
+        .cus-table tr:hover td{background:#FDFCFB}
+        .cus-id-badge{font-size:11px;color:#8B7355;background:#EFE7DE;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block;margin-top:4px}
+        .cus-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;display:inline-block;min-width:80px;text-align:center}
+        .cus-badge-active{background:#F0F7F0;color:#5A7A5A}
+        .cus-badge-inactive{background:#FDF0F0;color:#9B4444}
+        .cus-tier-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:#EFE7DE;color:#8B7355;display:inline-block}
+        .cus-tier-pill.vip{background:#FDF8EE;color:#9A7030}
+        .cus-tier-pill.corporate{background:#F0F7F0;color:#2F5D3A}
+        .cus-action-btn{padding:6px 10px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:7px;font-size:12px;font-weight:500;color:#3F3F46;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;transition:all 0.2s;white-space:nowrap}
+        .cus-action-btn.view:hover{background:#EFE7DE;color:#2D2D2D;border-color:#C6A969}
+        .cus-action-btn.edit:hover{background:#2D2D2D;color:#F8F5F2;border-color:#2D2D2D}
+        .cus-action-btn.del{border-color:#F0D0D0;background:#FDF0F0;color:#9B4444}
+        .cus-action-btn.del:hover{background:#9B4444;color:#FFFFFF;border-color:#9B4444}
+        .cus-empty{padding:48px;text-align:center;color:#D6D3D1;font-size:14px}
+        .cus-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid #EFE7DE}
+        .cus-page-info{font-size:12px;color:#8B7355}
+        .cus-page-btns{display:flex;gap:5px}
+        .cus-page-btn{min-width:30px;height:30px;padding:0 6px;display:flex;align-items:center;justify-content:center;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#8B7355;transition:all 0.15s}
+        .cus-page-btn:hover:not(:disabled){background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .cus-page-btn.active{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .cus-page-btn:disabled{opacity:0.4;cursor:not-allowed}
+        .cus-form-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;padding:24px;box-shadow:0 1px 4px rgba(45,45,45,0.05)}
+        .cus-form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+        .cus-field{display:flex;flex-direction:column;gap:6px}
+        .cus-field label{font-size:11px;font-weight:600;color:#3F3F46;text-transform:uppercase;letter-spacing:0.4px}
+        .cus-field input{padding:11px 12px;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;color:#2D2D2D;background:#F8F5F2;outline:none;font-family:inherit;transition:border-color 0.2s;width:100%;box-sizing:border-box}
+        .cus-field input:focus{border-color:#C6A969;box-shadow:0 0 0 3px rgba(198,169,105,0.12);background:#FFFFFF}
+        .cus-form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
+        .cus-btn-primary{padding:10px 24px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.2s}
+        .cus-btn-primary:hover{background:#C6A969;color:#2D2D2D}
+        .cus-btn-primary:disabled{opacity:0.6;cursor:not-allowed}
+        .cus-btn-ghost{padding:10px 20px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:9px;font-size:13px;font-weight:600;color:#8B7355;cursor:pointer;font-family:inherit;transition:all 0.2s}
+        .cus-btn-ghost:hover{background:#EFE7DE;color:#2D2D2D}
+        .cus-btn-add{padding:9px 18px;background:#2D2D2D;color:#F8F5F2;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background 0.2s;white-space:nowrap}
+        .cus-btn-add:hover{background:#C6A969;color:#2D2D2D}
+        .cus-detail-card{background:#FFFFFF;border:1px solid #EFE7DE;border-radius:14px;padding:24px;box-shadow:0 1px 4px rgba(45,45,45,0.05);display:flex;flex-direction:column;gap:20px}
+        .cus-profile-box{display:flex;align-items:center;gap:16px;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:12px;padding:16px 18px}
+        .cus-avatar{width:52px;height:52px;display:grid;place-items:center;border-radius:12px;background:#2D2D2D;color:#C6A969;font-weight:700;font-size:15px;flex-shrink:0}
+        .cus-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+        .cus-info-box{border:1px solid #EFE7DE;background:#FFFDFB;border-radius:10px;padding:13px 15px}
+        .cus-info-label{display:block;color:#8B7355;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px}
+        .cus-info-value{display:block;color:#2D2D2D;font-size:13px;font-weight:500;overflow-wrap:anywhere}
+        .cus-ledger-box{padding:18px;border:1px solid #EFE7DE;border-radius:12px;background:#FFFDFB}
+        .cus-ledger-title{font-size:14px;font-weight:700;color:#2D2D2D;margin:0 0 14px}
+        .cus-status-box{display:flex;gap:10px;flex-wrap:wrap}
+        .cus-btn-active{padding:9px 18px;background:#2F5D3A;color:#FFFFFF;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
+        .cus-btn-active:hover{opacity:0.85}
+        .cus-btn-inactive{padding:9px 18px;background:#7A1F1F;color:#FFFFFF;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity 0.2s}
+        .cus-btn-inactive:hover{opacity:0.85}
+        .cus-toast{position:fixed;top:20px;right:28px;background:#2D2D2D;color:#F8F5F2;padding:12px 18px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:8px;z-index:999;box-shadow:0 4px 16px rgba(45,45,45,0.2);animation:cusSlide 0.25s ease}
+        @keyframes cusSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+        .cus-back-btn{padding:6px 14px;background:#F8F5F2;border:1.5px solid #EFE7DE;border-radius:8px;font-size:12px;font-weight:600;color:#8B7355;cursor:pointer;font-family:inherit;transition:all 0.2s}
+        .cus-back-btn:hover{background:#EFE7DE;color:#2D2D2D;border-color:#C6A969}
+        @media(max-width:900px){
+          .cus-kpi-grid{grid-template-columns:repeat(2,1fr)}
+          .cus-topbar{flex-direction:column;align-items:stretch}
+          .cus-form-grid{grid-template-columns:1fr}
+          .cus-info-grid{grid-template-columns:1fr}
         }
       `}</style>
 
-      <section style={styles.page}>
-        <div style={styles.pageTitleRow}>
-          <div>
-            <h1 style={styles.pageTitle}>Customer Management</h1>
+      {toast && (
+        <div className="cus-toast">
+          <CheckCircle size={14} />
+          {toast}
+        </div>
+      )}
+
+      <div className="cus-page">
+        {/* KPI Cards */}
+        <div className="cus-kpi-grid">
+          <div className="cus-kpi">
+            <div className="cus-kpi-icon brown"><Users size={18} /></div>
+            <div><div className="cus-kpi-val">{customers.length}</div><div className="cus-kpi-label">Total Customers</div></div>
           </div>
-
-          {view === "list" && (
-            <button
-              type="button"
-              onClick={openAdd}
-              className="nb-btn nb-primary"
-              style={styles.primaryBtn}
-              disabled={loading}
-            >
-              + Add Customer
-            </button>
-          )}
+          <div className="cus-kpi">
+            <div className="cus-kpi-icon green"><TrendingUp size={18} /></div>
+            <div><div className="cus-kpi-val">{activeCount}</div><div className="cus-kpi-label">Active Customers</div></div>
+          </div>
+          <div className="cus-kpi">
+            <div className="cus-kpi-icon amber"><Gem size={18} /></div>
+            <div><div className="cus-kpi-val">{premiumCount}</div><div className="cus-kpi-label">Premium Customers</div></div>
+          </div>
+          <div className="cus-kpi">
+            <div className="cus-kpi-icon red"><IndianRupee size={18} /></div>
+            <div><div className="cus-kpi-val">{money(totalValue)}</div><div className="cus-kpi-label">Customer Value</div></div>
+          </div>
         </div>
 
-        <div className="customer-kpi-grid" style={styles.kpiGrid}>
-          <Kpi title="Total Customers" value={customers.length} sub="Registered buyers" />
-          <Kpi title="Active Customers" value={activeCustomers} sub="Ready for billing" />
-          <Kpi title="Premium Customers" value={premiumCustomers} sub="VIP / Corporate" />
-          <Kpi title="Customer Value" value={money(totalValue)} sub="Total purchase value" />
-        </div>
-
+        {/* List View */}
         {view === "list" && (
-          <div style={styles.card}>
-            <div style={styles.cardHead}>
-              <div>
-                <h2 style={styles.cardTitle}>Customer List</h2>
-                {loading && <p style={styles.muted}>Loading customers...</p>}
-              </div>
-            </div>
-
-            <div className="customer-toolbar" style={styles.toolbar}>
-              <div className="nb-customer-search" style={styles.searchBar}>
-                <span style={styles.searchIcon}>⌕</span>
-
+          <>
+            <div className="cus-topbar">
+              <div className="cus-search-wrap">
+                <Search size={15} className="cus-search-icon" />
                 <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      handleFrontendSearch();
-                    }
-                  }}
                   placeholder="Search by name, mobile or email..."
-                  style={styles.searchInput}
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                 />
               </div>
-
-              <button
-                type="button"
-                onClick={handleFrontendSearch}
-                className="nb-btn nb-primary"
-                style={styles.searchBtn}
-                disabled={loading}
-              >
-                Search
-              </button>
-
-              <div className="customer-filter-buttons" style={styles.filterButtons}>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("All")}
-                  className="nb-filter-btn"
-                  style={{
-                    ...styles.filterBtn,
-                    ...(statusFilter === "All" ? styles.allActiveBtn : {}),
-                  }}
-                >
-                  All
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("ACTIVE")}
-                  className="nb-filter-btn"
-                  style={{
-                    ...styles.filterBtn,
-                    ...(statusFilter === "ACTIVE" ? styles.activeBtn : {}),
-                  }}
-                >
-                  Active
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter("BLACKLISTED")}
-                  className="nb-filter-btn"
-                  style={{
-                    ...styles.filterBtn,
-                    ...(statusFilter === "BLACKLISTED" ? styles.inactiveBtn : {}),
-                  }}
-                >
-                  Inactive
-                </button>
+              <div className="cus-filter-btns">
+                <button className={`cus-filter-btn all ${statusFilter === "All" ? "active" : ""}`} onClick={() => setStatusFilter("All")}>All</button>
+                <button className={`cus-filter-btn ok ${statusFilter === "ACTIVE" ? "active" : ""}`} onClick={() => setStatusFilter("ACTIVE")}>Active ({activeCount})</button>
+                <button className={`cus-filter-btn danger ${statusFilter === "BLACKLISTED" ? "active" : ""}`} onClick={() => setStatusFilter("BLACKLISTED")}>Inactive ({inactiveCount})</button>
               </div>
-
-              <CustomDropdown
+              <select
+                className="cus-tier-select"
                 value={tierFilter}
-                options={tierOptions}
-                onChange={setTierFilter}
-              />
+                onChange={(e) => setTierFilter(e.target.value)}
+              >
+                {tierOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              {canAddCustomer && (
+                <button className="cus-btn-add" onClick={openAdd} disabled={loading}>
+                  + Add Customer
+                </button>
+              )}
             </div>
 
-            <div style={styles.tableWrap}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <Th>Customer Details</Th>
-                    <Th>Contact</Th>
-                    <Th>Tier</Th>
-                    <Th>Total Spent</Th>
-                    <Th>Credit Limit</Th>
-                    <Th>Outstanding</Th>
-                    <Th>Status</Th>
-                    <Th>Actions</Th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {paginatedCustomers.map((customer) => (
-                    <tr key={customer.id} className="nb-table-row">
-                      <Td>
-                        <b style={styles.cellMain}>{customer.name}</b>
-                        <small style={styles.cellSub}>
-                          {formatCustomerId(customer.id)}
-                        </small>
-                      </Td>
-
-                      <Td>
-                        <b style={styles.cellMain}>{customer.mobile}</b>
-                        <small style={styles.cellSub}>
-                          {customer.email || "No email"}
-                        </small>
-                      </Td>
-
-                      <Td>{formatTier(customer.tier)}</Td>
-                      <Td>{money(customer.totalSpentAmount)}</Td>
-                      <Td>{money(customer.creditLimit)}</Td>
-                      <Td>{money(customer.outstandingDebt)}</Td>
-
-                      <Td>
-                        <Badge text={formatStatus(customer.status)} />
-                      </Td>
-
-                      <Td>
-                        <div style={styles.actionGroup}>
-                          <button
-                            type="button"
-                            className="nb-btn nb-view-btn"
-                            style={styles.actionBtn}
-                            onClick={() => openView(customer)}
-                          >
-                            View
-                          </button>
-
-                          <button
-                            type="button"
-                            className="nb-btn nb-edit-btn"
-                            style={styles.actionBtn}
-                            onClick={() => openEdit(customer)}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            className="nb-btn nb-delete-btn"
-                            style={styles.deleteBtn}
-                            onClick={() => deleteCustomer(customer)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </Td>
-                    </tr>
-                  ))}
-
-                  {paginatedCustomers.length === 0 && (
+            <div className="cus-card">
+              <div className="cus-table-scroll">
+                <table className="cus-table">
+                  <thead>
                     <tr>
-                      <td colSpan="8" style={styles.emptyCell}>
-                        {loading
-                          ? "Loading customers..."
-                          : "No customers found. Try name, mobile or email search."}
-                      </td>
+                      <th>Customer Details</th>
+                      <th>Contact</th>
+                      <th>Tier</th>
+                      <th>Total Spent</th>
+                      <th>Credit Limit</th>
+                      <th>Outstanding</th>
+                      <th style={{ textAlign: "center" }}>Status</th>
+                      <th style={{ minWidth: 220 }}>Actions</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {paginatedCustomers.length === 0 ? (
+                      <tr><td colSpan={8} className="cus-empty">{loading ? "Loading customers..." : "No customers found."}</td></tr>
+                    ) : (
+                      paginatedCustomers.map((c) => {
+                        const tier = String(c.tier || "").toUpperCase();
+                        const isActive = String(c.status || "").toUpperCase() === "ACTIVE";
+                        return (
+                          <tr key={c.id}>
+                            <td>
+                              <div style={{ fontWeight: 600, color: "#2D2D2D", fontSize: 13 }}>{c.name}</div>
+                              <span className="cus-id-badge">{formatCustomerId(c.id)}</span>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: 500, color: "#2D2D2D", fontSize: 13 }}>{c.mobile}</div>
+                              <div style={{ fontSize: 11, color: "#8B7355", marginTop: 2 }}>{c.email || "No email"}</div>
+                            </td>
+                            <td>
+                              <span className={`cus-tier-pill ${tier === "VIP" ? "vip" : tier === "CORPORATE" ? "corporate" : ""}`}>
+                                {formatTier(c.tier)}
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: 600, color: "#2D2D2D" }}>{money(c.totalSpentAmount)}</td>
+                            <td style={{ color: "#8B7355" }}>{money(c.creditLimit)}</td>
+                            <td style={{ color: "#8B7355" }}>{money(c.outstandingDebt)}</td>
+                            <td style={{ textAlign: "center" }}>
+                              <span className={`cus-badge ${isActive ? "cus-badge-active" : "cus-badge-inactive"}`}>
+                                {formatStatus(c.status)}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: "flex", gap: 5, flexWrap: "nowrap" }}>
+                                {canViewCustomer && (
+                                  <button className="cus-action-btn view" onClick={() => openView(c)}>
+                                    <Eye size={13} /> View
+                                  </button>
+                                )}
+                                {canEditCustomer && (
+                                  <button className="cus-action-btn edit" onClick={() => openEdit(c)}>
+                                    <Pencil size={13} /> Edit
+                                  </button>
+                                )}
+                                {canDeleteCustomer && (
+                                  <button className="cus-action-btn del" onClick={() => deleteCustomer(c)}>
+                                    <Trash2 size={13} /> Delete
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {filteredCustomers.length > CUSTOMERS_PER_PAGE && (
+                <div className="cus-pagination">
+                  <span className="cus-page-info">
+                    {(currentPage - 1) * CUSTOMERS_PER_PAGE + 1}–{Math.min(currentPage * CUSTOMERS_PER_PAGE, filteredCustomers.length)} of {filteredCustomers.length}
+                  </span>
+                  <div className="cus-page-btns">
+                    <button className="cus-page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
+                      <ChevronLeft size={14} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button key={p} className={`cus-page-btn ${p === currentPage ? "active" : ""}`} onClick={() => setCurrentPage(p)}>{p}</button>
+                    ))}
+                    <button className="cus-page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Form View */}
+        {view === "form" && (
+          <div className="cus-form-card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#2D2D2D" }}>{editingId ? "Edit Customer" : "Add Customer"}</div>
+                <div style={{ fontSize: 12, color: "#8B7355", marginTop: 3 }}>Fill in the customer details below</div>
+              </div>
+              <button className="cus-back-btn" onClick={() => setView("list")}>← Back</button>
+            </div>
+            <form onSubmit={saveCustomer} className="cus-form-grid">
+              <CusInput label="Customer Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+              <CusInput label="Mobile Number" value={form.mobile} onChange={(v) => setForm({ ...form, mobile: v.replace(/\D/g, "").slice(0, 10) })} />
+              <CusInput label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
+              <CusInput label="Credit Limit (₹)" value={form.creditLimit} onChange={(v) => setForm({ ...form, creditLimit: v.replace(/[^\d.]/g, "") })} />
+              <div className="cus-form-actions">
+                <button type="button" className="cus-btn-ghost" onClick={() => setView("list")}>Cancel</button>
+                <button type="submit" className="cus-btn-primary" disabled={loading}>{loading ? "Saving..." : "Save Customer"}</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Detail View */}
+        {view === "details" && selectedCustomer && (
+          <div className="cus-detail-card">
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#2D2D2D" }}>Customer Details</div>
+                <div style={{ fontSize: 12, color: "#8B7355", marginTop: 3 }}>Profile, credit limit, and ledger management</div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="cus-back-btn" onClick={() => setView("list")}>← Back</button>
+                {canEditCustomer && (
+                  <button className="cus-action-btn edit" onClick={() => openEdit(selectedCustomer)}>
+                    <Pencil size={13} /> Edit
+                  </button>
+                )}
+              </div>
             </div>
 
-            {filteredCustomers.length > 0 && (
-              <div className="customer-pagination" style={styles.pagination}>
-                <div style={styles.pageInfo}>
-                  Page {currentPage} of {totalPages}
+            <div className="cus-profile-box">
+              <div className="cus-avatar">{selectedCustomer.name?.slice(0, 2).toUpperCase() || "CU"}</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#2D2D2D" }}>{selectedCustomer.name}</div>
+                <div style={{ fontSize: 12, color: "#8B7355", marginTop: 4 }}>
+                  {formatCustomerId(selectedCustomer.id)} · {formatTier(selectedCustomer.tier)} · {formatStatus(selectedCustomer.status)}
                 </div>
+              </div>
+            </div>
 
-                <div style={styles.pageControls}>
-                  <button
-                    type="button"
-                    className="nb-page-btn"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((page) => page - 1)}
-                    style={{
-                      ...styles.pageBtn,
-                      ...(currentPage === 1 ? styles.pageBtnDisabled : {}),
-                    }}
-                  >
-                    ‹
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, index) => {
-                    const pageNumber = index + 1;
-
-                    return (
-                      <button
-                        key={pageNumber}
-                        type="button"
-                        className="nb-page-btn"
-                        onClick={() => setCurrentPage(pageNumber)}
-                        style={{
-                          ...styles.numberBtn,
-                          ...(currentPage === pageNumber
-                            ? styles.numberBtnActive
-                            : {}),
-                        }}
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  })}
-
-                  <button
-                    type="button"
-                    className="nb-page-btn"
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage((page) => page + 1)}
-                    style={{
-                      ...styles.pageBtn,
-                      ...(currentPage === totalPages ? styles.pageBtnDisabled : {}),
-                    }}
-                  >
-                    ›
-                  </button>
+            <div className="cus-info-grid">
+              {[
+                { label: "Mobile", value: selectedCustomer.mobile || "—" },
+                { label: "Email", value: selectedCustomer.email || "—" },
+                { label: "Tier", value: formatTier(selectedCustomer.tier) },
+                { label: "Total Spent", value: money(selectedCustomer.totalSpentAmount) },
+                { label: "Credit Limit", value: money(selectedCustomer.creditLimit) },
+                { label: "Outstanding Debt", value: money(selectedCustomer.outstandingDebt) },
+                { label: "Status", value: formatStatus(selectedCustomer.status) },
+                { label: "Last Credit Date", value: formatDateTime(selectedCustomer.lastCreditDateTime) },
+              ].map((item) => (
+                <div key={item.label} className="cus-info-box">
+                  <span className="cus-info-label">{item.label}</span>
+                  <strong className="cus-info-value">{item.value}</strong>
                 </div>
+              ))}
+            </div>
+
+            {canUpdateLedger && (
+              <div className="cus-ledger-box">
+                <div className="cus-ledger-title">Update Ledger</div>
+                <form onSubmit={updateLedger} className="cus-form-grid">
+                  <CusInput label="Bill Amount (₹)" value={form.billAmount} onChange={(v) => setForm({ ...form, billAmount: v.replace(/[^\d.]/g, "") })} />
+                  <CusInput label="Paid Amount (₹)" value={form.paidAmount} onChange={(v) => setForm({ ...form, paidAmount: v.replace(/[^\d.]/g, "") })} />
+                  <div className="cus-form-actions">
+                    <button type="submit" className="cus-btn-primary" disabled={loading}>{loading ? "Updating..." : "Update Ledger"}</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {canChangeStatus && (
+              <div className="cus-status-box">
+                <button className="cus-btn-active" onClick={() => changeCustomerStatus(selectedCustomer, "ACTIVE")} disabled={loading}>Mark Active</button>
+                <button className="cus-btn-inactive" onClick={() => changeCustomerStatus(selectedCustomer, "BLACKLISTED")} disabled={loading}>Mark Inactive</button>
               </div>
             )}
           </div>
         )}
-
-        {view === "form" && (
-          <div style={styles.card}>
-            <div style={styles.cardHead}>
-              <div>
-                <h2 style={styles.cardTitle}>
-                  {editingId ? "Edit Customer" : "Add Customer"}
-                </h2>
-                <p style={styles.muted}>
-                  Fill customer details supported by backend.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setView("list")}
-                className="nb-btn nb-ghost"
-                style={styles.ghostBtn}
-              >
-                Back
-              </button>
-            </div>
-
-            <form
-              onSubmit={saveCustomer}
-              className="customer-form-grid"
-              style={styles.formGrid}
-            >
-              <Input
-                label="Customer Name"
-                value={form.name}
-                onChange={(value) => setForm({ ...form, name: value })}
-              />
-
-              <Input
-                label="Mobile Number"
-                value={form.mobile}
-                onChange={(value) =>
-                  setForm({
-                    ...form,
-                    mobile: value.replace(/\D/g, "").slice(0, 10),
-                  })
-                }
-              />
-
-              <Input
-                label="Email"
-                value={form.email}
-                onChange={(value) => setForm({ ...form, email: value })}
-              />
-
-              <Input
-                label="Credit Limit"
-                value={form.creditLimit}
-                onChange={(value) =>
-                  setForm({
-                    ...form,
-                    creditLimit: value.replace(/[^\d.]/g, ""),
-                  })
-                }
-              />
-
-              <div style={styles.formActions}>
-                <button
-                  type="button"
-                  onClick={() => setView("list")}
-                  className="nb-btn nb-ghost"
-                  style={styles.ghostBtn}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="nb-btn nb-primary"
-                  style={styles.primaryBtn}
-                  disabled={loading}
-                >
-                  {loading ? "Saving..." : "Save Customer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {view === "details" && selectedCustomer && (
-          <div style={styles.card}>
-            <div style={styles.cardHead}>
-              <div>
-                <h2 style={styles.cardTitle}>Customer Details</h2>
-                <p style={styles.muted}>
-                  Customer profile, credit limit, outstanding debt and ledger.
-                </p>
-              </div>
-
-              <div style={styles.actionGroup}>
-                <button
-                  type="button"
-                  className="nb-btn nb-view-btn"
-                  style={styles.actionBtn}
-                  onClick={() => setView("list")}
-                >
-                  Customer List
-                </button>
-
-                <button
-                  type="button"
-                  className="nb-btn nb-edit-btn"
-                  style={styles.actionBtn}
-                  onClick={() => openEdit(selectedCustomer)}
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
-
-            <div style={styles.profileBox}>
-              <div style={styles.avatarLarge}>
-                {selectedCustomer.name?.slice(0, 2).toUpperCase() || "CU"}
-              </div>
-
-              <div>
-                <h2 style={styles.profileTitle}>{selectedCustomer.name}</h2>
-                <p style={styles.muted}>
-                  {formatCustomerId(selectedCustomer.id)} •{" "}
-                  {formatTier(selectedCustomer.tier)} •{" "}
-                  {formatStatus(selectedCustomer.status)}
-                </p>
-              </div>
-            </div>
-
-            <div className="customer-info-grid" style={styles.infoGrid}>
-              <Info label="Mobile" value={selectedCustomer.mobile || "-"} />
-              <Info label="Email" value={selectedCustomer.email || "-"} />
-              <Info label="Tier" value={formatTier(selectedCustomer.tier)} />
-              <Info
-                label="Total Spent"
-                value={money(selectedCustomer.totalSpentAmount)}
-              />
-              <Info
-                label="Credit Limit"
-                value={money(selectedCustomer.creditLimit)}
-              />
-              <Info
-                label="Outstanding Debt"
-                value={money(selectedCustomer.outstandingDebt)}
-              />
-              <Info
-                label="Status"
-                value={formatStatus(selectedCustomer.status)}
-              />
-              <Info
-                label="Last Credit Date"
-                value={formatDateTime(selectedCustomer.lastCreditDateTime)}
-              />
-            </div>
-
-            <form onSubmit={updateLedger} style={styles.ledgerBox}>
-              <h3 style={styles.ledgerTitle}>Update Ledger</h3>
-
-              <div className="customer-form-grid" style={styles.ledgerGrid}>
-                <Input
-                  label="Bill Amount"
-                  value={form.billAmount}
-                  onChange={(value) =>
-                    setForm({
-                      ...form,
-                      billAmount: value.replace(/[^\d.]/g, ""),
-                    })
-                  }
-                />
-
-                <Input
-                  label="Paid Amount"
-                  value={form.paidAmount}
-                  onChange={(value) =>
-                    setForm({
-                      ...form,
-                      paidAmount: value.replace(/[^\d.]/g, ""),
-                    })
-                  }
-                />
-              </div>
-
-              <div className="ledger-actions" style={styles.ledgerActions}>
-                <button
-                  type="submit"
-                  className="nb-btn nb-primary"
-                  style={styles.primaryBtn}
-                  disabled={loading}
-                >
-                  Update Ledger
-                </button>
-              </div>
-            </form>
-
-            <div style={styles.statusBox}>
-              <button
-                type="button"
-                className="nb-btn nb-view-btn"
-                style={styles.statusActiveBtn}
-                onClick={() => changeCustomerStatus(selectedCustomer, "ACTIVE")}
-                disabled={loading}
-              >
-                Mark Active
-              </button>
-
-              <button
-                type="button"
-                className="nb-btn nb-delete-btn"
-                style={styles.statusInactiveBtn}
-                onClick={() =>
-                  changeCustomerStatus(selectedCustomer, "BLACKLISTED")
-                }
-                disabled={loading}
-              >
-                Mark Inactive
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
+      </div>
     </>
   );
 }
 
-function CustomDropdown({ value, options, onChange }) {
-  const [open, setOpen] = useState(false);
-  const selected = options.find((option) => option.value === value) || options[0];
-
+function CusInput({ label, value, onChange }) {
   return (
-    <div
-      style={styles.customSelectWrap}
-      tabIndex={0}
-      onBlur={() => setOpen(false)}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        style={{
-          ...styles.customSelectButton,
-          ...(open ? styles.customSelectButtonOpen : {}),
-        }}
-      >
-        <span>{selected.label}</span>
-        <span style={styles.customSelectArrow}>{open ? "⌃" : "⌄"}</span>
-      </button>
-
-      {open && (
-        <div style={styles.customSelectMenu}>
-          {options.map((option) => {
-            const isSelected = option.value === value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                className="nb-custom-option"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-                style={{
-                  ...styles.customSelectOption,
-                  ...(isSelected ? styles.customSelectOptionActive : {}),
-                }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <div className="cus-field">
+      <label>{label}</label>
+      <input value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }
-
-function Kpi({ title, value, sub }) {
-  return (
-    <div style={styles.kpiCard}>
-      <p style={styles.kpiTitle}>{title}</p>
-      <h3 style={styles.kpiValue}>{value}</h3>
-      <span style={styles.kpiSub}>{sub}</span>
-    </div>
-  );
-}
-
-function Badge({ text }) {
-  return <span style={styles.badge}>{text}</span>;
-}
-
-function Input({ label, value, onChange }) {
-  return (
-    <label style={styles.field}>
-      <span style={styles.fieldLabel}>{label}</span>
-      <input
-        className="nb-input"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        style={styles.input}
-      />
-    </label>
-  );
-}
-
-function Info({ label, value, wide }) {
-  return (
-    <div
-      style={{ ...styles.infoBox, ...(wide ? { gridColumn: "1 / -1" } : {}) }}
-    >
-      <span style={styles.infoLabel}>{label}</span>
-      <strong style={styles.infoValue}>{value}</strong>
-    </div>
-  );
-}
-
-function Th({ children }) {
-  return <th style={styles.th}>{children}</th>;
-}
-
-function Td({ children }) {
-  return <td style={styles.td}>{children}</td>;
-}
-
-const styles = {
-  page: {
-    display: "grid",
-    gap: 18,
-  },
-
-  pageTitleRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 18,
-  },
-
-  pageTitle: {
-    margin: 0,
-    color: "#1F2937",
-    fontSize: 22,
-    letterSpacing: "-0.02em",
-    fontWeight: 700,
-  },
-
-  kpiGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: 14,
-  },
-
-  kpiCard: {
-    background: "#FFFFFF",
-    border: "1px solid #EFE7DE",
-    borderRadius: 14,
-    boxShadow: "0 10px 24px rgba(45,45,45,0.05)",
-    padding: 20,
-  },
-
-  kpiTitle: {
-    margin: 0,
-    color: "#8B7355",
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.08em",
-  },
-
-  kpiValue: {
-    margin: "10px 0 6px",
-    color: "#2D2D2D",
-    fontSize: 18,
-    fontWeight: 700,
-  },
-
-  kpiSub: {
-    color: "#7A716A",
-    fontSize: 12,
-    fontWeight: 400,
-  },
-
-  card: {
-    background: "#FFFFFF",
-    border: "1px solid #EFE7DE",
-    borderRadius: 16,
-    boxShadow: "0 12px 28px rgba(45,45,45,0.05)",
-    padding: 24,
-  },
-
-  cardHead: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 16,
-    marginBottom: 18,
-  },
-
-  cardTitle: {
-    margin: 0,
-    color: "#2D2D2D",
-    fontSize: 18,
-    fontWeight: 700,
-  },
-
-  muted: {
-    margin: "6px 0 0",
-    color: "#8B7355",
-    fontSize: 13,
-    fontWeight: 400,
-  },
-
-  primaryBtn: {
-    minHeight: 42,
-    borderRadius: 10,
-    border: "1px solid #2D2D2D",
-    background: "#2D2D2D",
-    color: "#F8F5F2",
-    padding: "0 16px",
-    fontWeight: 600,
-    fontSize: 13,
-  },
-
-  searchBtn: {
-    minHeight: 40,
-    borderRadius: 10,
-    border: "1px solid #2D2D2D",
-    background: "#2D2D2D",
-    color: "#F8F5F2",
-    padding: "0 18px",
-    fontWeight: 600,
-    fontSize: 12,
-    whiteSpace: "nowrap",
-  },
-
-  ghostBtn: {
-    minHeight: 42,
-    borderRadius: 10,
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#2D2D2D",
-    padding: "0 16px",
-    fontWeight: 500,
-    fontSize: 13,
-  },
-
-  toolbar: {
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 16,
-  },
-
-  searchBar: {
-    flex: 1,
-    minHeight: 40,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    borderRadius: 10,
-    padding: "0 12px",
-  },
-
-  searchIcon: {
-    color: "#8B7355",
-    fontSize: 15,
-    fontWeight: 500,
-    flexShrink: 0,
-  },
-
-  searchInput: {
-    width: "100%",
-    border: "none",
-    background: "transparent",
-    color: "#3F3F46",
-    minHeight: 38,
-    outline: "none",
-    fontSize: 13,
-    fontWeight: 400,
-  },
-
-  filterButtons: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
-  },
-
-  filterBtn: {
-    minHeight: 40,
-    borderRadius: 9,
-    border: "1.5px solid #EFE7DE",
-    background: "#FFFFFF",
-    color: "#8B7355",
-    padding: "0 14px",
-    fontWeight: 600,
-    fontSize: 12,
-    cursor: "pointer",
-  },
-
-  allActiveBtn: {
-    background: "#2D2D2D",
-    borderColor: "#2D2D2D",
-    color: "#F8F5F2",
-  },
-
-  activeBtn: {
-    background: "#2F5D3A",
-    borderColor: "#2F5D3A",
-    color: "#FFFFFF",
-  },
-
-  inactiveBtn: {
-    background: "#7A1F1F",
-    borderColor: "#7A1F1F",
-    color: "#FFFFFF",
-  },
-
-  customSelectWrap: {
-    position: "relative",
-    width: 150,
-    flexShrink: 0,
-    outline: "none",
-  },
-
-  customSelectButton: {
-    width: "100%",
-    minHeight: 40,
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#2D2D2D",
-    borderRadius: 10,
-    padding: "0 12px",
-    outline: "none",
-    fontSize: 12,
-    fontWeight: 500,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-
-  customSelectButtonOpen: {
-    borderColor: "#C6A969",
-    boxShadow: "0 0 0 3px rgba(198,169,105,0.13)",
-  },
-
-  customSelectArrow: {
-    color: "#8B7355",
-    fontSize: 15,
-    fontWeight: 700,
-  },
-
-  customSelectMenu: {
-    position: "absolute",
-    top: "calc(100% + 6px)",
-    left: 0,
-    right: 0,
-    zIndex: 50,
-    background: "#FFFFFF",
-    border: "1px solid #D6D3D1",
-    borderRadius: 10,
-    boxShadow: "0 14px 28px rgba(45,45,45,0.12)",
-    padding: 6,
-    overflow: "hidden",
-  },
-
-  customSelectOption: {
-    width: "100%",
-    minHeight: 34,
-    border: "none",
-    borderRadius: 8,
-    background: "#FFFFFF",
-    color: "#2D2D2D",
-    textAlign: "left",
-    padding: "0 10px",
-    fontSize: 12,
-    fontWeight: 500,
-    cursor: "pointer",
-  },
-
-  customSelectOptionActive: {
-    background: "#2D2D2D",
-    color: "#F8F5F2",
-  },
-
-  input: {
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#3F3F46",
-    borderRadius: 10,
-    minHeight: 42,
-    padding: "10px 14px",
-    outline: "none",
-    fontSize: 13,
-    fontWeight: 400,
-  },
-
-  tableWrap: {
-    overflowX: "auto",
-    border: "1px solid #EFE7DE",
-    borderRadius: 16,
-  },
-
-  table: {
-    width: "100%",
-    minWidth: 1000,
-    borderCollapse: "collapse",
-  },
-
-  th: {
-    background: "#EDE6DE",
-    color: "#8B7355",
-    textAlign: "left",
-    padding: "14px 14px",
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.07em",
-  },
-
-  td: {
-    padding: "15px 14px",
-    borderTop: "1px solid #EFE7DE",
-    verticalAlign: "middle",
-    fontSize: 13,
-    fontWeight: 500,
-    color: "#2D2D2D",
-  },
-
-  cellMain: {
-    display: "block",
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#2D2D2D",
-  },
-
-  cellSub: {
-    display: "block",
-    marginTop: 3,
-    fontSize: 12,
-    fontWeight: 400,
-    color: "#8B7355",
-  },
-
-  emptyCell: {
-    padding: 40,
-    textAlign: "center",
-    color: "#8B7355",
-    fontSize: 13,
-    fontWeight: 400,
-  },
-
-  badge: {
-    display: "inline-flex",
-    border: "1px solid #D6D3D1",
-    background: "#F8F5F2",
-    color: "#8B7355",
-    borderRadius: 999,
-    padding: "5px 10px",
-    fontSize: 11,
-    fontWeight: 600,
-  },
-
-  actionGroup: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-
-  actionBtn: {
-    minHeight: 34,
-    borderRadius: 9,
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#2D2D2D",
-    padding: "0 12px",
-    fontWeight: 500,
-    fontSize: 12,
-  },
-
-  deleteBtn: {
-    minHeight: 34,
-    borderRadius: 9,
-    border: "1px solid #F0D0D0",
-    background: "#FDF0F0",
-    color: "#9B4444",
-    padding: "0 12px",
-    fontWeight: 500,
-    fontSize: 12,
-  },
-
-  pagination: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 14,
-    paddingTop: 18,
-  },
-
-  pageInfo: {
-    color: "#8B7355",
-    fontSize: 12,
-    fontWeight: 500,
-  },
-
-  pageControls: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-
-  pageBtn: {
-    minWidth: 42,
-    minHeight: 42,
-    borderRadius: 12,
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#8B7355",
-    padding: "0 12px",
-    fontWeight: 800,
-    fontSize: 24,
-    lineHeight: 1,
-    cursor: "pointer",
-  },
-
-  pageBtnDisabled: {
-    opacity: 0.35,
-    cursor: "not-allowed",
-  },
-
-  numberBtn: {
-    minWidth: 42,
-    minHeight: 42,
-    borderRadius: 12,
-    border: "1px solid #D6D3D1",
-    background: "#FFFFFF",
-    color: "#2D2D2D",
-    padding: "0 12px",
-    fontWeight: 700,
-    fontSize: 13,
-    cursor: "pointer",
-  },
-
-  numberBtnActive: {
-    background: "#2D2D2D",
-    borderColor: "#2D2D2D",
-    color: "#F8F5F2",
-  },
-
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 16,
-  },
-
-  field: {
-    display: "grid",
-    gap: 8,
-  },
-
-  fieldLabel: {
-    color: "#8B7355",
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.07em",
-  },
-
-  formActions: {
-    gridColumn: "1 / -1",
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-
-  profileBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: 16,
-    background: "#F8F5F2",
-    border: "1px solid #EFE7DE",
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 18,
-  },
-
-  avatarLarge: {
-    width: 58,
-    height: 58,
-    display: "grid",
-    placeItems: "center",
-    borderRadius: 14,
-    background: "#2D2D2D",
-    color: "#C6A969",
-    fontWeight: 700,
-    fontSize: 15,
-  },
-
-  profileTitle: {
-    margin: 0,
-    color: "#2D2D2D",
-    fontSize: 18,
-    fontWeight: 700,
-  },
-
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 14,
-  },
-
-  infoBox: {
-    border: "1px solid #EFE7DE",
-    background: "#FFFDFB",
-    borderRadius: 12,
-    padding: 15,
-  },
-
-  infoLabel: {
-    display: "block",
-    color: "#8B7355",
-    fontSize: 11,
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.07em",
-    marginBottom: 6,
-  },
-
-  infoValue: {
-    display: "block",
-    color: "#2D2D2D",
-    overflowWrap: "anywhere",
-    fontSize: 13,
-    fontWeight: 500,
-  },
-
-  ledgerBox: {
-    marginTop: 26,
-    padding: 22,
-    border: "1px solid #EFE7DE",
-    borderRadius: 14,
-    background: "#FFFDFB",
-  },
-
-  ledgerTitle: {
-    margin: "0 0 18px",
-    color: "#2D2D2D",
-    fontSize: 16,
-    fontWeight: 700,
-  },
-
-  ledgerGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 18,
-  },
-
-  ledgerActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    marginTop: 24,
-    paddingTop: 2,
-  },
-
-  statusBox: {
-    marginTop: 20,
-    display: "flex",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-
-  statusActiveBtn: {
-    minHeight: 38,
-    borderRadius: 9,
-    border: "1px solid #2F5D3A",
-    background: "#2F5D3A",
-    color: "#FFFFFF",
-    padding: "0 14px",
-    fontWeight: 600,
-    fontSize: 12,
-  },
-
-  statusInactiveBtn: {
-    minHeight: 38,
-    borderRadius: 9,
-    border: "1px solid #7A1F1F",
-    background: "#7A1F1F",
-    color: "#FFFFFF",
-    padding: "0 14px",
-    fontWeight: 600,
-    fontSize: 12,
-  },
-};
 
 export default Customers;

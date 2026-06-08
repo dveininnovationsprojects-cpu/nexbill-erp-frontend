@@ -134,13 +134,13 @@ const STYLES = `
 
   /* ── Invoice Document ── */
   .ci-doc { background:#FFFFFF; border-radius:12px; overflow:hidden; max-width:760px; margin:0 auto; box-shadow:0 4px 24px rgba(45,45,45,0.12); font-size:12px; }
-  .ci-doc-header-band { background:#1a1a1a; padding:18px 28px; display:flex; justify-content:space-between; align-items:flex-start; }
+  .ci-doc-header-band { background:#F8F6F3; border-bottom:1px solid #EDE9E4; padding:18px 28px; display:flex; justify-content:space-between; align-items:flex-start; }
   .ci-doc-brand  { display:flex; align-items:center; gap:12px; }
   .ci-doc-logo   { width:42px; height:42px; background:transparent; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; color:#C6A969; flex-shrink:0; overflow:hidden; }
   .ci-doc-logo img { width:100%; height:100%; object-fit:contain; }
-  .ci-doc-company     { font-size:15px; font-weight:800; color:#FFFFFF; }
-  .ci-doc-company-sub { font-size:10px; color:#C6A969; margin-top:2px; }
-  .ci-doc-addr        { font-size:9.5px; color:#aaa; margin-top:3px; line-height:1.5; }
+  .ci-doc-company     { font-size:15px; font-weight:800; color:#2D2D2D; }
+  .ci-doc-company-sub { font-size:10px; color:#8B7355; margin-top:2px; }
+  .ci-doc-addr        { font-size:9.5px; color:#8B7355; margin-top:3px; line-height:1.5; }
   .ci-doc-inv-label  { text-align:right; }
   .ci-doc-title      { font-size:20px; font-weight:900; color:#C6A969; letter-spacing:4px; line-height:1; }
   .ci-doc-inv-num    { font-size:11px; color:#A0A0A0; margin-top:4px; }
@@ -171,9 +171,9 @@ const STYLES = `
   /* Table */
   .ci-doc-table-wrap { border-radius:8px; overflow:hidden; border:1px solid #DDD; margin-bottom:14px; }
   .ci-doc-table { width:100%; border-collapse:collapse; font-size:11px; }
-  .ci-doc-table thead tr.main-hdr { background:#1a1a1a; }
-  .ci-doc-table thead tr.sub-hdr  { background:#222; }
-  .ci-doc-table thead th { padding:8px 10px; font-size:8.5px; font-weight:700; color:#C6A969; text-transform:uppercase; letter-spacing:0.7px; text-align:left; white-space:nowrap; }
+  .ci-doc-table thead tr.main-hdr { background:#F8F6F3; border-bottom:1px solid #EDE9E4; }
+  .ci-doc-table thead tr.sub-hdr  { background:#F0EDE8; }
+  .ci-doc-table thead th { padding:8px 10px; font-size:8.5px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:0.7px; text-align:left; white-space:nowrap; }
   .ci-doc-table thead th.r { text-align:right; }
   .ci-doc-table thead th.c { text-align:center; }
   .ci-doc-table thead th.grp { text-align:center; font-size:8px; color:#bbb; }
@@ -205,9 +205,9 @@ const STYLES = `
   .ci-doc-tot-lbl { color:#666; font-weight:500; }
   .ci-doc-tot-val { font-weight:700; color:#1a1a1a; }
   .ci-doc-tot-disc .ci-doc-tot-lbl, .ci-doc-tot-disc .ci-doc-tot-val { color:#16a34a; }
-  .ci-doc-grand-row { background:#1a1a1a; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
-  .ci-doc-grand-lbl { color:#C6A969; font-size:11px; font-weight:700; letter-spacing:0.3px; }
-  .ci-doc-grand-val { color:#FFFFFF; font-size:15px; font-weight:900; }
+  .ci-doc-grand-row { background:#F8F6F3; border-top:2px solid #C6A969; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
+  .ci-doc-grand-lbl { color:#8B7355; font-size:11px; font-weight:700; letter-spacing:0.3px; }
+  .ci-doc-grand-val { color:#2D2D2D; font-size:15px; font-weight:900; }
 
   /* Amount in words */
   .ci-doc-amt-words { background:#F8F6F3; border:1px solid #E8E2DA; border-radius:8px; padding:8px 12px; margin-bottom:12px; }
@@ -223,9 +223,9 @@ const STYLES = `
   .ci-doc-sig-lbl   { font-size:8px; font-weight:700; color:#8B7355; text-transform:uppercase; letter-spacing:1px; }
   .ci-doc-sig-name  { font-size:11px; color:#1a1a1a; font-weight:700; margin-top:2px; }
   .ci-doc-sig-eoe   { font-size:9px; color:#aaa; margin-top:3px; font-style:italic; }
-  .ci-doc-thankyou  { background:#1a1a1a; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; }
-  .ci-doc-ty-title  { font-size:11px; font-weight:700; color:#C6A969; }
-  .ci-doc-ty-sub    { font-size:9.5px; color:#888; }
+  .ci-doc-thankyou  { background:#F8F6F3; border-top:1px solid #EDE9E4; padding:10px 24px; display:flex; justify-content:space-between; align-items:center; }
+  .ci-doc-ty-title  { font-size:11px; font-weight:700; color:#8B7355; }
+  .ci-doc-ty-sub    { font-size:9.5px; color:#8B7355; }
   .ci-doc-comp-gen  { font-size:8px; color:#aaa; text-align:center; padding:4px; background:#F8F6F3; border-top:1px solid #E8E2DA; }
 
   /* ── Empty State ── */
@@ -369,13 +369,13 @@ function printInvoice(inv, co = {}) {
     @media print{body{background:#fff;padding:0}.page{box-shadow:none;max-width:100%}}
 
     /* ── Header ── */
-    .hdr{background:#1a1a1a;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+    .hdr{background:#F8F6F3;border-bottom:1px solid #EDE9E4;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
     .hdr-brand{display:flex;align-items:center;gap:12px}
     .hdr-logo{width:44px;height:44px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;flex-shrink:0}
     .hdr-logo img{width:100%;height:100%;object-fit:contain}
-    .hdr-name{font-size:17px;font-weight:800;color:#fff}
-    .hdr-tag{font-size:10px;color:#C6A969;margin-top:2px}
-    .hdr-addr{font-size:9.5px;color:#aaa;margin-top:3px;line-height:1.6}
+    .hdr-name{font-size:17px;font-weight:800;color:#2D2D2D}
+    .hdr-tag{font-size:10px;color:#8B7355;margin-top:2px}
+    .hdr-addr{font-size:9.5px;color:#8B7355;margin-top:3px;line-height:1.6}
     .hdr-right{text-align:right}
     .hdr-inv-type{font-size:22px;font-weight:900;color:#C6A969;letter-spacing:4px;line-height:1}
     .hdr-inv-num{font-size:11px;color:#aaa;margin-top:4px;font-weight:500}
@@ -406,11 +406,11 @@ function printInvoice(inv, co = {}) {
     /* ── Items Table ── */
     .tbl-wrap{border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:16px}
     .tbl{width:100%;border-collapse:collapse;font-size:11px}
-    .tbl thead tr{background:#1a1a1a}
-    .tbl thead th{padding:9px 10px;color:#C6A969;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
+    .tbl thead tr{background:#F8F6F3;border-bottom:1px solid #EDE9E4}
+    .tbl thead th{padding:9px 10px;color:#8B7355;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
     .tbl thead th.r{text-align:right}
     .tbl thead th.c{text-align:center}
-    .tbl thead th.group{text-align:center;background:#2a2a2a;border-bottom:1px solid #3a3a3a;font-size:8.5px;letter-spacing:0.5px}
+    .tbl thead th.group{text-align:center;background:#F0EDE8;border-bottom:1px solid #EDE9E4;font-size:8.5px;letter-spacing:0.5px}
     .tbl tbody tr:nth-child(even){background:#fafafa}
     .tbl tbody tr:nth-child(odd){background:#fff}
     .tbl tbody td{padding:9px 10px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:middle}
@@ -439,9 +439,9 @@ function printInvoice(inv, co = {}) {
     .tot-lbl{color:#666;font-weight:500}
     .tot-val{font-weight:700;color:#1a1a1a}
     .tot-disc .tot-lbl,.tot-disc .tot-val{color:#16a34a}
-    .tot-grand{background:#1a1a1a;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
-    .tot-grand-lbl{color:#C6A969;font-size:12px;font-weight:700;letter-spacing:0.5px}
-    .tot-grand-val{color:#fff;font-size:17px;font-weight:900}
+    .tot-grand{background:#F8F6F3;border-top:2px solid #C6A969;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+    .tot-grand-lbl{color:#8B7355;font-size:12px;font-weight:700;letter-spacing:0.5px}
+    .tot-grand-val{color:#2D2D2D;font-size:17px;font-weight:900}
 
     /* ── Amount in Words ── */
     .amt-words{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px}
@@ -459,9 +459,9 @@ function printInvoice(inv, co = {}) {
     .eoe{font-size:9px;color:#aaa;margin-top:4px;font-style:italic}
 
     /* ── Thank You Band ── */
-    .ty-band{background:#1a1a1a;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
-    .ty-title{font-size:12px;font-weight:700;color:#C6A969}
-    .ty-note{font-size:9.5px;color:#888}
+    .ty-band{background:#F8F6F3;border-top:1px solid #EDE9E4;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+    .ty-title{font-size:12px;font-weight:700;color:#8B7355}
+    .ty-note{font-size:9.5px;color:#8B7355}
     .comp-gen{font-size:8.5px;color:#aaa;text-align:center;padding:6px;background:#f8f6f3;border-top:1px solid #e8e2da}
   </style>
 </head>
@@ -1065,15 +1065,15 @@ export default function CashierInvoices() {
               Showing {filtered.length === 0 ? 0 : Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} invoices
             </div>
             <div className="ci-page-btns">
-              <button className="ci-page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+              <button className="ci-page-btn" disabled={page === 1 || totalPages === 0} onClick={() => setPage(Math.max(1, page - 1))}>
                 <ChevronLeft size={14} />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                 <button key={p} className={`ci-page-btn ${p === page ? 'active' : ''}`} onClick={() => setPage(p)}>
                   {p}
                 </button>
               ))}
-              <button className="ci-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => p + 1)}>
+              <button className="ci-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(Math.min(totalPages, page + 1))}>
                 <ChevronRight size={14} />
               </button>
             </div>

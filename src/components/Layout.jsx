@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './Layout.module.css';
+import NotificationPanel from './NotificationPanel';
 
 const adminNav = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/admin/dashboard' },
@@ -57,6 +58,7 @@ export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen]   = useState(true);
   const [profileOpen, setProfileOpen]   = useState(false);
   const [notifOpen, setNotifOpen]       = useState(false);
+  const [notifTab, setNotifTab]         = useState('unread'); // 'all' or 'unread'
   const [pendingList, setPendingList]   = useState([]);
   const [company, setCompany]           = useState({ name: 'NexBill', logoUrl: null });
 
@@ -76,6 +78,8 @@ export default function Layout({ children }) {
       }).catch(() => {});
   }, [user?.token]);
   const [lowStockList, setLowStockList] = useState([]);
+  const [cashierNotifs, setCashierNotifs] = useState([]);
+  const [allCashierNotifs, setAllCashierNotifs] = useState([]);
   const [modal, setModal]               = useState(null); // cashier object
   const [form, setForm]                 = useState(EMPTY_FORM);
   const [approving, setApproving]       = useState(false);
@@ -132,12 +136,32 @@ export default function Layout({ children }) {
     } catch { setLowStockList([]); }
   };
 
+  const fetchCashierNotifs = async () => {
+    try {
+      const res = await axios.get('/api/notifications/my-alerts', {
+        headers: { Authorization: `Bearer ${user.token}` },
+        withCredentials: true,
+      });
+      const all = res.data || [];
+      setAllCashierNotifs(all);
+      setCashierNotifs(all.filter(n => !n.isRead));
+    } catch (err) {
+      setCashierNotifs([]);
+      setAllCashierNotifs([]);
+    }
+  };
+
   useEffect(() => {
-    if (!isAdmin) return;
-    fetchPending();
-    fetchLowStock();
-    const interval = setInterval(() => { fetchPending(); fetchLowStock(); }, 30000);
-    return () => clearInterval(interval);
+    if (isAdmin) {
+      fetchPending();
+      fetchLowStock();
+      const interval = setInterval(() => { fetchPending(); fetchLowStock(); }, 30000);
+      return () => clearInterval(interval);
+    } else {
+      fetchCashierNotifs();
+      const interval = setInterval(fetchCashierNotifs, 30000);
+      return () => clearInterval(interval);
+    }
   }, [isAdmin]);
 
   const fetchUserProfile = async () => {
@@ -270,7 +294,7 @@ export default function Layout({ children }) {
           <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
             <div className={styles.modalHeader}>
               <div>
-                <h3>Sign Out</h3>
+                <h3>Logout</h3>
                 <p>Are you sure you want to log out?</p>
               </div>
               <button className={styles.modalClose} onClick={() => setShowLogoutConfirm(false)}><X size={16} /></button>
@@ -283,7 +307,7 @@ export default function Layout({ children }) {
                 onClick={confirmLogout}
                 style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 20px', background:'#7A3A3A', color:'#fff', border:'none', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}
               >
-                <LogOut size={14} /> Yes, Sign Out
+                <LogOut size={14} /> Yes, Logout
               </button>
             </div>
           </div>
@@ -588,52 +612,153 @@ export default function Layout({ children }) {
           </div>
           <div className={styles.navRight}>
 
-            {/* Bell — admin only */}
-            {isAdmin && (
+            {/* Bell — Admin & Cashier */}
+            {(
               <div className={styles.notifWrap}>
                 <button className={styles.iconBtn} onClick={() => setNotifOpen(!notifOpen)}>
                   <Bell size={18} />
-                  {pendingList.length + lowStockList.length > 0 && <span className={styles.badge}>{pendingList.length + lowStockList.length}</span>}
+                  {(isAdmin ? (pendingList.length + lowStockList.length) : cashierNotifs.length) > 0 && (
+                    <span className={styles.badge}>
+                      {isAdmin ? (pendingList.length + lowStockList.length > 99 ? '99+' : pendingList.length + lowStockList.length) : (cashierNotifs.length > 99 ? '99+' : cashierNotifs.length)}
+                    </span>
+                  )}
                 </button>
                 {notifOpen && (
                   <div className={styles.notifDropdown}>
-                    <div className={styles.notifHeader}>Notifications</div>
+                    <div className={styles.notifHeader}>
+                      <span>Notifications</span>
+                      {!isAdmin && (
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <button
+                            className={`${styles.notifTab} ${notifTab === 'unread' ? styles.notifTabActive : ''}`}
+                            onClick={() => setNotifTab('unread')}
+                          >
+                            Unread {cashierNotifs.length > 0 && `(${cashierNotifs.length})`}
+                          </button>
+                          <button
+                            className={`${styles.notifTab} ${notifTab === 'all' ? styles.notifTabActive : ''}`}
+                            onClick={() => setNotifTab('all')}
+                          >
+                            All
+                          </button>
+                          {notifTab === 'unread' && cashierNotifs.length > 0 && (
+                            <button
+                              className={styles.notifTab}
+                              style={{ fontSize: 10, color: '#8B7355' }}
+                              onClick={async () => {
+                                // Mark all as read
+                                const unread = [...cashierNotifs];
+                                setAllCashierNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+                                setCashierNotifs([]);
+                                try {
+                                  await Promise.all(unread.map(n =>
+                                    axios.put(`/api/notifications/read/${n.id}`, {}, {
+                                      headers: { Authorization: `Bearer ${user.token}` },
+                                      withCredentials: true,
+                                    })
+                                  ));
+                                } catch {}
+                              }}
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Pending Cashiers */}
-                    {pendingList.length > 0 && (
+                    {isAdmin ? (
                       <>
-                        <div className={styles.notifSection}>👤 Pending Approvals ({pendingList.length})</div>
-                        {pendingList.map(c => (
-                          <div key={c.email} className={styles.notifItem}>
-                            <div className={styles.notifAvatar}>{(c.name || c.email)[0].toUpperCase()}</div>
-                            <div className={styles.notifInfo}>
-                              <div className={styles.notifName}>{c.name || '—'}</div>
-                              <div className={styles.notifEmail}>{c.email}</div>
-                            </div>
-                            <button className={styles.notifApproveBtn} onClick={() => openModal(c)}>Approve</button>
-                          </div>
-                        ))}
-                      </>
-                    )}
+                        {/* Pending Cashiers */}
+                        {pendingList.length > 0 && (
+                          <>
+                            <div className={styles.notifSection}>👤 Pending Approvals ({pendingList.length})</div>
+                            {pendingList.map(c => (
+                              <div key={c.email} className={styles.notifItem}>
+                                <div className={styles.notifAvatar}>{(c.name || c.email)[0].toUpperCase()}</div>
+                                <div className={styles.notifInfo}>
+                                  <div className={styles.notifName}>{c.name || '—'}</div>
+                                  <div className={styles.notifEmail}>{c.email}</div>
+                                </div>
+                                <button className={styles.notifApproveBtn} onClick={() => openModal(c)}>Approve</button>
+                              </div>
+                            ))}
+                          </>
+                        )}
 
-                    {/* Low Stock */}
-                    {lowStockList.length > 0 && (
+                        {/* Low Stock */}
+                        {lowStockList.length > 0 && (
+                          <>
+                            <div className={styles.notifSection}>⚠️ Low Stock ({lowStockList.length})</div>
+                            {lowStockList.map(item => (
+                              <div key={item.id} className={styles.notifItem}>
+                                <div className={styles.notifAvatarWarn}>!</div>
+                                <div className={styles.notifInfo}>
+                                  <div className={styles.notifName}>{item.name}</div>
+                                  <div className={styles.notifEmail}>Stock: {item.stock} (Min: {item.minStock})</div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+
+                        {pendingList.length === 0 && lowStockList.length === 0 && (
+                          <div className={styles.notifEmpty}>No new notifications</div>
+                        )}
+                      </>
+                    ) : (
                       <>
-                        <div className={styles.notifSection}>⚠️ Low Stock ({lowStockList.length})</div>
-                        {lowStockList.map(item => (
-                          <div key={item.id} className={styles.notifItem}>
-                            <div className={styles.notifAvatarWarn}>!</div>
-                            <div className={styles.notifInfo}>
-                              <div className={styles.notifName}>{item.name}</div>
-                              <div className={styles.notifEmail}>Stock: {item.stock} (Min: {item.minStock})</div>
+                        {/* Cashier Notifications */}
+                        {(() => {
+                          const displayNotifs = notifTab === 'all' ? allCashierNotifs : cashierNotifs;
+                          return displayNotifs.length > 0 ? (
+                            displayNotifs.map(notif => {
+                            const getIcon = (type) => {
+                              if (type === 'PROFILE_APPROVED') return '✅';
+                              if (type === 'LOW_STOCK_ALERT') return '⚠️';
+                              if (type === 'HIGH_VALUE_SALES') return '🎉';
+                              return '🔔';
+                            };
+                              return (
+                                <div key={notif.id} className={`${styles.notifItem} ${notif.isRead ? styles.notifItemRead : ''}`}>
+                                  <div className={styles.notifAvatar}>{getIcon(notif.type)}</div>
+                                  <div className={styles.notifInfo}>
+                                    <div className={styles.notifName}>{notif.title}</div>
+                                    <div className={styles.notifEmail}>{notif.message}</div>
+                                  </div>
+                                  {!notif.isRead && (
+                                    <button className={styles.notifApproveBtn} onClick={async (e) => {
+                                      e.stopPropagation();
+                                      // Optimistic update first
+                                      setAllCashierNotifs(prev =>
+                                        prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n)
+                                      );
+                                      setCashierNotifs(prev => prev.filter(n => n.id !== notif.id));
+                                      try {
+                                        await axios.put(`/api/notifications/read/${notif.id}`, {}, {
+                                          headers: { Authorization: `Bearer ${user.token}` },
+                                          withCredentials: true,
+                                        });
+                                      } catch (err) {
+                                        // Rollback on failure
+                                        setAllCashierNotifs(prev =>
+                                          prev.map(n => n.id === notif.id ? { ...n, isRead: false } : n)
+                                        );
+                                        setCashierNotifs(prev => [...prev, notif]);
+                                        console.error('Mark read failed:', err.response?.status);
+                                      }
+                                    }}>Mark Read</button>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <div className={styles.notifEmpty}>
+                              {notifTab === 'unread' ? 'No new notifications' : 'No notifications yet'}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })()}
                       </>
-                    )}
-
-                    {pendingList.length === 0 && lowStockList.length === 0 && (
-                      <div className={styles.notifEmpty}>No new notifications</div>
                     )}
                   </div>
                 )}
@@ -672,7 +797,7 @@ export default function Layout({ children }) {
                   </button>
                   <hr />
                   <button onClick={handleLogout} className={styles.dropLogout}>
-                    <LogOut size={14} /> Sign Out
+                    <LogOut size={14} /> Logout
                   </button>
                 </div>
               )}

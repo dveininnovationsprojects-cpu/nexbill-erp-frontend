@@ -287,8 +287,8 @@ export default function Suppliers() {
               <div className="sp-field full">
                 <label>Type *</label>
                 <select value={ledgerForm.type} onChange={e => setLedgerForm({ ...ledgerForm, type: e.target.value })} style={{padding:'10px 12px',border:'1.5px solid #EFE7DE',borderRadius:9,fontSize:13,color:'#2D2D2D',background:'#F8F5F2',outline:'none',fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}>
-                  <option value="PAYMENT">Payment (நீங்கள் செலுத்தியது)</option>
-                  <option value="PURCHASE">Purchase (நீங்கள் வாங்கியது)</option>
+                  <option value="PAYMENT">Payment</option>
+                  <option value="PURCHASE">Purchase</option>
                 </select>
               </div>
               <div className="sp-field full">
@@ -325,9 +325,9 @@ export default function Suppliers() {
                 <label>Company Name *</label>
                 <input placeholder="e.g. Tech Distributors" required value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} />
               </div>
-              <div className="sp-field"><label>GSTIN</label><input placeholder="29AABCN1234M1Z5" value={form.gstin} onChange={e => setForm({ ...form, gstin: e.target.value })} /></div>
+              <div className="sp-field"><label>GSTIN</label><input placeholder="29AABCN1234M1Z5" maxLength="15" value={form.gstin} onChange={e => setForm({ ...form, gstin: e.target.value })} /></div>
               <div className="sp-field"><label>Contact Person</label><input placeholder="Ravi Kumar" value={form.contactPerson} onChange={e => setForm({ ...form, contactPerson: e.target.value })} /></div>
-              <div className="sp-field"><label>Mobile</label><input type="tel" placeholder="9876543210" value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} /></div>
+              <div className="sp-field"><label>Mobile</label><input type="tel" placeholder="9876543210" maxLength="10" value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} /></div>
               <div className="sp-field"><label>Email</label><input type="email" placeholder="supplier@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
               <div className="sp-field full"><label>Address</label><input placeholder="City / Address" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
               <div className="sp-field full"><label>Bank Details</label><input placeholder="Bank name, account no..." value={form.bankDetails} onChange={e => setForm({ ...form, bankDetails: e.target.value })} /></div>

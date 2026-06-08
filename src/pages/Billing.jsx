@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Receipt, TrendingUp, Users, Calendar, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../api';
+import { getPageNumbers } from '../utils/pagination';
 
 const MOCK_BILLS = [];
 
@@ -20,7 +21,9 @@ export default function Billing() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    api.get('/api/billing/history').then(res => setBills(res.data || [])).catch(() => setBills([]));
+    api.get('/api/billing/history')
+      .then(res => setBills([...(res.data || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))))
+      .catch(() => setBills([]));
   }, []);
 
   const cashiers = [...new Set(bills.map(b => b.cashierId || b.cashier).filter(Boolean))];
@@ -39,9 +42,9 @@ export default function Billing() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const totalRevenue = bills.filter(b => (b.status || b.paymentStatus) === 'PAID').reduce((s, b) => s + (b.grandTotal || b.total || 0), 0);
+  const totalRevenue = bills.filter(b => ['PAID','COMPLETED'].includes(b.status || b.paymentStatus)).reduce((s, b) => s + (b.grandTotal || b.total || 0), 0);
   const totalBills = bills.length;
-  const paidBills = bills.filter(b => (b.status || b.paymentStatus) === 'PAID').length;
+  const paidBills = bills.filter(b => ['PAID','COMPLETED'].includes(b.status || b.paymentStatus)).length;
   const pendingBills = bills.filter(b => (b.status || b.paymentStatus) === 'PENDING').length;
 
   return (
@@ -136,18 +139,20 @@ export default function Billing() {
                 <tr><td colSpan={10} className="ab-empty">No bills found.</td></tr>
               ) : paginated.map(b => {
                 const status = b.status || b.paymentStatus || 'PENDING';
-                const s = STATUS_STYLE[status] || STATUS_STYLE.PENDING;
+                const displayStatus = status === 'COMPLETED' ? 'PAID' : status;
+                const s = STATUS_STYLE[displayStatus] || STATUS_STYLE[status] || STATUS_STYLE.PENDING;
                 const cashier = b.cashierId || b.cashier || '—';
                 const invoice = b.invoiceNumber || b.invoice || '—';
                 const total = b.grandTotal || b.total || 0;
                 const gst = b.gstTotal || b.gst || 0;
-                const discount = b.discountTotal || b.discount || 0;
-                const items = b.totalItems || b.items || 0;
+                const discount = parseFloat(b.discountTotal || b.discount || 0);
+                const items = b.totalItems || 0;
                 const method = b.paymentMethod || b.method || '—';
-                const date = b.timestamp ? new Date(b.timestamp).toLocaleString('en-IN') : (b.date || '—');
+                const date = b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}) : '—';
+                const discountDisplay = discount > 0 ? `-₹${discount.toLocaleString('en-IN')}` : '—';
                 return (
                   <tr key={b.id || b.invoiceNumber}>
-                    <td><span className="ab-inv">{invoice}</span></td>
+                    <td style={{fontWeight:600,color:'#2D2D2D'}}>{invoice}</td>
                     <td>
                       <div className="ab-cashier">
                         <div className="ab-avatar">{cashier[0]}</div>
@@ -157,10 +162,10 @@ export default function Billing() {
                     <td>{b.customerName || b.customer || 'Walk-in'}</td>
                     <td style={{color:'#8B7355'}}>{items} items</td>
                     <td style={{color:'#8B7355'}}>₹{gst}</td>
-                    <td style={{color:'#5A7A5A'}}>{discount > 0 ? `-₹${discount}` : '—'}</td>
+                    <td style={{color:'#5A7A5A'}}>{discountDisplay}</td>
                     <td><span className="ab-total">₹{Number(total).toLocaleString()}</span></td>
                     <td><span className="ab-method">{method}</span></td>
-                    <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{status}</span></td>
+                    <td><span className="ab-status" style={{color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{displayStatus}</span></td>
                     <td><span className="ab-date">{date}</span></td>
                   </tr>
                 );
@@ -171,11 +176,11 @@ export default function Billing() {
             <div className="ab-pagination">
               <span className="ab-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} bills</span>
               <div className="ab-page-btns">
-                <button className="ab-page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                <button className="ab-page-btn" disabled={page===1} onClick={()=>setPage(p=>Math.max(1,p-1))}><ChevronLeft size={14}/></button>
+                {getPageNumbers(page, totalPages).map(p=>(
                   <button key={p} className={`ab-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
                 ))}
-                <button className="ab-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
+                <button className="ab-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}><ChevronRight size={14}/></button>
               </div>
             </div>
           )}

@@ -15,6 +15,8 @@ export default function AdminDashboard() {
   const [approving, setApproving]       = useState(false);
   const [toast, setToast]               = useState(null);
   const [kpis, setKpis] = useState({ revenue: '₹0', products: 0, cashiers: 0, lowStock: 0 });
+  const [recentTxns, setRecentTxns] = useState([]);
+  const [allBilling, setAllBilling] = useState([]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -35,17 +37,29 @@ export default function AdminDashboard() {
   const fetchKpis = async () => {
     try {
       const headers = { Authorization: `Bearer ${user.token}` };
-      const [productsRes, lowStockRes, cashiersRes] = await Promise.allSettled([
+      const [productsRes, lowStockRes, cashiersRes, billingRes] = await Promise.allSettled([
         axios.get('/api/products/all', { headers, withCredentials: true }),
         axios.get('/api/inventory/low-stock', { headers, withCredentials: true }),
         axios.get('/api/admin/active-cashiers', { headers, withCredentials: true }),
+        axios.get('/api/billing/history', { headers, withCredentials: true }),
       ]);
       const products = productsRes.status === 'fulfilled' ? productsRes.value.data : [];
       const lowStock = lowStockRes.status === 'fulfilled' ? lowStockRes.value.data.length : 0;
       const cashiersList = cashiersRes.status === 'fulfilled' ? cashiersRes.value.data : [];
+      const billing = billingRes.status === 'fulfilled' ? billingRes.value.data : [];
+
+      // Today's revenue
+      const today = new Date(); today.setHours(0,0,0,0);
+      const todayBills = billing.filter(b => new Date(b.createdAt) >= today);
+      const revenue = todayBills.reduce((s, b) => s + (b.grandTotal || 0), 0);
+
       setActiveCashiers(cashiersList);
-      setKpis(k => ({ ...k, products: products.length, lowStock, cashiers: cashiersList.length }));
-    } catch { /* ignore */ }
+      setKpis({ revenue: `₹${Number(revenue).toLocaleString('en-IN')}`, products: products.length, lowStock, cashiers: cashiersList.length });
+      setAllBilling(billing);
+      const sorted = [...billing].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setRecentTxns(sorted.slice(0, 5));
+      console.log('BILLING DATA:', billing.length, billing.slice(0,2).map(b => ({createdAt: b.createdAt, grandTotal: b.grandTotal})));
+    } catch (err) { console.error('fetchKpis error:', err?.response?.status, err?.message); }
   };
 
   useEffect(() => { fetchPending(); fetchKpis(); }, []);
@@ -105,7 +119,12 @@ export default function AdminDashboard() {
         .ad-table td{padding:12px;border-bottom:1px solid #F8F5F2;color:#3F3F46}
         .ad-skeleton{display:inline-block;height:12px;background:#EFE7DE;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-        .ad-note{font-size:12px;color:#D6D3D1;text-align:center;margin:12px 0 0}
+        .ad-chart-wrap{display:flex;flex-direction:column;gap:12px}
+        .ad-chart-labels{display:flex;align-items:center;gap:12px;margin-bottom:4px;padding:0 4px;font-size:11px;color:#8B7355}
+        .ad-chart-label{display:flex;align-items:center;gap:4px}
+        .ad-chart-current{width:10px;height:10px;background:#C6A969;border-radius:2px}
+        .ad-chart-other{width:10px;height:10px;background:#EFE7DE;border-radius:2px}
+        .ad-chart-container{display:flex;align-items:flex-end;gap:8px;height:160px;padding:0 4px}
         .ad-overlay{position:fixed;inset:0;background:rgba(45,45,45,0.4);backdrop-filter:blur(2px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
         .ad-modal{background:#FFFFFF;border-radius:18px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(45,45,45,0.2);overflow:hidden}
         .ad-modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 16px;border-bottom:1px solid #EFE7DE}
@@ -270,7 +289,7 @@ export default function AdminDashboard() {
           <div className="ad-card-header">
             <div className="ad-card-title"><TrendingUp size={16} />Monthly Sales</div>
           </div>
-          <BarChartMock />
+          <BarChartMock billing={allBilling} />
         </div>
 
         <div className="ad-card">
@@ -280,35 +299,57 @@ export default function AdminDashboard() {
           <table className="ad-table">
             <thead><tr><th>Invoice #</th><th>Customer</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
             <tbody>
-              {[...Array(4)].map((_, i) => (
+              {recentTxns.length === 0 ? (
+                <tr><td colSpan={5} style={{textAlign:'center',padding:'24px',color:'#D6D3D1',fontSize:13}}>No transactions yet</td></tr>
+              ) : recentTxns.map((t, i) => (
                 <tr key={i}>
-                  <td><span className="ad-skeleton" style={{width:80}} /></td>
-                  <td><span className="ad-skeleton" style={{width:120}} /></td>
-                  <td><span className="ad-skeleton" style={{width:60}} /></td>
-                  <td><span className="ad-skeleton" style={{width:80}} /></td>
-                  <td><span className="ad-skeleton" style={{width:60}} /></td>
+                  <td style={{fontWeight:600,color:'#2D2D2D'}}>{t.invoiceNumber}</td>
+                  <td>{t.customerName || 'Walk-in Customer'}</td>
+                  <td style={{fontWeight:600}}>₹{Number(t.grandTotal||0).toLocaleString('en-IN')}</td>
+                  <td style={{color:'#8B7355',fontSize:12}}>{t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-IN') : '—'}</td>
+                  <td>
+                    <span style={{padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700,
+                      background: t.status==='COMPLETED'?'#DCFCE7': t.status==='CANCELLED'?'#FEE2E2':'#FEF9C3',
+                      color: t.status==='COMPLETED'?'#16a34a': t.status==='CANCELLED'?'#dc2626':'#ca8a04'
+                    }}>{t.status==='COMPLETED'?'Paid': t.status==='CANCELLED'?'Cancelled':'Pending'}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p className="ad-note">Transaction data will appear once billing is active.</p>
         </div>
       </div>
     </>
   );
 }
 
-function BarChartMock() {
-  const bars = [40,65,50,80,55,90,70,85,60,75,95,68];
+function BarChartMock({ billing = [] }) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const currentMonth = new Date().getMonth();
+  const data = Array(12).fill(0);
+  billing.forEach(b => {
+    if (b.createdAt) {
+      const m = new Date(b.createdAt).getMonth();
+      data[m] += Number(b.grandTotal || 0);
+    }
+  });
+  const max = Math.max(...data, 1);
+  const totalSales = data.reduce((s, v) => s + v, 0);
   return (
-    <div style={{display:'flex',alignItems:'flex-end',gap:8,height:140,padding:'0 4px'}}>
-      {bars.map((h,i) => (
-        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-          <div style={{width:'100%',height:`${h}%`,background:i===11?'#C6A969':'#EFE7DE',borderRadius:'4px 4px 0 0'}} />
-          <span style={{fontSize:9,color:'#8B7355'}}>{months[i]}</span>
-        </div>
-      ))}
+    <div className="ad-chart-wrap">
+      <div className="ad-chart-labels">
+        <div className="ad-chart-label"><div className="ad-chart-current" /><span>Current Month</span></div>
+        <div className="ad-chart-label"><div className="ad-chart-other" /><span>Other Months</span></div>
+        <span style={{marginLeft:'auto',fontWeight:600}}>Total: ₹{Number(totalSales).toLocaleString('en-IN')}</span>
+      </div>
+      <div className="ad-chart-container">
+        {data.map((val, i) => (
+          <div key={i} style={{flex:'1 1 0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',gap:6,height:'100%'}}>
+            <div style={{width:'100%',height:`${Math.max((val/max)*120, 4)}px`,background:i===currentMonth?'#C6A969':'#EFE7DE',borderRadius:'4px 4px 0 0',transition:'all 0.3s'}} />
+            <span style={{fontSize:10,color:'#8B7355',fontWeight:500,whiteSpace:'nowrap'}}>{months[i]}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

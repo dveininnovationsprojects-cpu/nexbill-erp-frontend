@@ -190,15 +190,14 @@ export default function CashierBilling() {
     setSubmitting(true);
     setPaymentStatus('processing');
     try {
-      const res = await api.post('/api/billing/checkout', {
+      const payload = {
         paymentMethod,
-        customerId:      customerId || null,
-        customerName:    selectedCustomer?.name  || null,
-        customerPhone:   selectedCustomer?.mobile || selectedCustomer?.phone || null,
-        customerEmail:   selectedCustomer?.email  || null,
-        discountAmount:  discountType === 'flat'    ? parseFloat(discount) || 0 : 0,
-        discountPercent: discountType === 'percent' ? parseFloat(discount) || 0 : 0,
-      });
+        customerName: selectedCustomer?.name || 'Walk-in Customer',
+        customerPhone: selectedCustomer?.mobile || '',
+        ...(selectedCustomer?.id ? { customerId: selectedCustomer.id } : {}),
+        ...(discountVal > 0 ? { discountAmount: parseFloat(discountVal.toFixed(2)) } : {}),
+      };
+      const res = await api.post('/api/billing/checkout', payload);
       setInvoiceResponse(res.data);
       setPaymentStatus('success');
     } catch (err) {
@@ -371,7 +370,7 @@ export default function CashierBilling() {
                 </div>
                 <div className="new-cust-field">
                   <label>Mobile Number *</label>
-                  <input type="tel" placeholder="9876543210" value={newCustomerForm.mobile} onChange={e => setNewCustomerForm({...newCustomerForm, mobile: e.target.value})} required />
+                  <input type="tel" placeholder="9876543210" maxLength="10" value={newCustomerForm.mobile} onChange={e => setNewCustomerForm({...newCustomerForm, mobile: e.target.value})} required />
                 </div>
                 <div className="new-cust-field">
                   <label>Email</label>
@@ -437,7 +436,7 @@ export default function CashierBilling() {
                   <div className="pay-status-text">Payment Successful!</div>
                   <div className="pay-status-sub">Invoice: {invoiceResponse?.invoiceNumber || 'Generated'}</div>
                   <div className="pay-status-sub" style={{marginTop:4,fontSize:11}}>TXN: {invoiceResponse?.externalTransactionRef || txnRef || generatedTxnId}</div>
-                  <div className="pay-status-sub" style={{marginTop:4,fontSize:11}}>Amount: ₹{(invoiceResponse?.grandTotal || grandTotal).toFixed(2)}</div>
+                  <div className="pay-status-sub" style={{marginTop:4,fontSize:11}}>Amount: ₹{grandTotal.toFixed(2)}</div>
                   <div style={{display:'flex',gap:8,marginTop:16,flexDirection:'column'}}>
                     <button 
                       className="pay-confirm-btn"
@@ -469,7 +468,7 @@ export default function CashierBilling() {
                 </div>
               ) : (
                 <>
-                  <div className="pay-label">Customer (optional)</div>
+                  <div className="pay-label">Customer</div>
                   <div style={{position:'relative',marginBottom:10}}>
                     <input
                       type="text"
@@ -480,57 +479,41 @@ export default function CashierBilling() {
                       style={{width:'100%',padding:'8px 10px',border:'1.5px solid #EFE7DE',borderRadius:8,fontSize:13,outline:'none',fontFamily:'inherit',background:'#F8F5F2',color:'#2D2D2D',boxSizing:'border-box'}}
                     />
                     {showCustomerDropdown && filteredCustomers.length > 0 && (
-                      <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#FFFFFF',border:'1.5px solid #EFE7DE',borderRadius:8,marginTop:4,maxHeight:200,overflowY:'auto',zIndex:10,boxShadow:'0 4px 12px rgba(45,45,45,0.1)'}}>
+                      <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#FFFFFF',border:'1.5px solid #EFE7DE',borderRadius:8,marginTop:4,maxHeight:180,overflowY:'auto',zIndex:10,boxShadow:'0 4px 12px rgba(45,45,45,0.1)'}}>
                         {filteredCustomers.map(c => (
                           <div
                             key={c.id}
                             onClick={() => handleCustomerSelect(c)}
-                            style={{padding:'10px 12px',cursor:'pointer',borderBottom:'1px solid #F8F5F2',transition:'background 0.2s'}}
-                            onMouseEnter={e => e.target.style.background = '#F8F5F2'}
-                            onMouseLeave={e => e.target.style.background = '#FFFFFF'}
+                            style={{padding:'10px 12px',cursor:'pointer',borderBottom:'1px solid #F8F5F2'}}
+                            onMouseEnter={e => e.currentTarget.style.background='#F8F5F2'}
+                            onMouseLeave={e => e.currentTarget.style.background='#FFFFFF'}
                           >
                             <div style={{fontSize:13,fontWeight:600,color:'#2D2D2D',marginBottom:2}}>{c.name}</div>
-                            <div style={{fontSize:11,color:'#8B7355',display:'flex',gap:8,alignItems:'center'}}>
-                              <span>ID: {c.id}</span>
-                              {c.mobile && <span>· {c.mobile}</span>}
-                              {c.tier && <span style={{background:'#C6A969',color:'#2D2D2D',padding:'2px 6px',borderRadius:4,fontWeight:600}}>{c.tier}</span>}
-                              {!c.tier && <span style={{background:'#EFE7DE',color:'#8B7355',padding:'2px 6px',borderRadius:4}}>Regular</span>}
-                            </div>
+                            <div style={{fontSize:11,color:'#8B7355'}}>{c.mobile && `${c.mobile} · `}ID: {c.id}</div>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  <button type="button" className="cust-add-btn" onClick={() => setShowNewCustomerModal(true)}>
-                    <User size={14} /> Add New Customer
-                  </button>
-                  {selectedCustomer && (
-                    <div style={{background:'#F0F7F0',border:'1px solid #C8DFC8',borderRadius:8,padding:10,marginTop:10,fontSize:12}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-                        <span style={{fontWeight:600,color:'#2D2D2D'}}>{selectedCustomer.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => navigate(user?.role === 'ADMIN' ? '/admin/customers' : '/cashier/customers')}
-                          style={{background:'#2D2D2D',color:'#F8F5F2',border:'none',padding:'4px 10px',borderRadius:6,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}
-                        >
-                          View Details
-                        </button>
+                  {selectedCustomer ? (
+                    <div style={{background:'#F0F7F0',border:'1px solid #C8DFC8',borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <div>
+                        <div style={{fontWeight:600,color:'#2D2D2D'}}>{selectedCustomer.name}</div>
+                        {selectedCustomer.mobile && <div style={{color:'#5A7A5A',marginTop:2}}>{selectedCustomer.mobile}</div>}
+                        {selectedCustomer.email && <div style={{color:'#5A7A5A',marginTop:1}}>{selectedCustomer.email}</div>}
                       </div>
-                      <div style={{color:'#5A7A5A',fontSize:11}}>
-                        {selectedCustomer.mobile && <div>{selectedCustomer.mobile}</div>}
-                        {selectedCustomer.email && <div>{selectedCustomer.email}</div>}
-                        {selectedCustomer.tier ? (
-                          <div style={{marginTop:4,fontWeight:600}}>Tier: {selectedCustomer.tier}</div>
-                        ) : (
-                          <div style={{marginTop:4,color:'#8B7355'}}>Regular Customer</div>
-                        )}
-                        {selectedCustomer.creditLimit > 0 && (
-                          <div style={{marginTop:4,color:'#8B7355'}}>Credit Limit: ₹{selectedCustomer.creditLimit}</div>
-                        )}
-                      </div>
+                      <button onClick={() => { setSelectedCustomer(null); setCustomerId(''); setCustomerSearch(''); }} style={{background:'none',border:'none',cursor:'pointer',color:'#8B7355',padding:4}}><X size={14}/></button>
                     </div>
+                  ) : (
+                    <button
+                      className="new-cust-save"
+                      style={{marginBottom:12,width:'100%'}}
+                      onClick={() => setShowNewCustomerModal(true)}
+                    >
+                      <User size={13} /> Add New Customer
+                    </button>
                   )}
-                  <div className="pay-label" style={{marginTop:20}}>Select Payment Method</div>
+                  <div className="pay-label">Select Payment Method</div>
                   <div className="pay-methods">
                     {PAY_MODES.map(m => (
                       <button

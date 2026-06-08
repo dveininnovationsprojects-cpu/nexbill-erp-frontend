@@ -667,7 +667,7 @@ function ProfileTab({ onSave }) {
                 </button>
               )}
             </div>
-            <div className="st-logo-hint">PNG, JPG or SVG · Max 1 MB · Recommended 256×256px</div>
+            <div className="st-logo-hint">PNG, JPG or SVG · Max 5 MB · Recommended 256×256px</div>
           </div>
         </div>
 

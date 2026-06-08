@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, CreditCard, CheckCircle, Clock, XCircle } from 'lucide-react';
 import api from '../api';
-import { useAuth } from '../context/AuthContext';
 
 const MOCK_PAYMENTS = [];
 
@@ -14,11 +13,12 @@ const STATUS_CONFIG = {
 const METHOD_ICONS = { Cash: 'Cash', UPI: 'UPI', Card: 'Card', 'Net Banking': 'Net Banking' };
 
 export default function CashierPayments() {
-  const { user } = useAuth();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   useEffect(() => {
     fetchPayments();
@@ -27,60 +27,20 @@ export default function CashierPayments() {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      console.log('Fetching payments...');
-      
-      // Try payment stats endpoint first
-      try {
-        const res = await api.get('/api/payments/stats');
-        console.log('Payment stats response:', res.data);
-        
-        if (res.data && res.data.length > 0) {
-          const transformedPayments = [];
-          for (const stat of res.data) {
-            try {
-              const txnRes = await api.get(`/api/payments/transactions/${stat.paymentMode}`);
-              const transactions = txnRes.data.map(order => ({
-                id: `PAY-${order.id}`,
-                invoice: order.invoiceNumber || `INV-${order.id}`,
-                customer: order.customerName || order.customer?.name || 'Walk-in',
-                amount: parseFloat(order.grandTotal || 0),
-                method: order.paymentMethod || stat.paymentMode,
-                status: 'SUCCESS',
-                date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
-              }));
-              transformedPayments.push(...transactions);
-            } catch (err) {
-              console.error(`Error fetching transactions for ${stat.paymentMode}:`, err);
-            }
-          }
-          setPayments(transformedPayments);
-        } else {
-          throw new Error('Payment stats endpoint returned empty');
-        }
-      } catch (err) {
-        console.warn('Payment stats endpoint failed, trying billing history:', err);
-        
-        // Fallback: Use billing history
-        const billRes = await api.get('/api/billing/history');
-        console.log('Billing history response:', billRes.data);
-        
-        if (billRes.data && billRes.data.length > 0) {
-          const transformedPayments = billRes.data.map(order => ({
-            id: `PAY-${order.id}`,
-            invoice: order.invoiceNumber || `INV-${order.id}`,
-            customer: order.customerName || order.customer?.name || 'Walk-in',
-            amount: parseFloat(order.grandTotal || 0),
-            method: order.paymentMethod || 'CASH',
-            status: 'SUCCESS',
-            date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '',
-          }));
-          setPayments(transformedPayments);
-        } else {
-          setPayments([]);
-        }
-      }
+      const res = await api.get('/api/billing/history');
+      const orders = res.data || [];
+      const transformed = orders.map(o => ({
+        id: `PAY-${o.id}`,
+        invoice: o.invoiceNumber || `INV-${o.id}`,
+        customer: o.customerName || o.customer?.name || (o.customerId ? `Customer #${o.customerId}` : 'Walk-in Customer'),
+        amount: parseFloat(o.grandTotal || 0),
+        method: o.paymentMode || o.paymentMethod || 'CASH',
+        status: o.status === 'COMPLETED' ? 'SUCCESS' : o.status === 'CANCELLED' ? 'FAILED' : 'PENDING',
+        date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : '',
+      }));
+      setPayments(transformed);
     } catch (err) {
-      console.error('Error fetching payments:', err);
+      console.error('Error fetching payments:', err?.response?.data || err.message);
       setPayments([]);
     } finally {
       setLoading(false);
@@ -95,6 +55,8 @@ export default function CashierPayments() {
     return matchSearch && matchStatus;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const totalSuccess = payments.filter(p => p.status === 'SUCCESS').reduce((s, p) => s + p.amount, 0);
   const totalPending = payments.filter(p => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
 
@@ -127,6 +89,13 @@ export default function CashierPayments() {
         .pay-amount{font-weight:700;color:#2D2D2D}
         .pay-date{font-size:11px;color:#8B7355}
         .pay-empty{padding:48px;text-align:center;color:#D6D3D1;font-size:14px}
+        .pay-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-top:1px solid #EFE7DE}
+        .pay-page-info{font-size:12px;color:#8B7355}
+        .pay-page-btns{display:flex;gap:5px}
+        .pay-page-btn{min-width:30px;height:30px;padding:0 6px;display:flex;align-items:center;justify-content:center;background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#8B7355;transition:all 0.15s}
+        .pay-page-btn:hover{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .pay-page-btn.active{background:#2D2D2D;color:#C6A969;border-color:#2D2D2D}
+        .pay-page-btn:disabled{opacity:0.4;cursor:not-allowed}
       `}</style>
 
       <div className="pay-page">
@@ -154,7 +123,7 @@ export default function CashierPayments() {
           </div>
           <div className="pay-filter-btns">
             {['ALL','SUCCESS','PENDING','FAILED'].map(s => (
-              <button key={s} className={`pay-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => setStatusFilter(s)}>
+              <button key={s} className={`pay-filter-btn ${statusFilter === s ? 'active' : ''}`} onClick={() => { setStatusFilter(s); setPage(1); }}>
                 {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
               </button>
             ))}
@@ -170,7 +139,7 @@ export default function CashierPayments() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7} className="pay-empty">No payments found.</td></tr>
-              ) : filtered.map(p => {
+              ) : paginated.map(p => {
                 const s = STATUS_CONFIG[p.status];
                 const Icon = s.icon;
                 return (
@@ -191,6 +160,18 @@ export default function CashierPayments() {
               })}
             </tbody>
           </table>
+          <div className="pay-pagination">
+            <div className="pay-page-info">
+              Showing {filtered.length === 0 ? 0 : (page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE, filtered.length)} of {filtered.length}
+            </div>
+            <div className="pay-page-btns">
+              <button className="pay-page-btn" disabled={page===1} onClick={() => setPage(p=>p-1)}>‹</button>
+              {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                <button key={p} className={`pay-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
+              ))}
+              <button className="pay-page-btn" disabled={page===totalPages} onClick={() => setPage(p=>p+1)}>›</button>
+            </div>
+          </div>
         </div>
       </div>
     </>

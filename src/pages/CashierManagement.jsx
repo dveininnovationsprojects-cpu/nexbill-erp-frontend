@@ -348,7 +348,7 @@ export default function CashierManagement() {
                 <div className="cm-form-grid">
                   <div className="cm-field">
                     <label>Phone</label>
-                    <input placeholder="9876543210" required value={approveForm.phone}
+                    <input placeholder="9876543210" maxLength="10" required value={approveForm.phone}
                       onChange={e => setApproveForm({...approveForm, phone: e.target.value})} />
                   </div>
                   <div className="cm-field">
