@@ -102,6 +102,12 @@ export default function Products() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const sp = parseFloat(form.sellingPrice || 0);
+    const pp = parseFloat(form.purchasePrice || 0);
+    if (sp < pp) {
+      showToast('Loss margin detected! Selling price must be ≥ purchase price to save.', 'error');
+      return;
+    }
     console.log('Form data before save:', form);
     setSaving(true);
     // Find category object from categories list
@@ -238,6 +244,7 @@ export default function Products() {
         .pr-expiry-warn{color:#9B4444;font-weight:600}
         .pr-expiry-ok{color:#3F3F46}
         .pr-profit{font-size:11px;color:#5A7A5A;font-weight:600}
+        .pr-profit-loss{font-size:11px;color:#9B4444;font-weight:600}
         .pr-pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid #EFE7DE}
         .pr-page-info{font-size:12px;color:#8B7355}
         .pr-page-btns{display:flex;gap:5px}
@@ -337,16 +344,24 @@ export default function Products() {
                   </div>
                 </div>
 
-                {form.sellingPrice && form.purchasePrice && (
-                  <div style={{background:'#F0F7F0',border:'1px solid #C8DFC8',borderRadius:9,padding:'10px 14px',fontSize:12,color:'#5A7A5A',marginTop:4}}>
-                    💰 Profit Margin: ₹{(parseFloat(form.sellingPrice||0) - parseFloat(form.purchasePrice||0)).toFixed(2)} &nbsp;|&nbsp;
-                    {form.purchasePrice > 0 ? (((form.sellingPrice - form.purchasePrice) / form.purchasePrice) * 100).toFixed(1) : 0}%
-                  </div>
-                )}
+                {form.sellingPrice && form.purchasePrice && (() => {
+                  const sp = parseFloat(form.sellingPrice||0);
+                  const pp = parseFloat(form.purchasePrice||0);
+                  const margin = sp - pp;
+                  const pct = pp > 0 ? ((margin / pp) * 100).toFixed(1) : 0;
+                  const isLoss = margin < 0;
+                  return (
+                    <div style={{background: isLoss ? '#FDF0F0' : '#F0F7F0', border: `1px solid ${isLoss ? '#F0D0D0' : '#C8DFC8'}`, borderRadius:9, padding:'10px 14px', fontSize:12, color: isLoss ? '#9B4444' : '#5A7A5A', marginTop:4}}>
+                      {isLoss ? '🔴 Loss Margin' : '💰 Profit Margin'}: ₹{margin.toFixed(2)} &nbsp;|&nbsp; {pct}%
+                    </div>
+                  );
+                })()}
 
                 <div className="pr-modal-actions">
                   <button type="button" className="pr-cancel-btn" onClick={closeModal}>Cancel</button>
-                  <button type="submit" className="pr-save-btn" disabled={saving}>{saving ? 'Saving...' : (modal === 'add' ? 'Add Product' : 'Save Changes')}</button>
+                  <button type="submit" className="pr-save-btn" disabled={saving}>
+                    {saving ? 'Saving...' : (modal === 'add' ? 'Add Product' : 'Save Changes')}
+                  </button>
                 </div>
               </form>
             </div>
@@ -455,7 +470,7 @@ export default function Products() {
                     <td>{p.supplier ? <span style={{fontSize:12,color:'#5A7A5A',fontWeight:500}}>{p.supplier?.companyName || p.supplier}</span> : <span style={{color:'#D6D3D1'}}>—</span>}</td>
                     <td>₹{(p.sellingPrice || 0).toLocaleString()}</td>
                     <td>₹{(p.purchasePrice || 0).toLocaleString()}</td>
-                    <td><span className="pr-profit">₹{profit.toLocaleString()}</span></td>
+                    <td><span className={profit < 0 ? 'pr-profit-loss' : 'pr-profit'}>₹{profit.toLocaleString()}</span></td>
                     <td><span className={isLowStock ? 'pr-stock-low' : 'pr-stock-ok'}>{p.stock || 0} {isLowStock ? '⚠' : ''}</span></td>
                     <td>{p.gstPercentage || p.gstRate || 0}%</td>
                     <td>
