@@ -293,7 +293,7 @@ function ReportsExport({ sales = [], role = "admin" }) {
 
         {/* Header & Export Actions */}
         <div className="rep-header">
-          <h1 className="rep-title">Reports & Export</h1>
+          
           <div className="rep-actions">
             <button className="rep-btn" onClick={exportPDF}>
               <PrinterIcon size={14} /> Export PDF
