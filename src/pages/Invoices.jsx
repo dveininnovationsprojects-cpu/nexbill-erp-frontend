@@ -249,6 +249,7 @@ const STYLES = `
 `;
 
 import api from '../api';
+import { getPageNumbers } from '../utils/pagination';
 
 const EMPTY_ITEM = { name: '', qty: '', rate: '', gst: 18 };
 
@@ -1105,15 +1106,15 @@ export default function AdminInvoices() {
               Showing {filtered.length === 0 ? 0 : Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} invoices
             </div>
             <div className="inv-page-btns">
-              <button className="inv-page-btn" disabled={page === 1 || totalPages === 0} onClick={() => setPage(Math.max(1, page - 1))}>
+              <button className="inv-page-btn" disabled={page === 1 || totalPages === 0} onClick={() => setPage(p => Math.max(1, p - 1))}>
                 <ChevronLeft size={14} />
               </button>
-              {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              {totalPages > 0 && getPageNumbers(page, totalPages).map(p => (
                 <button key={p} className={`inv-page-btn ${p === page ? 'active' : ''}`} onClick={() => setPage(p)}>
                   {p}
                 </button>
               ))}
-              <button className="inv-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(Math.min(totalPages, page + 1))}>
+              <button className="inv-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
                 <ChevronRight size={14} />
               </button>
             </div>

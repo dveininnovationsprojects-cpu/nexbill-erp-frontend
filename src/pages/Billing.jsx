@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Receipt, TrendingUp, Users, Calendar, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../api';
+import { getPageNumbers } from '../utils/pagination';
 
 const MOCK_BILLS = [];
 
@@ -175,11 +176,11 @@ export default function Billing() {
             <div className="ab-pagination">
               <span className="ab-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} bills</span>
               <div className="ab-page-btns">
-                <button className="ab-page-btn" disabled={page===1 || totalPages===0} onClick={()=>setPage(Math.max(1, page-1))}><ChevronLeft size={14}/></button>
-                {totalPages > 0 && Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                <button className="ab-page-btn" disabled={page===1} onClick={()=>setPage(p=>Math.max(1,p-1))}><ChevronLeft size={14}/></button>
+                {getPageNumbers(page, totalPages).map(p=>(
                   <button key={p} className={`ab-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
                 ))}
-                <button className="ab-page-btn" disabled={page===totalPages || totalPages===0} onClick={()=>setPage(Math.min(totalPages, page+1))}><ChevronRight size={14}/></button>
+                <button className="ab-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}><ChevronRight size={14}/></button>
               </div>
             </div>
           )}
