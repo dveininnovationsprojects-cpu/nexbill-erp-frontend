@@ -484,11 +484,11 @@ export default function Products() {
             <div className="pr-pagination">
               <span className="pr-page-info">Showing {(page-1)*PAGE_SIZE+1}–{Math.min(page*PAGE_SIZE,filtered.length)} of {filtered.length} products</span>
               <div className="pr-page-btns">
-                <button className="pr-page-btn" disabled={page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={14}/></button>
-                {Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
+                <button className="pr-page-btn" disabled={page === 1 || totalPages === 0} onClick={() => setPage(Math.max(1, page - 1))}><ChevronLeft size={14}/></button>
+                {totalPages > 0 && Array.from({length:totalPages},(_,i)=>i+1).map(p=>(
                   <button key={p} className={`pr-page-btn ${p===page?'active':''}`} onClick={()=>setPage(p)}>{p}</button>
                 ))}
-                <button className="pr-page-btn" disabled={page===totalPages} onClick={()=>setPage(p=>p+1)}><ChevronRight size={14}/></button>
+                <button className="pr-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(Math.min(totalPages, page + 1))}><ChevronRight size={14}/></button>
               </div>
             </div>
           )}

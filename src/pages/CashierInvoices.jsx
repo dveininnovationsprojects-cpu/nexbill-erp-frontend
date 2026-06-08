@@ -750,15 +750,15 @@ export default function CashierInvoices() {
               Showing {filtered.length === 0 ? 0 : Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} invoices
             </div>
             <div className="ci-page-btns">
-              <button className="ci-page-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+              <button className="ci-page-btn" disabled={page === 1 || totalPages === 0} onClick={() => setPage(Math.max(1, page - 1))}>
                 <ChevronLeft size={14} />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                 <button key={p} className={`ci-page-btn ${p === page ? 'active' : ''}`} onClick={() => setPage(p)}>
                   {p}
                 </button>
               ))}
-              <button className="ci-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => p + 1)}>
+              <button className="ci-page-btn" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(Math.min(totalPages, page + 1))}>
                 <ChevronRight size={14} />
               </button>
             </div>
