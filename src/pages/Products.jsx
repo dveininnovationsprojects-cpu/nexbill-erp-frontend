@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 
 
-const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', minStock: '', gstRate: '0', barcode: '', supplier: '', expiryDate: '', description: '', imageUrl: '' };
+const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', minStock: '', gstRate: '0', barcode: '', supplier: '', expiryDate: '' };
 
 export default function Products() {
   const { user } = useAuth();
@@ -92,8 +92,6 @@ export default function Products() {
       barcode: p.barcode || '',
       supplier: p.supplier?.companyName || p.supplier || '',
       expiryDate: p.expiryDate || '',
-      description: p.description || '',
-      imageUrl: p.imageUrl || '',
     });
     setEditId(p.id);
     setModal('edit');
@@ -116,15 +114,13 @@ export default function Products() {
     const payload = {
       sku: form.sku,
       name: form.name,
-      category: categoryObj ? { id: categoryObj.id } : { name: form.category },
+      category: categoryObj ? { id: categoryObj.id, name: categoryObj.name } : { name: form.category },
       sellingPrice: parseFloat(form.sellingPrice),
       purchasePrice: parseFloat(form.purchasePrice),
       gstPercentage: parseFloat(form.gstRate) || 0,
       barcode: form.barcode || null,
       supplier: supplierObj ? { id: supplierObj.id } : null,
       expiryDate: form.expiryDate || null,
-      description: form.description || null,
-      imageUrl: form.imageUrl || null,
     };
     console.log('Product payload:', JSON.stringify(payload, null, 2));
     try {
@@ -299,14 +295,6 @@ export default function Products() {
                         <option disabled>No suppliers available</option>
                       )}
                     </select>
-                  </div>
-                  <div className="pr-field full">
-                    <label>Description</label>
-                    <textarea placeholder="Short product description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-                  </div>
-                  <div className="pr-field full">
-                    <label>Image URL</label>
-                    <input placeholder="https://example.com/image.jpg" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} />
                   </div>
                 </div>
 
