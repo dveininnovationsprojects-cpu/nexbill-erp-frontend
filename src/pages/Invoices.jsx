@@ -827,6 +827,7 @@ function CreateInvoiceModal({ onClose, onCreate }) {
 
   const handleSave = async () => {
     if (!form.customer) { setError('Customer name is required.'); return; }
+    if (!form.phone || form.phone.length !== 10) { setError('Phone number is required and must be exactly 10 digits.'); return; }
     if (items.some(it => !it.name)) { setError('All line items must have a description.'); return; }
     setError('');
     setSaving(true);
