@@ -568,6 +568,10 @@ function ProfileTab({ onSave }) {
         return;
       }
     }
+    if (!form.phone || form.phone.length !== 10) {
+      onSave('Phone number is required and must be exactly 10 digits.', 'error');
+      return;
+    }
     if (!form.invoicePrefix || form.invoicePrefix.trim() === '') {
       onSave('Invoice Prefix cannot be empty.', 'error');
       return;
