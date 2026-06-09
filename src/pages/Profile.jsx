@@ -498,6 +498,10 @@ function PersonalInfoTab({ user, profileData, profileLoading, onSave, onChangePW
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
+    if (!form.phone || form.phone.length !== 10) {
+      onSave('Phone number is required and must be exactly 10 digits.', 'error');
+      return;
+    }
     setSaving(true);
     try {
       await api.put('/api/profile/update', { name: form.name, phone: form.phone });
