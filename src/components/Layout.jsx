@@ -35,7 +35,31 @@ const adminNav = [
   },
   { icon: Users,           label: 'Cashiers',  to: '/admin/cashiers' },
   {
-    icon: Settings, label: 'Settings', to: '/admin/settings'
+    icon: Settings, label: 'Settings', dropdown: [
+      { 
+        icon: UserCircle, 
+        label: 'Accounts', 
+        nested: [
+          { icon: Building2, label: 'Business Profile', to: '/admin/settings/accounts/business-profile' },
+        ]
+      },
+      { 
+        icon: FileText, 
+        label: 'Billing', 
+        nested: [
+          { icon: Percent, label: 'Tax', to: '/admin/settings/billing/tax' },
+          { icon: Receipt, label: 'Invoice', to: '/admin/settings/billing/invoice' },
+        ]
+      },
+      { 
+        icon: Settings2, 
+        label: 'Preferences', 
+        nested: [
+          { icon: BellRing, label: 'Notifications', to: '/admin/settings/preferences/notifications' },
+          { icon: Shield, label: 'Security', to: '/admin/settings/preferences/security' },
+        ]
+      },
+    ]
   },
   { icon: UserCircle, label: 'Profile', to: '/admin/profile' },
 ];
@@ -47,6 +71,7 @@ const cashierNav = [
   { icon: Users,           label: 'Customers', to: '/cashier/customers' },
   { icon: FileText,        label: 'Invoices',  to: '/cashier/invoices' },
   { icon: CreditCard,      label: 'Payments',  to: '/cashier/payments' },
+  { icon: Settings,        label: 'Settings',  to: '/cashier/settings' },
   { icon: UserCircle,      label: 'Profile',   to: '/cashier/profile'  },
 ];
 
@@ -60,24 +85,13 @@ export default function Layout({ children }) {
   const [notifOpen, setNotifOpen]       = useState(false);
   const [notifTab, setNotifTab]         = useState('unread'); // 'all' or 'unread'
   const [pendingList, setPendingList]   = useState([]);
-  const [company, setCompany]           = useState({ name: 'NexBill', logoUrl: null });
-
-  useEffect(() => {
-    axios.get('/api/settings', { headers: { Authorization: `Bearer ${user?.token}` } })
-      .then(res => {
-        const PLACEHOLDERS = ['Company Name Not Set', 'Please update Company Name'];
-        const name = res.data?.companyName;
-        const info = {
-          name:    (!name || PLACEHOLDERS.includes(name)) ? 'NexBill' : name,
-          logoUrl: res.data?.logoUrl || null,
-          tagline: res.data?.tagline || '',
-        };
-        setCompany(info);
-        // Save for login page (no token available there)
-        localStorage.setItem('nexbill_company', JSON.stringify(info));
-      }).catch(() => {});
-  }, [user?.token]);
   const [lowStockList, setLowStockList] = useState([]);
+  const [dismissedLowStock, setDismissedLowStock] = useState(
+    () => JSON.parse(localStorage.getItem('dismissed_lowstock') || '[]')
+  );
+  const [dismissedPending, setDismissedPending] = useState(
+    () => JSON.parse(localStorage.getItem('dismissed_pending') || '[]')
+  );
   const [cashierNotifs, setCashierNotifs] = useState([]);
   const [allCashierNotifs, setAllCashierNotifs] = useState([]);
   const [modal, setModal]               = useState(null); // cashier object
@@ -85,9 +99,37 @@ export default function Layout({ children }) {
   const [approving, setApproving]       = useState(false);
   const [toast, setToast]               = useState(null);
   const [userProfile, setUserProfile]   = useState(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
+
+  const dismissLowStock = (id) => {
+    const updated = [...dismissedLowStock, id];
+    setDismissedLowStock(updated);
+    localStorage.setItem('dismissed_lowstock', JSON.stringify(updated));
+  };
+
+  const dismissAllLowStock = () => {
+    const ids = lowStockList.map(i => i.inventoryId);
+    const updated = [...new Set([...dismissedLowStock, ...ids])];
+    setDismissedLowStock(updated);
+    localStorage.setItem('dismissed_lowstock', JSON.stringify(updated));
+  };
+
+  const visibleLowStock = lowStockList.filter(i => !dismissedLowStock.includes(i.inventoryId));
+  const visiblePending = pendingList.filter(c => !dismissedPending.includes(c.email));
+
+  const dismissPending = (email) => {
+    const updated = [...dismissedPending, email];
+    setDismissedPending(updated);
+    localStorage.setItem('dismissed_pending', JSON.stringify(updated));
+  };
+
+  const dismissAllPending = () => {
+    const emails = pendingList.map(c => c.email);
+    const updated = [...new Set([...dismissedPending, ...emails])];
+    setDismissedPending(updated);
+    localStorage.setItem('dismissed_pending', JSON.stringify(updated));
+  };
   const navItems = isAdmin ? adminNav : cashierNav;
   const location = useLocation();
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -144,7 +186,7 @@ export default function Layout({ children }) {
       });
       const all = res.data || [];
       setAllCashierNotifs(all);
-      setCashierNotifs(all.filter(n => !n.isRead));
+      setCashierNotifs(all.filter(n => !n.read));
     } catch (err) {
       setCashierNotifs([]);
       setAllCashierNotifs([]);
@@ -184,14 +226,6 @@ export default function Layout({ children }) {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Show login success toast once on first dashboard landing
-  useEffect(() => {
-    if (location.state?.loginMsg) {
-      showToast(location.state.loginMsg);
-      window.history.replaceState({}, '');
-    }
-  }, []);
-
   const openModal = (cashier) => {
     setModal(cashier);
     setForm(EMPTY_FORM);
@@ -217,15 +251,9 @@ export default function Layout({ children }) {
     }
   };
 
-  const handleLogout = () => {
-    setShowLogoutConfirm(true);
-    setProfileOpen(false);
-  };
-
-  const confirmLogout = async () => {
-    setShowLogoutConfirm(false);
+  const handleLogout = async () => {
     await logout();
-    navigate('/login', { state: { message: 'You have been logged out successfully.' } });
+    navigate('/login');
   };
 
   return (
@@ -288,44 +316,13 @@ export default function Layout({ children }) {
         </div>
       )}
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className={styles.overlay} onClick={() => setShowLogoutConfirm(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
-            <div className={styles.modalHeader}>
-              <div>
-                <h3>Logout</h3>
-                <p>Are you sure you want to log out?</p>
-              </div>
-              <button className={styles.modalClose} onClick={() => setShowLogoutConfirm(false)}><X size={16} /></button>
-            </div>
-            <div style={{ padding: '8px 24px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button className={styles.cancelBtn} onClick={() => setShowLogoutConfirm(false)}>
-                Cancel
-              </button>
-              <button
-                onClick={confirmLogout}
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 20px', background:'#7A3A3A', color:'#fff', border:'none', borderRadius:9, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}
-              >
-                <LogOut size={14} /> Yes, Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Sidebar */}
       <aside className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ''}`}>
         <div className={styles.sidebarTop}>
           {sidebarOpen ? (
             <>
               <div className={styles.brand}>
-                <div className={styles.brandLogo}>
-                  {company.logoUrl
-                    ? <img src={company.logoUrl} alt="logo" />
-                    : (company.name?.[0]?.toUpperCase() || 'N')
-                  }
-                </div>
+                <div className={styles.brandLogo}>N</div>
                 <span className={styles.brandName}>NexBill</span>
               </div>
               <button className={styles.collapseBtn} onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -475,7 +472,6 @@ export default function Layout({ children }) {
         {floatingPanel && (
           <>
             <motion.div
-              key="floating-overlay"
               className={styles.floatingOverlay}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -484,7 +480,6 @@ export default function Layout({ children }) {
               onClick={() => setFloatingPanel(null)}
             />
             <motion.div
-              key="floating-panel"
               className={styles.floatingNestedPanel}
               style={{ 
                 top: Math.min(floatingPosition.top, window.innerHeight - 400), 
@@ -585,7 +580,11 @@ export default function Layout({ children }) {
                 
                 // Check nested settings routes first
                 if (path.includes('/settings/accounts/business-profile')) return 'Business Profile';
-                if (path.includes('/settings/billing/invoice'))         return 'Invoice Settings';
+                if (path.includes('/settings/billing/tax')) return 'Tax & GST';
+                if (path.includes('/settings/billing/invoice')) return 'Invoice Settings';
+                if (path.includes('/settings/preferences/notifications')) return 'Notifications';
+                if (path.includes('/settings/preferences/security')) return 'Security';
+                if (path.includes('/settings/preferences/system')) return 'System Preferences';
                 
                 // Check main routes
                 for (const item of navItems) {
@@ -617,9 +616,9 @@ export default function Layout({ children }) {
               <div className={styles.notifWrap}>
                 <button className={styles.iconBtn} onClick={() => setNotifOpen(!notifOpen)}>
                   <Bell size={18} />
-                  {(isAdmin ? (pendingList.length + lowStockList.length) : cashierNotifs.length) > 0 && (
+                  {(isAdmin ? (visiblePending.length + visibleLowStock.length) : cashierNotifs.length) > 0 && (
                     <span className={styles.badge}>
-                      {isAdmin ? (pendingList.length + lowStockList.length > 99 ? '99+' : pendingList.length + lowStockList.length) : (cashierNotifs.length > 99 ? '99+' : cashierNotifs.length)}
+                      {isAdmin ? (visiblePending.length + visibleLowStock.length > 99 ? '99+' : visiblePending.length + visibleLowStock.length) : (cashierNotifs.length > 99 ? '99+' : cashierNotifs.length)}
                     </span>
                   )}
                 </button>
@@ -627,29 +626,68 @@ export default function Layout({ children }) {
                   <div className={styles.notifDropdown}>
                     <div className={styles.notifHeader}>
                       <span>Notifications</span>
-                      {!isAdmin && (
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <button
-                            className={`${styles.notifTab} ${notifTab === 'unread' ? styles.notifTabActive : ''}`}
-                            onClick={() => setNotifTab('unread')}
-                          >
-                            Unread {cashierNotifs.length > 0 && `(${cashierNotifs.length})`}
-                          </button>
-                          <button
-                            className={`${styles.notifTab} ${notifTab === 'all' ? styles.notifTabActive : ''}`}
-                            onClick={() => setNotifTab('all')}
-                          >
-                            All
-                          </button>
-                          {notifTab === 'unread' && cashierNotifs.length > 0 && (
+                    </div>
+
+                    {isAdmin ? (
+                      <>
+                        {visiblePending.length === 0 && visibleLowStock.length === 0 && (
+                          <div className={styles.notifEmpty}>No new notifications</div>
+                        )}
+                        {(visiblePending.length > 0 || visibleLowStock.length > 0) && (
+                          <div style={{display:'flex',justifyContent:'flex-end',padding:'4px 12px'}}>
                             <button
-                              className={styles.notifTab}
-                              style={{ fontSize: 10, color: '#8B7355' }}
+                              style={{fontSize:11,fontWeight:600,color:'#8B7355',background:'#F8F5F2',border:'1px solid #EFE7DE',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}
+                              onClick={() => { dismissAllPending(); dismissAllLowStock(); }}
+                            >✓ Mark all read</button>
+                          </div>
+                        )}
+                        {visiblePending.length > 0 && (
+                          <>
+                            <div className={styles.notifSection}>👤 Pending Approvals ({visiblePending.length})</div>
+                            {visiblePending.map(c => (
+                              <div key={c.email} className={styles.notifItem}>
+                                <div className={styles.notifAvatar}>{(c.name || c.email)[0].toUpperCase()}</div>
+                                <div className={styles.notifInfo}>
+                                  <div className={styles.notifName}>{c.name || '—'}</div>
+                                  <div className={styles.notifEmail}>{c.email}</div>
+                                </div>
+                                <div style={{display:'flex',gap:4}}>
+                                  <button className={styles.notifApproveBtn} onClick={() => openModal(c)}>Approve</button>
+                                  <button className={styles.notifApproveBtn} style={{background:'#F8F5F2',color:'#8B7355',border:'1px solid #EFE7DE'}} onClick={() => dismissPending(c.email)}>Read</button>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                        {visibleLowStock.length > 0 && (
+                          <>
+                            <div className={styles.notifSection}>⚠️ Low Stock ({visibleLowStock.length})</div>
+                            {visibleLowStock.map(item => (
+                              <div key={item.inventoryId} className={styles.notifItem}>
+                                <div className={styles.notifAvatarWarn}>!</div>
+                                <div className={styles.notifInfo}>
+                                  <div className={styles.notifName}>{item.productName}</div>
+                                  <div className={styles.notifEmail}>Stock: {item.availableQuantity} (Min: {item.reorderLevel})</div>
+                                </div>
+                                <button
+                                  className={styles.notifApproveBtn}
+                                  onClick={() => dismissLowStock(item.inventoryId)}
+                                >Read</button>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {cashierNotifs.length > 0 && (
+                          <div style={{display:'flex',justifyContent:'flex-end',padding:'4px 12px'}}>
+                            <button
+                              style={{fontSize:11,fontWeight:600,color:'#8B7355',background:'#F8F5F2',border:'1px solid #EFE7DE',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}
                               onClick={async () => {
-                                // Mark all as read
                                 const unread = [...cashierNotifs];
-                                setAllCashierNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
                                 setCashierNotifs([]);
+                                setAllCashierNotifs(prev => prev.map(n => ({ ...n, read: true })));
                                 try {
                                   await Promise.all(unread.map(n =>
                                     axios.put(`/api/notifications/read/${n.id}`, {}, {
@@ -659,105 +697,43 @@ export default function Layout({ children }) {
                                   ));
                                 } catch {}
                               }}
-                            >
-                              Mark all read
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {isAdmin ? (
-                      <>
-                        {/* Pending Cashiers */}
-                        {pendingList.length > 0 && (
-                          <>
-                            <div className={styles.notifSection}>👤 Pending Approvals ({pendingList.length})</div>
-                            {pendingList.map(c => (
-                              <div key={c.email} className={styles.notifItem}>
-                                <div className={styles.notifAvatar}>{(c.name || c.email)[0].toUpperCase()}</div>
-                                <div className={styles.notifInfo}>
-                                  <div className={styles.notifName}>{c.name || '—'}</div>
-                                  <div className={styles.notifEmail}>{c.email}</div>
-                                </div>
-                                <button className={styles.notifApproveBtn} onClick={() => openModal(c)}>Approve</button>
-                              </div>
-                            ))}
-                          </>
+                            >✓ Mark all read</button>
+                          </div>
                         )}
-
-                        {/* Low Stock */}
-                        {lowStockList.length > 0 && (
-                          <>
-                            <div className={styles.notifSection}>⚠️ Low Stock ({lowStockList.length})</div>
-                            {lowStockList.map(item => (
-                              <div key={item.id} className={styles.notifItem}>
-                                <div className={styles.notifAvatarWarn}>!</div>
-                                <div className={styles.notifInfo}>
-                                  <div className={styles.notifName}>{item.name}</div>
-                                  <div className={styles.notifEmail}>Stock: {item.stock} (Min: {item.minStock})</div>
-                                </div>
-                              </div>
-                            ))}
-                          </>
-                        )}
-
-                        {pendingList.length === 0 && lowStockList.length === 0 && (
-                          <div className={styles.notifEmpty}>No new notifications</div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {/* Cashier Notifications */}
-                        {(() => {
-                          const displayNotifs = notifTab === 'all' ? allCashierNotifs : cashierNotifs;
-                          return displayNotifs.length > 0 ? (
-                            displayNotifs.map(notif => {
+                        {cashierNotifs.length > 0 ? (
+                          cashierNotifs.map(notif => {
                             const getIcon = (type) => {
                               if (type === 'PROFILE_APPROVED') return '✅';
                               if (type === 'LOW_STOCK_ALERT') return '⚠️';
                               if (type === 'HIGH_VALUE_SALES') return '🎉';
                               return '🔔';
                             };
-                              return (
-                                <div key={notif.id} className={`${styles.notifItem} ${notif.isRead ? styles.notifItemRead : ''}`}>
-                                  <div className={styles.notifAvatar}>{getIcon(notif.type)}</div>
-                                  <div className={styles.notifInfo}>
-                                    <div className={styles.notifName}>{notif.title}</div>
-                                    <div className={styles.notifEmail}>{notif.message}</div>
-                                  </div>
-                                  {!notif.isRead && (
-                                    <button className={styles.notifApproveBtn} onClick={async (e) => {
-                                      e.stopPropagation();
-                                      // Optimistic update first
-                                      setAllCashierNotifs(prev =>
-                                        prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n)
-                                      );
-                                      setCashierNotifs(prev => prev.filter(n => n.id !== notif.id));
-                                      try {
-                                        await axios.put(`/api/notifications/read/${notif.id}`, {}, {
-                                          headers: { Authorization: `Bearer ${user.token}` },
-                                          withCredentials: true,
-                                        });
-                                      } catch (err) {
-                                        // Rollback on failure
-                                        setAllCashierNotifs(prev =>
-                                          prev.map(n => n.id === notif.id ? { ...n, isRead: false } : n)
-                                        );
-                                        setCashierNotifs(prev => [...prev, notif]);
-                                        console.error('Mark read failed:', err.response?.status);
-                                      }
-                                    }}>Mark Read</button>
-                                  )}
+                            return (
+                              <div key={notif.id} className={styles.notifItem}>
+                                <div className={styles.notifAvatar}>{getIcon(notif.type)}</div>
+                                <div className={styles.notifInfo}>
+                                  <div className={styles.notifName}>{notif.title}</div>
+                                  <div className={styles.notifEmail}>{notif.message}</div>
                                 </div>
-                              );
-                            })
-                          ) : (
-                            <div className={styles.notifEmpty}>
-                              {notifTab === 'unread' ? 'No new notifications' : 'No notifications yet'}
-                            </div>
-                          );
-                        })()}
+                                <button
+                                  className={styles.notifApproveBtn}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    setCashierNotifs(prev => prev.filter(n => n.id !== notif.id));
+                                    try {
+                                      await axios.put(`/api/notifications/read/${notif.id}`, {}, {
+                                        headers: { Authorization: `Bearer ${user.token}` },
+                                        withCredentials: true,
+                                      });
+                                    } catch {}
+                                  }}
+                                >Read</button>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className={styles.notifEmpty}>No new notifications</div>
+                        )}
                       </>
                     )}
                   </div>
@@ -809,4 +785,3 @@ export default function Layout({ children }) {
     </div>
   );
 }
-
