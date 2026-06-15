@@ -561,14 +561,24 @@ function printInvoice(inv, co = {}) {
   ${coFooter ? '<div class="ty-band"><div class="ty-title">' + coFooter + '</div></div>' : ''}
   <div class="comp-gen">This is a computer generated invoice and does not require a physical signature.</div>
 </div>
-<script>window.onload=function(){window.print()}</script>
 </body>
 </html>`;
 
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;border:none;pointer-events:none;';
+  document.body.appendChild(iframe);
+  iframe.onload = function() {
+    setTimeout(() => {
+      iframe.contentWindow.onafterprint = function() {
+        try { document.body.removeChild(iframe); } catch {}
+      };
+      iframe.contentWindow.print();
+    }, 500);
+  };
   const blob = new Blob([html], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  const win  = window.open(url, '_blank');
-  if (win) setTimeout(() => URL.revokeObjectURL(url), 30000);
+  const url = URL.createObjectURL(blob);
+  iframe.src = url;
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 /* ══════════════════════════════════════════════════════════════════════

@@ -588,13 +588,23 @@ function printInvoice(inv, co = {}) {
   <div class="comp-gen">This is a computer generated invoice and does not require a physical signature.</div>
 
 </div><!-- /page -->
-<script>window.onload=function(){window.print()}</script>
 </body>
 </html>`;
 
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;border:none;pointer-events:none;';
+  document.body.appendChild(iframe);
+  iframe.onload = function() {
+    setTimeout(() => {
+      iframe.contentWindow.onafterprint = function() {
+        try { document.body.removeChild(iframe); } catch {}
+      };
+      iframe.contentWindow.print();
+    }, 500);
+  };
   const blob = new Blob([html], { type: 'text/html' });
-  const url  = URL.createObjectURL(blob);
-  window.open(url, '_blank');
+  const url = URL.createObjectURL(blob);
+  iframe.src = url;
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
@@ -1243,7 +1253,16 @@ export default function CashierInvoices() {
 
   useEffect(() => {
     fetchInvoices();
-    api.get('/api/settings').then(res => setCo(res.data || {})).catch(() => {});
+    api.get('/api/settings').then(res => {
+      const settings = res.data || {};
+      if (!settings.signatureUrl) {
+        try {
+          const cached = localStorage.getItem('nexbill_sig_preview');
+          if (cached) settings.signatureUrl = cached;
+        } catch {}
+      }
+      setCo(settings);
+    }).catch(() => {});
     // Preload PDF libs so first download is instant
     const preload = (src) => {
       if (!document.querySelector(`script[src="${src}"]`)) {
