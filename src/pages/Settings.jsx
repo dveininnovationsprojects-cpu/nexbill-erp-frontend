@@ -511,7 +511,6 @@ function ProfileTab({ onSave }) {
     country:     'India',
     gstNo:       '',
     pan:         '',
-    cin:         '',
     invoicePrefix: '',
     currency:    'INR',
     defaultReorderLevel: 10,
@@ -537,7 +536,6 @@ function ProfileTab({ onSave }) {
         country:             s.country             || 'India',
         gstNo:               s.gstNumber           || '',
         pan:                 s.panNumber           || '',   // backend: panNumber
-        cin:                 s.cin                 || '',
         invoicePrefix:       s.invoicePrefix       || '',
         currency:            s.currency            || 'INR',
         defaultReorderLevel: s.defaultReorderLevel || 10,
@@ -551,7 +549,7 @@ function ProfileTab({ onSave }) {
         website: s.website || '', address: s.companyAddress || '',
         city: s.city || '', state: s.state || '', pincode: s.pinCode || '',
         country: s.country || 'India', gstNo: s.gstNumber || '',
-        pan: s.panNumber || '', cin: s.cin || '',
+        pan: s.panNumber || '',
         invoicePrefix: s.invoicePrefix || '', currency: s.currency || 'INR',
         defaultReorderLevel: s.defaultReorderLevel || 10, logoUrl: s.logoUrl || null,
       }));
@@ -590,7 +588,6 @@ function ProfileTab({ onSave }) {
         pinCode:             form.pincode             || '',
         gstNumber:           form.gstNo,
         panNumber:           form.pan                 || '',   // backend: panNumber
-        cin:                 form.cin                 || '',
         invoicePrefix:       form.invoicePrefix       || 'INV',
         currency:            form.currency            || 'INR',
         defaultReorderLevel: form.defaultReorderLevel || 10,
@@ -609,12 +606,14 @@ function ProfileTab({ onSave }) {
 
   const logoInputRef = useRef(null);
   const [logoPreview, setLogoPreview] = useState(null);
+  const [logoFileName, setLogoFileName] = useState('');
 
   const handleLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { onSave('Please select a valid image file.', 'error'); return; }
     if (file.size > 5 * 1024 * 1024) { onSave('Logo must be under 5 MB.', 'error'); return; }
+    setLogoFileName(file.name);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
@@ -639,7 +638,7 @@ function ProfileTab({ onSave }) {
     reader.readAsDataURL(file);
   };
 
-  const handleDiscard = () => { if (orig) setForm(orig); setDirty(false); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoPreview(null); };
+  const handleDiscard = () => { if (orig) setForm(orig); setDirty(false); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoPreview(null); setLogoFileName(''); };
   return (
     <div className="st-card">
       {dirty && (
@@ -666,11 +665,16 @@ function ProfileTab({ onSave }) {
                 <Upload size={12} /> {logoPreview ? 'Change Logo' : 'Upload Logo'}
               </button>
               {logoPreview && (
-                <button className="st-logo-remove" onClick={() => { setLogoPreview(null); set('logoUrl', null); setDirty(true); if (logoInputRef.current) logoInputRef.current.value = ''; }}>
+                <button className="st-logo-remove" onClick={() => { setLogoPreview(null); set('logoUrl', null); setDirty(true); if (logoInputRef.current) logoInputRef.current.value = ''; setLogoFileName(''); }}>
                   <X size={12} /> Remove
                 </button>
               )}
             </div>
+            {logoFileName && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+                <span style={{ fontSize: 11, color: '#C6A969', fontWeight: 600, background: 'rgba(198,169,105,0.10)', border: '1px solid rgba(198,169,105,0.25)', borderRadius: 6, padding: '2px 8px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📎 {logoFileName}</span>
+              </div>
+            )}
             <div className="st-logo-hint">PNG, JPG or SVG · Max 5 MB · Recommended 256×256px</div>
           </div>
         </div>
@@ -694,14 +698,14 @@ function ProfileTab({ onSave }) {
             <label>Business Email *</label>
             <div className="st-input-wrap">
               <Mail size={14} className="st-input-icon" />
-              <input style={{ paddingLeft: 34 }} type="email" value={form.email} onChange={e => set('email', e.target.value)} />
+              <input style={{ paddingLeft: 34 }} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="info@yourcompany.com" />
             </div>
           </div>
           <div className="st-field">
             <label>Phone *</label>
             <div className="st-input-wrap">
               <Phone size={14} className="st-input-icon" />
-              <input style={{ paddingLeft: 34 }} type="tel" inputMode="numeric" value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
+              <input style={{ paddingLeft: 34 }} type="tel" inputMode="numeric" value={form.phone} onChange={e => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="9876543210" />
             </div>
           </div>
         </div>
@@ -710,21 +714,21 @@ function ProfileTab({ onSave }) {
             <label>Website</label>
             <div className="st-input-wrap">
               <Globe size={14} className="st-input-icon" />
-              <input style={{ paddingLeft: 34 }} value={form.website} onChange={e => set('website', e.target.value)} />
+              <input style={{ paddingLeft: 34 }} value={form.website} onChange={e => set('website', e.target.value)} placeholder="https://www.yourcompany.com" />
             </div>
           </div>
           <div className="st-field">
             <label>Street Address</label>
             <div className="st-input-wrap">
               <MapPin size={14} className="st-input-icon" />
-              <input style={{ paddingLeft: 34 }} value={form.address} onChange={e => set('address', e.target.value)} />
+              <input style={{ paddingLeft: 34 }} value={form.address} onChange={e => set('address', e.target.value)} placeholder="123, Main Road, MG Nagar" />
             </div>
           </div>
         </div>
         <div className="st-grid3">
-          <div className="st-field"><label>City</label><input value={form.city}    onChange={e => set('city', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}    /></div>
-          <div className="st-field"><label>State</label><input value={form.state}   onChange={e => set('state', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}   /></div>
-          <div className="st-field"><label>PIN Code</label><input type="text" inputMode="numeric" maxLength={6} value={form.pincode} onChange={e => set('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} /></div>
+          <div className="st-field"><label>City</label><input value={form.city}    onChange={e => set('city', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}    placeholder="Bengaluru" /></div>
+          <div className="st-field"><label>State</label><input value={form.state}   onChange={e => set('state', e.target.value.replace(/[^a-zA-Z\s]/g, ''))}   placeholder="Karnataka" /></div>
+          <div className="st-field"><label>PIN Code</label><input type="text" inputMode="numeric" maxLength={6} value={form.pincode} onChange={e => set('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="560001" /></div>
         </div>
 
         <div className="st-section-lbl"><Hash size={11} /> Tax Registration Numbers</div>
@@ -732,21 +736,16 @@ function ProfileTab({ onSave }) {
           <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>These numbers appear on all your invoices. Make sure they match your GST certificate exactly.</span>
         </div>
-        <div className="st-grid3">
+        <div className="st-grid2">
           <div className="st-field">
-            <label>GSTIN <span className="st-field-badge">Verified</span></label>
-            <input value={form.gstNo} onChange={e => set('gstNo', e.target.value.toUpperCase().slice(0, 15))} placeholder="29AABCN1234M1Z5" maxLength={15} />
+            <label>GSTIN {/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(form.gstNo) && <span className="st-field-badge" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.3)' }}>✓ Verified</span>}</label>
+            <input value={form.gstNo} onChange={e => set('gstNo', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} placeholder="29AABCN1234M1Z5" maxLength={15} />
             <div className="st-field-hint">15-character GSTIN ({form.gstNo.length}/15)</div>
           </div>
           <div className="st-field">
-            <label>PAN Number <span className="st-field-badge">Verified</span></label>
-            <input value={form.pan} onChange={e => set('pan', e.target.value.toUpperCase().slice(0, 10))} placeholder="AABCN1234M" maxLength={10} />
+            <label>PAN Number {/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(form.pan) && <span className="st-field-badge" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a', border: '1px solid rgba(34,197,94,0.3)' }}>✓ Verified</span>}</label>
+            <input value={form.pan} onChange={e => set('pan', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))} placeholder="AABCN1234M" maxLength={10} />
             <div className="st-field-hint">10-character PAN ({form.pan.length}/10)</div>
-          </div>
-          <div className="st-field">
-            <label>CIN <span style={{ fontSize: 10, color: '#8B7355', fontWeight: 500 }}>(optional)</span></label>
-            <input value={form.cin} onChange={e => set('cin', e.target.value)} placeholder="U72300KA..." />
-            <div className="st-field-hint">Company Identification Number</div>
           </div>
         </div>
       </div>
@@ -773,6 +772,10 @@ function InvoiceSettingsTab({ onSave }) {
   const [dirty, setDirty]   = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
+  // Signature image upload
+  const sigInputRef = useRef(null);
+  const [sigPreview, setSigPreview] = useState(null);
+  const [sigFileName, setSigFileName] = useState('');
   // Company profile fields for Live Preview
   const [company, setCompany] = useState({ name: '', email: '', gstNo: '', logoUrl: null });
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
@@ -804,6 +807,16 @@ function InvoiceSettingsTab({ onSave }) {
         gstNo:  s.gstNumber    || '',
         logoUrl: s.logoUrl     || null,
       });
+      // Load saved signature — backend first, then localStorage fallback
+      if (s.signatureUrl) {
+        setSigPreview(s.signatureUrl);
+        try { localStorage.setItem('nexbill_sig_preview', s.signatureUrl); } catch {}
+      } else {
+        try {
+          const cached = localStorage.getItem('nexbill_sig_preview');
+          if (cached) setSigPreview(cached);
+        } catch {}
+      }
     }).catch(() => {});
   }, []);
 
@@ -822,12 +835,19 @@ function InvoiceSettingsTab({ onSave }) {
         showGstBreakdown:          form.showGST,
         showSignatureArea:         form.showSignature,
         showTermsAndConditions:    form.showTerms,
+        signatureUrl:              sigPreview || null,
       });
       setOrig(form);
       setDirty(false);
       setSaved(true);
       onSave('Invoice settings saved!');
       setTimeout(() => setSaved(false), 2000);
+      // Persist signature to localStorage as backup
+      if (sigPreview) {
+        try { localStorage.setItem('nexbill_sig_preview', sigPreview); } catch {}
+      } else {
+        try { localStorage.removeItem('nexbill_sig_preview'); } catch {}
+      }
     } catch (err) {
       onSave(err.response?.data?.message || 'Failed to save invoice settings.', 'error');
     } finally {
@@ -884,11 +904,21 @@ function InvoiceSettingsTab({ onSave }) {
             <div className="st-field">
               <label>Date Format</label>
               <select value={form.dateFormat} onChange={e => set('dateFormat', e.target.value)}>
-                <option>DD MMM YYYY</option>
-                <option>DD/MM/YYYY</option>
-                <option>MM/DD/YYYY</option>
-                <option>YYYY-MM-DD</option>
+                <option value="DD MMM YYYY">DD MMM YYYY — e.g. 23 Jun 2026</option>
+                <option value="DD/MM/YYYY">DD/MM/YYYY — e.g. 23/06/2026</option>
+                <option value="MM/DD/YYYY">MM/DD/YYYY — e.g. 06/23/2026</option>
+                <option value="YYYY-MM-DD">YYYY-MM-DD — e.g. 2026-06-23</option>
               </select>
+              <div className="st-field-hint">Today would appear as: <strong style={{ color:'#2D2D2D' }}>{
+                (() => {
+                  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                  const t = new Date(); const dd = String(t.getDate()).padStart(2,'0'); const mm = String(t.getMonth()+1).padStart(2,'0'); const mmm = MONTHS[t.getMonth()]; const yyyy = t.getFullYear();
+                  if (form.dateFormat === 'DD/MM/YYYY') return `${dd}/${mm}/${yyyy}`;
+                  if (form.dateFormat === 'MM/DD/YYYY') return `${mm}/${dd}/${yyyy}`;
+                  if (form.dateFormat === 'YYYY-MM-DD') return `${yyyy}-${mm}-${dd}`;
+                  return `${dd} ${mmm} ${yyyy}`;
+                })()
+              }</strong></div>
             </div>
           </div>
 
@@ -912,6 +942,72 @@ function InvoiceSettingsTab({ onSave }) {
               <Toggle on={form[key]} onChange={() => tog(key)} />
             </div>
           ))}
+
+          {/* Signature Image Upload — shown only when Signature Area is enabled */}
+          {form.showSignature && (
+            <div style={{ marginTop: 18, padding: '16px 18px', background: '#F8F5F2', border: '1px solid #EFE7DE', borderRadius: 12 }}>
+              <input ref={sigInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (!file.type.startsWith('image/')) { onSave('Please select a valid image file.', 'error'); return; }
+                  if (file.size > 2 * 1024 * 1024) { onSave('Signature image must be under 2 MB.', 'error'); return; }
+                  setSigFileName(file.name);
+                  const reader = new FileReader();
+                  reader.onload = ev => {
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      const MAX_W = 400; const MAX_H = 160;
+                      let w = img.width; let h = img.height;
+                      if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
+                      if (h > MAX_H) { w = Math.round(w * MAX_H / h); h = MAX_H; }
+                      canvas.width = w; canvas.height = h;
+                      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                      const dataUrl = canvas.toDataURL('image/png');
+                      setSigPreview(dataUrl);
+                      try { localStorage.setItem('nexbill_sig_preview', dataUrl); } catch {}
+                      setDirty(true);
+                    };
+                    img.src = ev.target.result;
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8B7355', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
+                Authorized Signature Image
+              </div>
+              {sigPreview ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+                    <div style={{ background: '#fff', border: '1px solid #EFE7DE', borderRadius: 8, padding: '8px 16px', display: 'inline-block' }}>
+                      <img src={sigPreview} alt="Signature" style={{ maxHeight: 60, maxWidth: 200, display: 'block', objectFit: 'contain' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <button className="st-logo-btn" onClick={() => sigInputRef.current?.click()} style={{ fontSize: 11 }}>
+                        <Upload size={11} /> Change
+                      </button>
+                      <button className="st-logo-remove" onClick={() => { setSigPreview(null); setSigFileName(''); setDirty(true); if (sigInputRef.current) sigInputRef.current.value = ''; try { localStorage.removeItem('nexbill_sig_preview'); } catch {} }} style={{ fontSize: 11 }}>
+                        <X size={11} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                  {sigFileName && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: 11, color: '#C6A969', fontWeight: 600, background: 'rgba(198,169,105,0.10)', border: '1px solid rgba(198,169,105,0.25)', borderRadius: 6, padding: '2px 8px', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📎 {sigFileName}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <button className="st-logo-btn" onClick={() => sigInputRef.current?.click()}>
+                    <Upload size={12} /> Upload Signature Image
+                  </button>
+                  <div className="st-field-hint" style={{ marginTop: 6 }}>PNG with transparent background recommended · Max 2 MB · Max 400×160px</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="st-card-foot">
           <button className="st-btn-secondary" disabled={!dirty} onClick={() => { setForm(orig); setDirty(false); }}>Discard</button>
@@ -929,75 +1025,107 @@ function InvoiceSettingsTab({ onSave }) {
         </div>
 
         <div className="st-card-body">
-          <div className="st-inv-preview">
-            <div className="st-inv-prev-head">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {form.showLogo && (
-                  <div className="st-inv-prev-logo" style={ company.logoUrl ? { background: 'transparent', padding: 2 } : {} }>
-                    {company.logoUrl
-                      ? <img src={company.logoUrl} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
-                      : (company.name?.[0]?.toUpperCase() || 'C')
-                    }
+          {(() => {
+            // Currency symbol map
+            const CURR_SYM = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
+            const sym = CURR_SYM[form.currency] || '₹';
+            // Date format helper
+            const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const today = new Date(2026, 4, 23); // May 23 2026 (fixed sample date)
+            const dd = String(today.getDate()).padStart(2,'0');
+            const mm = String(today.getMonth()+1).padStart(2,'0');
+            const mmm = MONTHS[today.getMonth()];
+            const yyyy = today.getFullYear();
+            const fmtDate = (fmt) => {
+              if (fmt === 'DD/MM/YYYY') return `${dd}/${mm}/${yyyy}`;
+              if (fmt === 'MM/DD/YYYY') return `${mm}/${dd}/${yyyy}`;
+              if (fmt === 'YYYY-MM-DD') return `${yyyy}-${mm}-${dd}`;
+              return `${dd} ${mmm} ${yyyy}`; // DD MMM YYYY default
+            };
+            const sampleDate = fmtDate(form.dateFormat);
+            return (
+              <div className="st-inv-preview">
+                <div className="st-inv-prev-head">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {form.showLogo && (
+                      <div className="st-inv-prev-logo" style={ company.logoUrl ? { background: 'transparent', padding: 2 } : {} }>
+                        {company.logoUrl
+                          ? <img src={company.logoUrl} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 6 }} />
+                          : (company.name?.[0]?.toUpperCase() || 'C')
+                        }
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#2D2D2D' }}>{company.name || 'Your Company'}</div>
+                      {company.email  && <div style={{ fontSize: 10, color: '#8B7355' }}>{company.email}</div>}
+                      {form.showGST && company.gstNo && <div style={{ fontSize: 10, color: '#8B7355' }}>GSTIN: {company.gstNo}</div>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="st-inv-prev-title">INVOICE</div>
+                    <div className="st-inv-prev-meta">{form.prefix}{form.startingNumber}</div>
+                    <div className="st-inv-prev-meta">Date: {sampleDate}</div>
+                    <div className="st-inv-prev-meta">Due: {form.dueDays} days</div>
+                  </div>
+                </div>
+                <div className="st-inv-prev-body">
+                  <div>
+                    <div className="st-inv-prev-label">Bill To</div>
+                    <div className="st-inv-prev-val">Ravi Kumar</div>
+                    <div style={{ fontSize: 11, color: '#8B7355' }}>ravi@example.com</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="st-inv-prev-label">Payment Method</div>
+                    <div className="st-inv-prev-val">UPI / Bank Transfer</div>
+                  </div>
+                </div>
+                <table className="st-inv-prev-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th><th>Qty</th><th>Rate</th>
+                      {form.showGST && <th>GST</th>}
+                      <th style={{ textAlign: 'right' }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Product A</td><td>2</td><td>{sym}500</td>
+                      {form.showGST && <td>18%</td>}
+                      <td style={{ textAlign: 'right' }}>{sym}1,180</td>
+                    </tr>
+                    <tr>
+                      <td>Service B</td><td>1</td><td>{sym}2,000</td>
+                      {form.showGST && <td>18%</td>}
+                      <td style={{ textAlign: 'right' }}>{sym}2,360</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="st-inv-total">
+                  <div className="st-inv-total-box">
+                    <div className="st-inv-total-label">Total Amount</div>
+                    <div className="st-inv-total-val">{sym}3,540</div>
+                  </div>
+                </div>
+                {form.showTerms && (
+                  <div style={{ fontSize: 10, color: '#8B7355', marginTop: 12, borderTop: '1px solid #EFE7DE', paddingTop: 10, lineHeight: 1.5 }}>
+                    {form.footerNote}
                   </div>
                 )}
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#2D2D2D' }}>{company.name || 'Your Company'}</div>
-                  {company.email  && <div style={{ fontSize: 10, color: '#8B7355' }}>{company.email}</div>}
-                  {form.showGST && company.gstNo && <div style={{ fontSize: 10, color: '#8B7355' }}>GSTIN: {company.gstNo}</div>}
-                </div>
+                {form.showSignature && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+                    <div style={{ textAlign: 'center', minWidth: 140 }}>
+                      {sigPreview
+                        ? <img src={sigPreview} alt="Signature" style={{ maxHeight: 44, maxWidth: 160, display: 'block', margin: '0 auto 5px', objectFit: 'contain' }} />
+                        : <div style={{ borderBottom: '1px solid #2D2D2D', marginBottom: 5, height: 36 }} />
+                      }
+                      <div style={{ fontSize: 10, color: '#8B7355', fontWeight: 600 }}>Authorized Signatory</div>
+                      <div style={{ fontSize: 9, color: '#B0A090', marginTop: 2 }}>{company.name || 'Your Company'}</div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="st-inv-prev-title">INVOICE</div>
-                <div className="st-inv-prev-meta">{form.prefix}{form.startingNumber}</div>
-                <div className="st-inv-prev-meta">Date: 23 May 2026</div>
-                <div className="st-inv-prev-meta">Due: {form.dueDays} days</div>
-              </div>
-            </div>
-            <div className="st-inv-prev-body">
-              <div>
-                <div className="st-inv-prev-label">Bill To</div>
-                <div className="st-inv-prev-val">Ravi Kumar</div>
-                <div style={{ fontSize: 11, color: '#8B7355' }}>ravi@example.com</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="st-inv-prev-label">Payment Method</div>
-                <div className="st-inv-prev-val">UPI / Bank Transfer</div>
-                {form.showQR && <div style={{ fontSize: 10, color: '#C6A969', fontWeight: 600 }}>QR code included</div>}
-              </div>
-            </div>
-            <table className="st-inv-prev-table">
-              <thead>
-                <tr>
-                  <th>Item</th><th>Qty</th><th>Rate</th>
-                  {form.showGST && <th>GST</th>}
-                  <th style={{ textAlign: 'right' }}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Product A</td><td>2</td><td>₹500</td>
-                  {form.showGST && <td>18%</td>}
-                  <td style={{ textAlign: 'right' }}>₹1,180</td>
-                </tr>
-                <tr>
-                  <td>Service B</td><td>1</td><td>₹2,000</td>
-                  {form.showGST && <td>18%</td>}
-                  <td style={{ textAlign: 'right' }}>₹2,360</td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="st-inv-total">
-              <div className="st-inv-total-box">
-                <div className="st-inv-total-label">Total Amount</div>
-                <div className="st-inv-total-val">₹3,540</div>
-              </div>
-            </div>
-            {form.showTerms && (
-              <div style={{ fontSize: 10, color: '#8B7355', marginTop: 12, borderTop: '1px solid #EFE7DE', paddingTop: 10, lineHeight: 1.5 }}>
-                {form.footerNote}
-              </div>
-            )}
-          </div>
+            );
+          })()}
         </div>
       </div>
     </>

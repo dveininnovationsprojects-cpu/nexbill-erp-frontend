@@ -15,6 +15,9 @@ const EMPTY_LEDGER = { type: 'PAYMENT', amount: '', note: '', date: new Date().t
 
 const BAR_COLORS = ['#C6A969', '#8B7355', '#5A7A5A', '#9B4444', '#6B7280', '#2D2D2D'];
 
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const isValidGSTIN = (g) => GSTIN_REGEX.test(g?.toUpperCase());
+
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -34,17 +37,12 @@ export default function Suppliers() {
 
   const fetchSuppliers = async () => {
     try {
-      const res = await api.get('/api/suppliers/all');
+      const res = await api.get('/api/suppliers');
       const data = res.data || [];
       setSuppliers(data);
       setSelected(prev => prev ? (data.find(s => s.id === prev.id) || data[0] || null) : (data[0] || null));
     } catch {
-      try {
-        const res = await api.get('/api/suppliers/active');
-        const data = res.data || [];
-        setSuppliers(data);
-        setSelected(prev => prev ? (data.find(s => s.id === prev.id) || data[0] || null) : (data[0] || null));
-      } catch { setSuppliers([]); }
+      setSuppliers([]);
     }
   };
 
@@ -123,7 +121,7 @@ export default function Suppliers() {
     e.preventDefault(); setSaving(true);
     try {
       if (!editId) {
-        await api.post('/api/suppliers', form);
+        await api.post('/api/suppliers', { ...form, gstin: form.gstin || '' });
         showToast('Supplier added!');
       } else {
         await api.put(`/api/suppliers/${editId}`, form);
@@ -152,7 +150,7 @@ export default function Suppliers() {
   // KPI computed from backend data
   const totalOutstanding = suppliers.reduce((s, x) => s + (x.outstandingBalance || 0), 0);
   const activeCount = suppliers.filter(s => s.status === 'ACTIVE').length;
-  const inactiveCount = suppliers.filter(s => s.status === 'INACTIVE').length;
+  const inactiveCount = suppliers.filter(s => s.status === 'SUSPENDED').length;
 
   return (
     <>
@@ -234,12 +232,12 @@ export default function Suppliers() {
 
         /* Modal */
         .sp-overlay{position:fixed;inset:0;background:rgba(45,45,45,0.4);backdrop-filter:blur(2px);z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
-        .sp-modal{background:#fff;border-radius:18px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(45,45,45,0.2);overflow:hidden}
-        .sp-modal-header{display:flex;align-items:center;justify-content:space-between;padding:22px 24px 16px;border-bottom:1px solid #EFE7DE}
+        .sp-modal{background:#fff;border-radius:18px;width:100%;max-width:480px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(45,45,45,0.2);overflow:hidden}
+        .sp-modal-header{display:flex;align-items:center;justify-content:space-between;padding:22px 24px 16px;border-bottom:1px solid #EFE7DE;flex-shrink:0}
         .sp-modal-header h3{font-size:17px;font-weight:700;color:#2D2D2D;margin:0}
         .sp-modal-close{background:#F8F5F2;border:1px solid #EFE7DE;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8B7355}
         .sp-modal-close:hover{background:#EFE7DE;color:#2D2D2D}
-        .sp-modal-body{padding:20px 24px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .sp-modal-body{padding:20px 24px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px;overflow-y:auto;flex:1}
         .sp-field{display:flex;flex-direction:column;gap:6px}
         .sp-field.full{grid-column:1/-1}
         .sp-field label{font-size:12px;font-weight:600;color:#3F3F46;text-transform:uppercase;letter-spacing:0.4px}
@@ -325,7 +323,24 @@ export default function Suppliers() {
                 <label>Company Name *</label>
                 <input placeholder="e.g. Tech Distributors" required value={form.companyName} onChange={e => setForm({ ...form, companyName: e.target.value })} />
               </div>
-              <div className="sp-field"><label>GSTIN</label><input placeholder="29AABCN1234M1Z5" maxLength="15" value={form.gstin} onChange={e => setForm({ ...form, gstin: e.target.value })} /></div>
+              <div className="sp-field full">
+                <label>GSTIN
+                  {form.gstin && isValidGSTIN(form.gstin) && (
+                    <span style={{marginLeft:8,fontSize:10,fontWeight:700,color:'#5A7A5A',background:'#F0F7F0',border:'1px solid #C8DFC8',padding:'1px 7px',borderRadius:20}}>✓ Valid</span>
+                  )}
+                  {form.gstin && !isValidGSTIN(form.gstin) && (
+                    <span style={{marginLeft:8,fontSize:10,fontWeight:700,color:'#9B4444',background:'#FDF0F0',border:'1px solid #F0D0D0',padding:'1px 7px',borderRadius:20}}>✗ Invalid</span>
+                  )}
+                </label>
+                <input
+                  placeholder="29AABCN1234M1Z5"
+                  maxLength="15"
+                  value={form.gstin}
+                  onChange={e => setForm({ ...form, gstin: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                  style={form.gstin ? { borderColor: isValidGSTIN(form.gstin) ? '#5A7A5A' : '#9B4444' } : {}}
+                />
+
+              </div>
               <div className="sp-field"><label>Contact Person</label><input placeholder="Ravi Kumar" value={form.contactPerson} onChange={e => setForm({ ...form, contactPerson: e.target.value })} /></div>
               <div className="sp-field"><label>Mobile</label><input type="tel" placeholder="9876543210" maxLength="10" value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} /></div>
               <div className="sp-field"><label>Email</label><input type="email" placeholder="supplier@email.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
@@ -385,7 +400,7 @@ export default function Suppliers() {
               <div className="sp-tabs">
                 <button className={`sp-tab ${statusFilter==='ALL'?'active-tab':''}`} onClick={() => setStatusFilter('ALL')}>All ({suppliers.length})</button>
                 <button className={`sp-tab ${statusFilter==='ACTIVE'?'act':''}`} onClick={() => setStatusFilter('ACTIVE')}>Active ({activeCount})</button>
-                <button className={`sp-tab ${statusFilter==='INACTIVE'?'inact':''}`} onClick={() => setStatusFilter('INACTIVE')}>Inactive ({inactiveCount})</button>
+                  <span className={`sp-tab ${statusFilter==='SUSPENDED'?'inact':''}`} onClick={() => setStatusFilter('SUSPENDED')}>Inactive ({inactiveCount})</span>
               </div>
             </div>
             <div className="sp-list">
@@ -396,7 +411,7 @@ export default function Suppliers() {
                     <div className="sp-list-name">{s.companyName}</div>
                     <div className="sp-list-cat">{s.contactPerson || '—'}</div>
                   </div>
-                  <span className={`sp-status-badge ${s.status || 'ACTIVE'}`}>{s.status === 'INACTIVE' ? 'Inactive' : 'Active'}</span>
+                  <span className={`sp-status-badge ${s.status === 'SUSPENDED' ? 'INACTIVE' : 'ACTIVE'}`}>{s.status === 'SUSPENDED' ? 'Inactive' : 'Active'}</span>
                   <div className="sp-list-actions">
                     <button className="sp-toggle-btn" title={s.status === 'ACTIVE' ? 'Mark Inactive' : 'Mark Active'} onClick={e => handleToggleStatus(s, e)}>
                       {s.status === 'ACTIVE' ? <ToggleRight size={16} color="#5A7A5A" /> : <ToggleLeft size={16} color="#9B4444" />}
@@ -437,7 +452,7 @@ export default function Suppliers() {
                   <div className="sp-detail-avatar">{selected.companyName?.[0] || '?'}</div>
                   <div>
                     <div className="sp-detail-name">{selected.companyName}</div>
-                    <span className={`sp-status-badge ${selected.status || 'ACTIVE'}`} style={{marginTop:4}}>{selected.status === 'INACTIVE' ? 'Inactive' : 'Active'}</span>
+                    <span className={`sp-status-badge ${selected.status === 'SUSPENDED' ? 'INACTIVE' : 'ACTIVE'}`} style={{marginTop:4}}>{selected.status === 'SUSPENDED' ? 'Inactive' : 'Active'}</span>
                   </div>
                 </div>
 
@@ -471,7 +486,15 @@ export default function Suppliers() {
                         </div>
                       );
                     })}
-                    {selected.gstin && <div style={{marginTop:12,fontSize:12,color:'#8B7355'}}>GSTIN: {selected.gstin}</div>}
+                    {selected.gstin && (
+                      <div style={{marginTop:12,fontSize:12,color:'#8B7355',display:'flex',alignItems:'center',gap:8}}>
+                        GSTIN: {selected.gstin}
+                        {isValidGSTIN(selected.gstin)
+                          ? <span style={{fontSize:10,fontWeight:700,color:'#5A7A5A',background:'#F0F7F0',border:'1px solid #C8DFC8',padding:'1px 7px',borderRadius:20}}>✓ Verified</span>
+                          : <span style={{fontSize:10,fontWeight:700,color:'#9B4444',background:'#FDF0F0',border:'1px solid #F0D0D0',padding:'1px 7px',borderRadius:20}}>✗ Invalid</span>
+                        }
+                      </div>
+                    )}
                     {selected.bankDetails && <div style={{fontSize:12,color:'#8B7355',marginTop:4}}>Bank: {selected.bankDetails}</div>}
                   </div>
                 </div>

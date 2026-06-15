@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,6 +55,7 @@ const EMPTY_FORM = { phone: '', branch: '', counterNumber: '', shiftTiming: '', 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const pollIntervalRef = useRef(null);
   const [sidebarOpen, setSidebarOpen]   = useState(true);
   const [profileOpen, setProfileOpen]   = useState(false);
   const [notifOpen, setNotifOpen]       = useState(false);
@@ -148,6 +149,15 @@ export default function Layout({ children }) {
     });
   }, [location.pathname]);
 
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const handle401 = () => { stopPolling(); logout(); };
+
   const fetchPending = async () => {
     try {
       const res = await axios.get('/api/admin/pending-cashiers', {
@@ -155,7 +165,9 @@ export default function Layout({ children }) {
         withCredentials: true,
       });
       setPendingList(res.data);
-    } catch { /* ignore */ }
+    } catch (err) {
+      if (err.response?.status === 401) handle401();
+    }
   };
 
   const fetchLowStock = async () => {
@@ -165,7 +177,10 @@ export default function Layout({ children }) {
         withCredentials: true,
       });
       setLowStockList(res.data);
-    } catch { setLowStockList([]); }
+    } catch (err) {
+      if (err.response?.status === 401) handle401();
+      else setLowStockList([]);
+    }
   };
 
   const fetchCashierNotifs = async () => {
@@ -178,23 +193,23 @@ export default function Layout({ children }) {
       setAllCashierNotifs(all);
       setCashierNotifs(all.filter(n => !n.read));
     } catch (err) {
-      setCashierNotifs([]);
-      setAllCashierNotifs([]);
+      if (err.response?.status === 401) handle401();
+      else { setCashierNotifs([]); setAllCashierNotifs([]); }
     }
   };
 
   useEffect(() => {
+    if (!user?.token) return;
     if (isAdmin) {
       fetchPending();
       fetchLowStock();
-      const interval = setInterval(() => { fetchPending(); fetchLowStock(); }, 30000);
-      return () => clearInterval(interval);
+      pollIntervalRef.current = setInterval(() => { fetchPending(); fetchLowStock(); }, 30000);
     } else {
       fetchCashierNotifs();
-      const interval = setInterval(fetchCashierNotifs, 30000);
-      return () => clearInterval(interval);
+      pollIntervalRef.current = setInterval(fetchCashierNotifs, 30000);
     }
-  }, [isAdmin]);
+    return () => stopPolling();
+  }, [isAdmin, user?.token]);
 
   const fetchUserProfile = async () => {
     if (!user?.token) return;
@@ -204,7 +219,9 @@ export default function Layout({ children }) {
         withCredentials: true,
       });
       setUserProfile(res.data);
-    } catch { /* ignore */ }
+    } catch (err) {
+      if (err.response?.status === 401) handle401();
+    }
   };
 
   useEffect(() => {

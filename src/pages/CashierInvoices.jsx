@@ -100,10 +100,11 @@ const STYLES = `
   .cbadge-draft::before   { background:#64748b; }
 
   /* ── Action Buttons ── */
-  .ci-actions { display:flex; align-items:center; gap:4px; }
-  .ci-act-btn { width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:#F8F5F2; border:1px solid #EFE7DE; border-radius:8px; cursor:pointer; color:#8B7355; transition:all 0.15s; flex-shrink:0; }
-  .ci-act-btn:hover          { background:#2D2D2D; color:#C6A969; border-color:#2D2D2D; }
-  .ci-act-btn.btn-blue:hover { background:#DBEAFE; color:#2563eb; border-color:#93C5FD; }
+  .ci-actions { display:inline-flex; align-items:center; gap:3px; background:#F8F5F2; border:1px solid #EFE7DE; border-radius:10px; padding:3px; }
+  .ci-act-btn { width:30px; height:30px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; border-radius:7px; cursor:pointer; color:#8B7355; transition:all 0.15s; flex-shrink:0; position:relative; }
+  .ci-act-btn:hover { background:#2D2D2D; color:#C6A969; }
+  .ci-act-btn[title]:hover::after { content:attr(title); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:#2D2D2D; color:#fff; font-size:10px; font-weight:600; white-space:nowrap; padding:3px 8px; border-radius:5px; pointer-events:none; z-index:10; letter-spacing:0.3px; }
+  .ci-act-btn[title]:hover::before { content:''; position:absolute; bottom:calc(100% + 1px); left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:#2D2D2D; pointer-events:none; z-index:10; }
 
   /* ── Pagination ── */
   .ci-pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-top:1px solid #EFE7DE; }
@@ -348,8 +349,11 @@ function printInvoice(inv, co = {}) {
   const termsHtml = showTerms
     ? '<div><div class="terms-lbl">Terms &amp; Conditions</div><div class="terms-txt">' + coTerms + '</div></div>'
     : '<div></div>';
+  const sigImgHtmlP = co.signatureUrl
+    ? '<img src="' + co.signatureUrl + '" style="max-height:50px;max-width:160px;display:block;margin:0 auto 7px;object-fit:contain;" />'
+    : '<div class="sig-line"></div>';
   const sigHtml = showSig
-    ? '<div class="sig-area"><div class="sig-line"></div><div class="sig-lbl">Authorized Signatory</div><div class="sig-name">' + coName + '</div><div class="eoe">E. &amp; O.E.</div></div>'
+    ? '<div class="sig-area">' + sigImgHtmlP + '<div class="sig-lbl">Authorized Signatory</div><div class="sig-name">' + coName + '</div><div class="eoe">E. &amp; O.E.</div></div>'
     : '';
   const footerHtml = (showTerms || showSig)
     ? '<div class="footer">' + termsHtml + sigHtml + '</div>'
@@ -594,6 +598,352 @@ function printInvoice(inv, co = {}) {
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
+function downloadInvoice(inv, co = {}) {
+  const { subtotal, gstTotal } = calcInvoice(inv);
+  const P = ['Company Name Not Set','Please update Company Name','Please update Address'];
+  const clean = v => (!v || P.includes(v?.trim())) ? '' : v.trim();
+  const coName    = clean(co.companyName) || 'Your Company';
+  const coTagline = co.tagline || '';
+  const coAddr    = clean(co.companyAddress) || '';
+  const coPhone   = co.companyPhone || '';
+  const coEmail   = co.companyEmail || '';
+  const coGST     = co.gstNumber || '';
+  const coTerms   = co.defaultPaymentTerms || co.invoicePaymentTerms || '';
+  const coFooter  = co.invoiceFooterNote || '';
+  const showSig   = co.showSignatureArea !== false;
+  const showTerms = co.showTermsAndConditions !== false;
+
+  const grandTotal = subtotal + gstTotal - (inv.discount || 0);
+  const sColors = { Paid:'#16a34a', Pending:'#ca8a04', Overdue:'#dc2626', Cancelled:'#64748b' };
+  const sColor  = sColors[inv.status] || '#16a34a';
+
+  const rows = inv.items.map((it, i) => {
+    const taxable = it.qty * it.rate;
+    const gstAmt  = taxable * it.gst / 100;
+    return `<tr>
+      <td class="c">${i+1}</td>
+      <td><strong>${it.name}</strong></td>
+      <td class="c">${it.qty}</td>
+      <td class="r">${inr(it.rate)}</td>
+      <td class="r">${inr(taxable)}</td>
+      <td class="c">${it.gst}%</td>
+      <td class="r">${inr(gstAmt)}</td>
+      <td class="r bold">${inr(taxable+gstAmt)}</td>
+    </tr>`;
+  }).join('');
+
+  const taxMap = {};
+  inv.items.forEach(it => {
+    const taxable = it.qty * it.rate;
+    if (!taxMap[it.gst]) taxMap[it.gst] = { taxable: 0, gst: 0 };
+    taxMap[it.gst].taxable += taxable;
+    taxMap[it.gst].gst     += taxable * it.gst / 100;
+  });
+  const taxRows = Object.entries(taxMap).map(([rate, v]) =>
+    '<tr><td>' + rate + '%</td><td class="r">' + inr(v.taxable) + '</td><td class="r bold">' + inr(v.gst) + '</td></tr>'
+  ).join('');
+
+  const discountHtml = inv.discount > 0
+    ? '<div class="tot-row tot-disc"><span class="tot-lbl">Discount</span><span class="tot-val">-' + inr(inv.discount) + '</span></div>'
+    : '';
+  const termsHtml = showTerms
+    ? '<div><div class="terms-lbl">Terms &amp; Conditions</div><div class="terms-txt">' + coTerms + '</div></div>'
+    : '<div></div>';
+  const sigImgHtmlD = co.signatureUrl
+    ? '<img src="' + co.signatureUrl + '" style="max-height:50px;max-width:160px;display:block;margin:0 auto 7px;object-fit:contain;" />'
+    : '<div class="sig-line"></div>';
+  const sigHtml = showSig
+    ? '<div class="sig-area">' + sigImgHtmlD + '<div class="sig-lbl">Authorized Signatory</div><div class="sig-name">' + coName + '</div><div class="eoe">E. &amp; O.E.</div></div>'
+    : '';
+  const footerHtml = (showTerms || showSig)
+    ? '<div class="footer">' + termsHtml + sigHtml + '</div>'
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>TAX INVOICE — ${inv.id}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    @page{margin:0;size:A4}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#f0f0f0;color:#1a1a1a;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:12px}
+    .page{background:#fff;max-width:860px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,0.1)}
+    @media print{body{background:#fff;padding:0}.page{box-shadow:none;max-width:100%}}
+    .hdr{background:#F8F6F3;border-bottom:1px solid #EDE9E4;padding:20px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+    .hdr-brand{display:flex;align-items:center;gap:12px}
+    .hdr-logo{width:44px;height:44px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#C6A969;flex-shrink:0}
+    .hdr-logo img{width:100%;height:100%;object-fit:contain}
+    .hdr-name{font-size:17px;font-weight:800;color:#2D2D2D}
+    .hdr-tag{font-size:10px;color:#8B7355;margin-top:2px}
+    .hdr-addr{font-size:9.5px;color:#8B7355;margin-top:3px;line-height:1.6}
+    .hdr-right{text-align:right}
+    .hdr-inv-type{font-size:22px;font-weight:900;color:#C6A969;letter-spacing:4px;line-height:1}
+    .hdr-inv-num{font-size:11px;color:#aaa;margin-top:4px;font-weight:500}
+    .gold-strip{height:4px;background:linear-gradient(90deg,#C6A969,#E8D5A0,#8B7355)}
+    .info-band{background:#f8f6f3;border-bottom:1px solid #e8e2da;display:flex}
+    .info-col{flex:1;padding:12px 20px;border-right:1px solid #e0dbd4}
+    .info-col:last-child{border-right:none}
+    .info-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px}
+    .info-val{font-size:12px;font-weight:700;color:#1a1a1a}
+    .info-val.gold{color:#C6A969}
+    .status-pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${sColor}20;color:${sColor};border:1.5px solid ${sColor}50}
+    .body{padding:20px 32px}
+    .parties{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+    .party{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:12px 16px}
+    .party.seller{text-align:right}
+    .party-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;border-bottom:1px solid #e8e2da;padding-bottom:5px}
+    .party-name{font-size:13px;font-weight:800;color:#1a1a1a;margin-bottom:4px}
+    .party-detail{font-size:10.5px;color:#555;line-height:1.7}
+    .party-gstin{font-size:10px;color:#8B7355;font-weight:600;margin-top:4px;padding-top:4px;border-top:1px dashed #e0dbd4}
+    .stamp{display:inline-block;margin-top:8px;padding:3px 14px;border:2.5px solid ${sColor};color:${sColor};border-radius:3px;font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;transform:rotate(-5deg)}
+    .tbl-wrap{border:1px solid #ddd;border-radius:8px;overflow:hidden;margin-bottom:16px}
+    .tbl{width:100%;border-collapse:collapse;font-size:11px}
+    .tbl thead tr{background:#F8F6F3;border-bottom:1px solid #EDE9E4}
+    .tbl thead th{padding:9px 10px;color:#8B7355;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:0.8px;text-align:left;white-space:nowrap}
+    .tbl thead th.r{text-align:right}.tbl thead th.c{text-align:center}
+    .tbl thead th.group{text-align:center;background:#F0EDE8;border-bottom:1px solid #EDE9E4;font-size:8.5px;letter-spacing:0.5px}
+    .tbl tbody tr:nth-child(even){background:#fafafa}.tbl tbody tr:nth-child(odd){background:#fff}
+    .tbl tbody td{padding:9px 10px;color:#333;border-bottom:1px solid #f0ece8;vertical-align:middle}
+    .tbl tbody tr:last-child td{border-bottom:none}.tbl td.c{text-align:center}.tbl td.r{text-align:right}.tbl td.bold{font-weight:700;color:#1a1a1a}
+    .bottom{display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:16px}
+    .tax-summary{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
+    .tax-title{background:#f0ede8;padding:7px 12px;font-size:9px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e8e2da}
+    .tax-tbl{width:100%;border-collapse:collapse;font-size:10.5px}
+    .tax-tbl thead th{padding:7px 10px;background:#f8f6f3;font-size:8.5px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;text-align:right;border-bottom:1px solid #e8e2da}
+    .tax-tbl thead th:first-child{text-align:left}
+    .tax-tbl tbody td{padding:7px 10px;border-bottom:1px solid #f5f2ef;text-align:right;color:#333}
+    .tax-tbl tbody td:first-child{text-align:left;font-weight:600;color:#1a1a1a}
+    .tax-tbl tbody tr:last-child td{border-bottom:none}
+    .totals{border:1px solid #e8e2da;border-radius:8px;overflow:hidden}
+    .tot-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f5f2ef}
+    .tot-row:last-child{border-bottom:none}.tot-lbl{color:#666;font-weight:500}.tot-val{font-weight:700;color:#1a1a1a}
+    .tot-disc .tot-lbl,.tot-disc .tot-val{color:#16a34a}
+    .tot-grand{background:#F8F6F3;border-top:2px solid #C6A969;padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+    .tot-grand-lbl{color:#8B7355;font-size:12px;font-weight:700;letter-spacing:0.5px}.tot-grand-val{color:#2D2D2D;font-size:17px;font-weight:900}
+    .amt-words{background:#f8f6f3;border:1px solid #e8e2da;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:11px}
+    .amt-words-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+    .amt-words-val{font-weight:600;color:#1a1a1a;font-style:italic}
+    .footer{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:flex-end;padding-top:16px;border-top:2px solid #f0ece8;margin-bottom:0}
+    .terms-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+    .terms-txt{font-size:10.5px;color:#666;line-height:1.7;max-width:380px}
+    .sig-area{text-align:center;min-width:160px}
+    .sig-line{width:140px;border-top:1.5px solid #ccc;margin:36px auto 7px}
+    .sig-lbl{font-size:8px;font-weight:700;color:#8B7355;text-transform:uppercase;letter-spacing:1px}
+    .sig-name{font-size:11px;color:#1a1a1a;font-weight:700;margin-top:3px}.eoe{font-size:9px;color:#aaa;margin-top:4px;font-style:italic}
+    .ty-band{background:#F8F6F3;border-top:1px solid #EDE9E4;padding:12px 32px;display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+    .ty-title{font-size:12px;font-weight:700;color:#8B7355}.ty-note{font-size:9.5px;color:#8B7355}
+    .comp-gen{font-size:8.5px;color:#aaa;text-align:center;padding:6px;background:#f8f6f3;border-top:1px solid #e8e2da}
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">${co.logoUrl ? `<img src="${co.logoUrl}">` : `<span>${coName[0]?.toUpperCase()||'C'}</span>`}</div>
+      <div>
+        <div class="hdr-name">${coName}</div>
+        ${coTagline ? `<div class="hdr-tag">${coTagline}</div>` : ''}
+        <div class="hdr-addr">${[coAddr,coPhone,coEmail].filter(Boolean).join(' &nbsp;|&nbsp; ')}${coGST ? ` &nbsp;|&nbsp; GSTIN: ${coGST}` : ''}</div>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-inv-type">TAX INVOICE</div>
+      <div class="hdr-inv-num"># ${inv.id}</div>
+    </div>
+  </div>
+  <div class="gold-strip"></div>
+  <div class="info-band">
+    <div class="info-col"><div class="info-lbl">Invoice Date</div><div class="info-val">${inv.date||'—'}</div></div>
+    <div class="info-col"><div class="info-lbl">Due Date</div><div class="info-val">${inv.dueDate&&inv.dueDate!=='—'?inv.dueDate:'On Receipt'}</div></div>
+    <div class="info-col"><div class="info-lbl">Payment Mode</div><div class="info-val gold">${inv.payment||'—'}</div></div>
+    <div class="info-col"><div class="info-lbl">Place of Supply</div><div class="info-val">${coAddr ? coAddr.split(',').pop()?.trim() || '' : ''}</div></div>
+    <div class="info-col" style="text-align:right"><div class="info-lbl">Status</div><div class="info-val"><span class="status-pill">${inv.status}</span></div></div>
+  </div>
+  <div class="body">
+    <div class="parties">
+      <div class="party">
+        <div class="party-lbl">Bill To</div>
+        <div class="party-name">${inv.customer||'Walk-in Customer'}</div>
+        <div class="party-detail">
+          ${inv.phone?`<div>${inv.phone}</div>`:''}
+          ${inv.email?`<div>${inv.email}</div>`:''}
+          ${inv.address?`<div>${inv.address}</div>`:''}
+        </div>
+        ${inv.gstNo?`<div class="party-gstin">GSTIN: ${inv.gstNo}</div>`:''}
+      </div>
+      <div class="party seller">
+        <div class="party-lbl">Seller Details</div>
+        <div class="party-name">${coName}</div>
+        <div class="party-detail">
+          ${coPhone?`<div>${coPhone}</div>`:''}
+          ${coEmail?`<div>${coEmail}</div>`:''}
+          ${coAddr?`<div>${coAddr}</div>`:''}
+        </div>
+        ${coGST?`<div class="party-gstin">GSTIN: ${coGST}</div>`:''}
+        <div><span class="stamp">${inv.status}</span></div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="c" style="width:30px">#</th><th>Description</th><th class="c">Qty</th>
+            <th class="r">Rate</th><th class="r">Taxable Amt</th><th class="c">GST %</th>
+            <th class="r">GST Amt</th><th class="r">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="bottom">
+      <div>
+        <div class="tax-summary">
+          <div class="tax-title">Tax Summary</div>
+          <table class="tax-tbl">
+            <thead><tr><th>GST Rate</th><th>Taxable Amt</th><th>GST Amount</th></tr></thead>
+            <tbody>${taxRows}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="totals">
+        <div class="tot-row"><span class="tot-lbl">Subtotal</span><span class="tot-val">${inr(subtotal)}</span></div>
+        <div class="tot-row"><span class="tot-lbl">GST</span><span class="tot-val">${inr(gstTotal)}</span></div>
+        ${discountHtml}
+        <div class="tot-grand"><span class="tot-grand-lbl">GRAND TOTAL</span><span class="tot-grand-val">${inr(grandTotal)}</span></div>
+      </div>
+    </div>
+    <div class="amt-words">
+      <div class="amt-words-lbl">Amount in Words</div>
+      <div class="amt-words-val">${amountInWords(grandTotal)}</div>
+    </div>
+    ${footerHtml}
+  </div>
+  ${coFooter ? '<div class="ty-band"><div class="ty-title">' + coFooter + '</div></div>' : ''}
+  <div class="comp-gen">This is a computer generated invoice and does not require a physical signature.</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+window.onload = async function() {
+  try {
+    // Wait for fonts to fully load before rendering
+    await document.fonts.ready;
+    await new Promise(r => setTimeout(r, 800));
+
+    const el = document.querySelector('.page');
+    const canvas = await html2canvas(el, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      imageTimeout: 15000,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = canvas.width / pageW;
+    const fullImgH = canvas.height / ratio;
+
+    let remaining = fullImgH;
+    let firstPage = true;
+
+    while (remaining > 0) {
+      if (!firstPage) pdf.addPage();
+      const sliceHeightMM = Math.min(pageH, remaining);
+      const sliceHeightPx = sliceHeightMM * ratio;
+      const offsetPx = (fullImgH - remaining) * ratio;
+
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width  = canvas.width;
+      sliceCanvas.height = Math.ceil(sliceHeightPx);
+      sliceCanvas.getContext('2d').drawImage(
+        canvas, 0, Math.floor(offsetPx), canvas.width, Math.ceil(sliceHeightPx),
+        0, 0, canvas.width, Math.ceil(sliceHeightPx)
+      );
+
+      pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageW, sliceHeightMM);
+      remaining -= pageH;
+      firstPage = false;
+    }
+
+    pdf.save('Invoice-${inv.id}.pdf');
+    setTimeout(() => window.close(), 1000);
+  } catch(e) {
+    document.body.innerHTML = '<p style="padding:20px;color:red">PDF generation failed: ' + e.message + '</p>';
+  }
+};
+</script>
+</body>
+</html>`;
+
+  // Load scripts dynamically if not already present
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Render invoice in a hidden off-screen container, capture, save PDF — no popup
+  (async () => {
+    try {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+
+      // Create hidden container
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:860px;background:#fff;z-index:-1;pointer-events:none;font-family:Inter,sans-serif;';
+      const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+      const bodyMatch  = html.match(/<div class="page">([\s\S]*)<\/div>\s*(?:<script|<\/body>)/);
+      wrapper.innerHTML = `<style>${styleMatch ? styleMatch[1] : ''}</style><div class="page">${bodyMatch ? bodyMatch[1] : ''}</div>`;
+      document.body.appendChild(wrapper);
+
+      // Wait for fonts
+      const el = wrapper.querySelector('.page') || wrapper;
+      const canvas = await window.html2canvas(el, {
+        scale: 1.5, useCORS: true, allowTaint: true,
+        backgroundColor: '#ffffff', logging: false,
+        windowWidth: 860, windowHeight: el.scrollHeight
+      });
+
+      document.body.removeChild(wrapper);
+
+      const { jsPDF } = window.jspdf;
+      const pdf   = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = canvas.width / pageW;
+      const fullH = canvas.height / ratio;
+      let remaining = fullH, first = true;
+
+      while (remaining > 0) {
+        if (!first) pdf.addPage();
+        const sliceH  = Math.min(pageH, remaining);
+        const slicePx = sliceH * ratio;
+        const offsetPx = (fullH - remaining) * ratio;
+        const sc = document.createElement('canvas');
+        sc.width = canvas.width; sc.height = Math.ceil(slicePx);
+        sc.getContext('2d').drawImage(canvas, 0, Math.floor(offsetPx), canvas.width, Math.ceil(slicePx), 0, 0, canvas.width, Math.ceil(slicePx));
+        pdf.addImage(sc.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pageW, sliceH);
+        remaining -= pageH; first = false;
+      }
+
+      pdf.save(`Invoice-${inv.id}.pdf`);
+    } catch(e) {
+      alert('PDF generation failed: ' + e.message);
+    }
+  })();
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    PDF PREVIEW MODAL
 ══════════════════════════════════════════════════════════════════════ */
@@ -639,9 +989,6 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
             </span>
           </div>
           <div className="ci-pdf-modal-acts">
-            <button className="ci-btn-sm" onClick={() => printInvoice(invoice, co)}>
-              <Printer size={13} /> Print / PDF
-            </button>
             <button className="ci-close-btn" onClick={onClose}><X size={15} /></button>
           </div>
         </div>
@@ -754,7 +1101,11 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
                   <div className="ci-doc-tax-title">Tax Summary</div>
                   <table className="ci-doc-tax-table">
                     <thead>
-                      <tr><th>GST Rate</th><th>Taxable Amt</th><th>GST Amount</th></tr>
+                      <tr>
+                        <th style={{ textAlign:'left' }}>GST Rate</th>
+                        <th style={{ textAlign:'right' }}>Taxable Amt</th>
+                        <th style={{ textAlign:'right' }}>GST Amount</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {(() => {
@@ -768,8 +1119,8 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
                         return Object.entries(taxMap).map(([rate, v]) => (
                           <tr key={rate}>
                             <td>{rate}%</td>
-                            <td>{inr(v.taxable)}</td>
-                            <td style={{fontWeight:700,color:'#1a1a1a'}}>{inr(v.gst)}</td>
+                            <td style={{ textAlign:'right' }}>{inr(v.taxable)}</td>
+                            <td style={{ textAlign:'right', fontWeight:700, color:'#1a1a1a' }}>{inr(v.gst)}</td>
                           </tr>
                         ));
                       })()}
@@ -803,7 +1154,10 @@ function PDFPreviewModal({ invoice, onClose, co = {} }) {
                   {showTerms ? <div><div className="ci-doc-terms-lbl">Terms &amp; Conditions</div><div className="ci-doc-terms-txt">{coTerms}</div></div> : <div />}
                   {showSig && (
                     <div className="ci-doc-sig">
-                      <div className="ci-doc-sig-line" />
+                      {co.signatureUrl
+                        ? <img src={co.signatureUrl} style={{ maxHeight: 50, maxWidth: 160, display: 'block', margin: '0 auto 7px', objectFit: 'contain' }} />
+                        : <div className="ci-doc-sig-line" />
+                      }
                       <div className="ci-doc-sig-lbl">Authorized Signatory</div>
                       <div className="ci-doc-sig-name">{displayName}</div>
                       <div className="ci-doc-sig-eoe">E. &amp; O.E.</div>
@@ -890,6 +1244,16 @@ export default function CashierInvoices() {
   useEffect(() => {
     fetchInvoices();
     api.get('/api/settings').then(res => setCo(res.data || {})).catch(() => {});
+    // Preload PDF libs so first download is instant
+    const preload = (src) => {
+      if (!document.querySelector(`script[src="${src}"]`)) {
+        const s = document.createElement('script');
+        s.src = src; s.async = true;
+        document.head.appendChild(s);
+      }
+    };
+    preload('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    preload('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
   }, []);
 
   const handleEmail = async (inv) => {
@@ -1010,14 +1374,14 @@ export default function CashierInvoices() {
             <table className="ci-table">
               <thead>
                 <tr>
-                  <th>Invoice ID</th>
-                  <th>Customer</th>
+                  <th style={{ textAlign:'center' }}>Invoice ID</th>
+                  <th style={{ textAlign:'center' }}>Customer</th>
                   <th>Items</th>
-                  <th>Amount</th>
+                  <th style={{ textAlign:'center' }}>Amount</th>
                   <th>Status</th>
                   <th>Payment</th>
-                  <th>Date</th>
-                  <th>Actions</th>
+                  <th style={{ textAlign:'center' }}>Date</th>
+                  <th style={{ textAlign:'center', paddingRight:'24px' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -1030,24 +1394,27 @@ export default function CashierInvoices() {
                 ) : paginated.map(inv => {
                   return (
                     <tr key={inv.id}>
-                      <td><span className="ci-id-cell">{inv.id}</span></td>
-                      <td>
+                      <td style={{ textAlign:'center' }}><span className="ci-id-cell">{inv.id}</span></td>
+                      <td style={{ textAlign:'center' }}>
                         <div className="ci-customer-name">{inv.customer}</div>
                         <div className="ci-customer-sub">{inv.email}</div>
                       </td>
                       <td style={{ color: '#8B7355' }}>{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
-                      <td><span className="ci-amount">{inr(inv.grandTotal)}</span></td>
+                      <td style={{ textAlign:'center' }}><span className="ci-amount">{inr(inv.grandTotal)}</span></td>
                       <td>
                         <span className={`ci-badge ${badgeClass(inv.status)}`}>{inv.status}</span>
                       </td>
                       <td><span className="ci-payment-chip">{inv.payment}</span></td>
-                      <td style={{ color: '#8B7355' }}>{inv.date}</td>
-                      <td>
-                        <div className="ci-actions">
-                          <button className="ci-act-btn" title="Preview Invoice" onClick={() => setPreview(inv)}>
+                      <td style={{ textAlign:'center', color: '#8B7355' }}>{inv.date}</td>
+                      <td style={{ textAlign:'center', paddingRight:'24px' }}>
+                        <div className="ci-actions" style={{ margin:'0 auto' }}>
+                          <button className="ci-act-btn" title="View Invoice" onClick={() => setPreview(inv)}>
                             <Eye size={14} />
                           </button>
-                          <button className="ci-act-btn" title="Download PDF" onClick={() => printInvoice(inv, co)}>
+                          <button className="ci-act-btn" title="Print Invoice" onClick={() => printInvoice(inv, co)}>
+                            <Printer size={14} />
+                          </button>
+                          <button className="ci-act-btn" title="Download Invoice" onClick={() => downloadInvoice(inv, co)}>
                             <Download size={14} />
                           </button>
                         </div>

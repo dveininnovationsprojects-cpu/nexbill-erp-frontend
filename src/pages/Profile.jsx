@@ -29,7 +29,7 @@ const STYLES = `
   }
 
   /* ── Left Column ── */
-  .pr-left { width: 295px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 24px; }
+  .pr-left { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 24px; }
   .pr-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
 
   /* ── Card ── */
@@ -51,7 +51,7 @@ const STYLES = `
   }
 
   /* ── Hero Card ── */
-  .pr-hero { background: #2D2D2D; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(45,45,45,0.2); }
+  .pr-hero { background: #2D2D2D; border-radius: 22px; overflow: hidden; box-shadow: 0 8px 32px rgba(45,45,45,0.25); }
   .pr-hero-banner {
     height: 76px;
     background: linear-gradient(135deg, #C6A969 0%, #A08040 40%, #2D2D2D 100%);
@@ -91,7 +91,7 @@ const STYLES = `
   .pr-hero-stats   { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
   .pr-hero-stat    { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 13px 10px; text-align: center; transition: background 0.2s; }
   .pr-hero-stat:hover { background: rgba(255,255,255,0.09); }
-  .pr-hero-stat-val { font-size: 12px; font-weight: 600; color: #C6A969; line-height: 1; letter-spacing: 0.8px; text-transform: uppercase; }
+  .pr-hero-stat-val { font-size: 12px; font-weight: 700; color: #C6A969; line-height: 1.2; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pr-hero-stat-lbl { font-size: 9.5px; color: #9E8E7E; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
   .pr-status-online {
     display: inline-flex; align-items: center; gap: 6px;
@@ -102,33 +102,20 @@ const STYLES = `
   .pr-status-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: prPulse 2s ease infinite; }
   @keyframes prPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(.8)} }
 
-  /* ── Quick Actions ── */
-  .pr-quick-action {
-    display: flex; align-items: center; gap: 11px; padding: 9px 10px;
-    border-radius: 9px; cursor: pointer; transition: background 0.15s, transform 0.1s;
-    border: none; background: none; font-family: inherit; width: 100%; text-align: left;
-  }
-  .pr-quick-action:hover { background: #F8F5F2; transform: translateX(2px); }
-  .pr-qa-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .pr-qa-gold   { background: #EFE7DE; color: #8B7355; }
-  .pr-qa-green  { background: #DCFCE7; color: #16a34a; }
-  .pr-qa-red    { background: #FEE2E2; color: #dc2626; }
-  .pr-qa-blue   { background: #DBEAFE; color: #2563eb; }
-  .pr-qa-purple { background: #EDE9FE; color: #7c3aed; }
-  .pr-qa-label  { font-size: 13px; font-weight: 600; color: #2D2D2D; flex: 1; }
-  .pr-qa-sub    { font-size: 11px; color: #8B7355; margin-top: 1px; }
-  .pr-qa-danger-zone {
-    margin: 4px 10px 8px; padding-top: 10px;
-    border-top: 1px solid #EFE7DE;
-  }
-  .pr-btn-signout {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 10px; border-radius: 10px;
-    background: #FEF2F2; border: 1.5px solid #FECACA;
-    color: #dc2626; font-size: 13px; font-weight: 700;
+  /* ── Logout Button (left column) ── */
+  .pr-logout-btn-left {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    width: 100%; padding: 13px 16px; border-radius: 12px;
+    background: #FFFFFF; border: 1.5px solid #EFE7DE;
+    color: #8B7355; font-size: 13px; font-weight: 700;
     font-family: inherit; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(45,45,45,0.04);
   }
-  .pr-btn-signout:hover { background: #FEE2E2; border-color: #FCA5A5; }
+  .pr-logout-btn-left:hover {
+    background: #FEF2F2; border-color: #FCA5A5; color: #dc2626;
+    box-shadow: 0 4px 12px rgba(220,38,38,0.12);
+    transform: translateY(-1px);
+  }
 
   /* ══════════════════════════════════════════════════════════════
      TAB NAVIGATION (right panel)
@@ -321,6 +308,16 @@ const STYLES = `
   .pr-sec-action { padding: 6px 14px; background: #F8F5F2; border: 1.5px solid #EFE7DE; border-radius: 8px; font-size: 12px; font-weight: 600; color: #8B7355; cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
   .pr-sec-action:hover { background: #2D2D2D; color: #C6A969; border-color: #2D2D2D; }
 
+
+  /* ── Permission row ── */
+  .pr-perm-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 8px; border-bottom: 1px solid #F8F5F2; border-radius: 8px;
+    margin: 0 -8px; transition: background 0.1s;
+  }
+  .pr-perm-row:last-child { border-bottom: none; }
+  .pr-perm-row:hover { background: #FDFCFB; }
+
   @media (max-width: 960px) {
     .pr-shell { flex-direction: column; }
     .pr-left  { width: 100%; position: static; }
@@ -480,7 +477,7 @@ function LogoutModal({ user, onCancel, onConfirm, loading }) {
 /* ══════════════════════════════════════════════════════════════════════
    TAB 1 — PERSONAL INFORMATION
 ══════════════════════════════════════════════════════════════════════ */
-function PersonalInfoTab({ user, profileData, profileLoading, onSave, onChangePW, onProfileRefresh }) {
+function PersonalInfoTab({ user, profileData, profileLoading, onSave, onChangePW, onProfileRefresh, onLogout }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving]   = useState(false);
   const [form, setForm]       = useState({ name: '', phone: '' });
@@ -651,8 +648,9 @@ const PERMISSIONS_BY_ROLE = {
 };
 
 function AdminDetailsTab({ profileData }) {
-  const role   = profileData?.role || 'ADMIN';
+  const role        = profileData?.role || 'ADMIN';
   const permissions = PERMISSIONS_BY_ROLE[role] || PERMISSIONS_BY_ROLE.ADMIN;
+  const granted     = permissions.filter(p => p.granted).length;
 
   return (
     <>
@@ -677,9 +675,24 @@ function AdminDetailsTab({ profileData }) {
                 {profileData?.status === 'ACTIVE' ? '● Active' : '○ Inactive'}
               </span>
             </div>
+            {/* Stats grid */}
+            <div className="pr-rp-grid" style={{ marginBottom:14 }}>
+              {[
+                { label:'Role',    val: profileData?.role   || 'ADMIN'   },
+                { label:'Status',  val: profileData?.status || 'ACTIVE'  },
+                { label:'Modules', val: `${granted} of ${permissions.length}` },
+                { label:'Access',  val: 'Full'                            },
+              ].map(({ label, val }) => (
+                <div key={label} className="pr-rp-stat">
+                  <div className="pr-rp-stat-label">{label}</div>
+                  <div className="pr-rp-stat-val">{val}</div>
+                </div>
+              ))}
+            </div>
+            {/* Account fields */}
             {[
-              { label:'Email',  val: profileData?.email  || '—', Icon: Mail    },
-              { label:'Role',   val: profileData?.role   || 'ADMIN', Icon: Award },
+              { label:'Email',  val: profileData?.email || '—', Icon: Mail  },
+              { label:'Role',   val: profileData?.role  || 'ADMIN', Icon: Award },
             ].map(({ label, val, Icon }) => (
               <div key={label} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ width:28, height:28, borderRadius:7, background:'rgba(198,169,105,0.15)', display:'flex', alignItems:'center', justifyContent:'center', color:'#C6A969', flexShrink:0 }}>
@@ -812,7 +825,7 @@ export default function Profile() {
       id:    'personal',
       label: 'Personal Information',
       Icon:  User,
-      sub:   'Name, contact, bio & security',
+      sub:   'Name, contact & security',
     },
     {
       id:    'role',
@@ -834,7 +847,7 @@ export default function Profile() {
         { val: profileData?.status || '—',    lbl: 'Status' },
       ]
     : [
-        { val: profileData?.counterNumber ? `${profileData.counterNumber}` : '—', lbl: 'Counter' },
+        { val: profileData?.counterNumber || '—', lbl: 'Counter' },
         { val: profileData?.status        || '—',                                   lbl: 'Status'  },
       ];
 
@@ -907,35 +920,6 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="pr-card">
-            <div style={{ padding:'14px 18px 6px', borderBottom:'1px solid #EFE7DE' }}>
-              <div style={{ fontSize:11, fontWeight:700, color:'#8B7355', textTransform:'uppercase', letterSpacing:'0.6px' }}>Quick Actions</div>
-            </div>
-            <div style={{ padding:'6px 8px 4px' }}>
-              {(isAdmin ? [
-                { icon:BarChart2,    cls:'pr-qa-blue',   label:'Reports',         sub:'Sales & analytics',          onClick:() => navigate('/admin/reports') },
-                { icon:Users,       cls:'pr-qa-gold',   label:'Customers',       sub:'Manage customer records',    onClick:() => navigate('/admin/customers') },
-                { icon:ShoppingCart,cls:'pr-qa-green',  label:'Inventory',       sub:'Products & stock',           onClick:() => navigate('/admin/inventory') },
-                { icon:Settings,    cls:'pr-qa-purple', label:'Settings',        sub:'System preferences',         onClick:() => navigate('/admin/settings') },
-              ] : [
-                { icon:Receipt,     cls:'pr-qa-gold',   label:'My Invoices',     sub:'Billing history',            onClick:() => navigate('/cashier/invoices') },
-                { icon:Users,       cls:'pr-qa-blue',   label:'Customers',       sub:'Customer records',           onClick:() => navigate('/cashier/customers') },
-                { icon:CreditCard,  cls:'pr-qa-green',  label:'Payments',        sub:'Payment records',            onClick:() => navigate('/cashier/payments') },
-                { icon:Settings,    cls:'pr-qa-purple', label:'Settings',        sub:'System preferences',         onClick:() => navigate('/cashier/settings') },
-              ]).map(({ icon:Icon, cls, label, sub, onClick }, i) => (
-                <button key={i} className="pr-quick-action" onClick={onClick}>
-                  <div className={`pr-qa-icon ${cls}`}><Icon size={15} /></div>
-                  <div style={{ flex:1 }}>
-                    <div className="pr-qa-label">{label}</div>
-                    <div className="pr-qa-sub">{sub}</div>
-                  </div>
-                  <ChevronRight size={13} color="#D6D3D1" />
-                </button>
-              ))}
-            </div>
-          </div>
-
         </div>
 
         {/* ══ RIGHT COLUMN — TABBED ══ */}
@@ -968,6 +952,7 @@ export default function Profile() {
                 onSave={showToast}
                 onChangePW={() => setShowChangePW(true)}
                 onProfileRefresh={fetchProfile}
+                onLogout={() => setShowLogout(true)}
               />
             )}
             {activeTab === 'role' && (
@@ -990,9 +975,7 @@ export default function Profile() {
                 </div>
                 <div className="pr-card-body">
                   {(PERMISSIONS_BY_ROLE[profileData?.role] || PERMISSIONS_BY_ROLE.ADMIN).map((p, i, arr) => (
-                    <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 8px', borderBottom: i < arr.length-1 ? '1px solid #F8F5F2' : 'none', borderRadius:8, margin:'0 -8px', transition:'background 0.1s' }}
-                      onMouseEnter={e => e.currentTarget.style.background='#FDFCFB'}
-                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                    <div key={i} className="pr-perm-row">
                       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                         <div style={{ width:8, height:8, borderRadius:'50%', background: p.granted ? '#22c55e' : '#D6D3D1', flexShrink:0 }} />
                         <span style={{ fontSize:13, color:'#2D2D2D', fontWeight:500 }}>{p.label}</span>
