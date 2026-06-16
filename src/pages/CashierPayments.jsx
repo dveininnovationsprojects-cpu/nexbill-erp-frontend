@@ -27,7 +27,7 @@ export default function CashierPayments() {
   const fetchPayments = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/billing/my-invoices');
+      const res = await api.get('/api/billing/history');
       const orders = res.data || [];
       const transformed = orders.map(o => ({
         id: `PAY-${o.id}`,

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 
 
-const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', minStock: '', gstRate: '0', barcode: '', supplier: '', expiryDate: '', description: '', imageUrl: '' };
+const EMPTY_FORM = { sku: '', name: '', category: '', sellingPrice: '', purchasePrice: '', stock: '', minStock: '', gstRate: '0', barcode: '', supplier: '', expiryDate: '' };
 
 export default function Products() {
   const { user } = useAuth();
@@ -92,8 +92,6 @@ export default function Products() {
       barcode: p.barcode || '',
       supplier: p.supplier?.companyName || p.supplier || '',
       expiryDate: p.expiryDate || '',
-      description: p.description || '',
-      imageUrl: p.imageUrl || '',
     });
     setEditId(p.id);
     setModal('edit');
@@ -123,8 +121,6 @@ export default function Products() {
       barcode: form.barcode || null,
       supplier: supplierObj ? { id: supplierObj.id } : null,
       expiryDate: form.expiryDate || null,
-      description: form.description || null,
-      imageUrl: form.imageUrl || null,
     };
     console.log('Product payload:', JSON.stringify(payload, null, 2));
     try {
@@ -300,14 +296,6 @@ export default function Products() {
                       )}
                     </select>
                   </div>
-                  <div className="pr-field full">
-                    <label>Description</label>
-                    <textarea placeholder="Short product description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-                  </div>
-                  <div className="pr-field full">
-                    <label>Image URL</label>
-                    <input placeholder="https://example.com/image.jpg" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} />
-                  </div>
                 </div>
 
                 <div className="pr-section-label">Pricing & Stock</div>
@@ -455,7 +443,7 @@ export default function Products() {
               ) : (
                 paginated.map(p => {
                   const profit = (p.sellingPrice || 0) - (p.purchasePrice || 0);
-                  const isLowStock = p.stock <= (p.minStock || 20);
+                  const isLowStock = p.minStock > 0 && p.stock <= p.minStock;
                   const isExpired = p.expiryDate && new Date(p.expiryDate) < new Date();
                   const isExpiringSoon = p.expiryDate && !isExpired && new Date(p.expiryDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
                   return (
@@ -463,7 +451,6 @@ export default function Products() {
                     <td><span className="pr-sku">{p.sku}</span></td>
                     <td>
                       <div style={{fontWeight:500,color:'#2D2D2D'}}>{p.name}</div>
-                      {p.description && <div style={{fontSize:11,color:'#8B7355',marginTop:2}}>{p.description.slice(0,40)}{p.description.length>40?'...':''}</div>}
                       {p.barcode && <div style={{fontSize:10,color:'#D6D3D1',marginTop:1}}>#{p.barcode}</div>}
                     </td>
                     <td><span className="pr-cat-badge">{p.category?.name || p.category}</span></td>

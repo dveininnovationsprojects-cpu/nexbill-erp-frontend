@@ -161,24 +161,27 @@ const STYLES = `
     margin-top: 4px;
   }
   
-  .notif-close-btn {
-    width: 24px;
-    height: 24px;
+  .notif-read-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
-    background: #F8F5F2;
-    border: 1px solid #EFE7DE;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #F0F7F0;
+    border: 1px solid #C8DFC8;
     border-radius: 6px;
     cursor: pointer;
-    color: #8B7355;
+    color: #5A7A5A;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
     transition: all 0.2s;
     flex-shrink: 0;
+    white-space: nowrap;
   }
-  .notif-close-btn:hover {
-    background: #dc2626;
+  .notif-read-btn:hover {
+    background: #5A7A5A;
     color: white;
-    border-color: #dc2626;
+    border-color: #5A7A5A;
   }
   
   .notif-empty {
@@ -230,7 +233,9 @@ export default function NotificationPanel() {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/api/notifications/my-alerts');
-      setNotifications(res.data || []);
+      const data = res.data || [];
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.read).length);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     }
@@ -238,10 +243,9 @@ export default function NotificationPanel() {
 
   const fetchUnreadCount = async () => {
     try {
-      console.log('🔔 Fetching unread count...');
-      const res = await api.get('/api/notifications/unread-count');
-      console.log('✅ Unread count:', res.data);
-      setUnreadCount(res.data || 0);
+      const res = await api.get('/api/notifications/my-alerts');
+      const data = res.data || [];
+      setUnreadCount(data.filter(n => !n.read).length);
     } catch (err) {
       console.error('❌ Failed to fetch unread count:', err.response?.status, err.response?.data || err.message);
     }
@@ -266,8 +270,8 @@ export default function NotificationPanel() {
     if (isRead) return;
     try {
       await api.put(`/api/notifications/read/${id}`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-      fetchUnreadCount();
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.error('Failed to mark as read:', err);
     }
@@ -276,7 +280,7 @@ export default function NotificationPanel() {
   const handleMarkAllAsRead = async () => {
     try {
       await api.put('/api/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications([]);
       setUnreadCount(0);
     } catch (err) {
       console.error('Failed to mark all as read:', err);
@@ -331,8 +335,7 @@ export default function NotificationPanel() {
                     return (
                       <div
                         key={notif.id}
-                        className={`notif-item ${!notif.isRead ? 'unread' : ''}`}
-                        onClick={() => handleMarkAsRead(notif.id, notif.isRead)}
+                        className={`notif-item ${!notif.read ? 'unread' : ''}`}
                       >
                         <div className={`notif-icon-wrap ${iconClass}`}>
                           <Icon size={18} />
@@ -342,8 +345,14 @@ export default function NotificationPanel() {
                           <div className="notif-item-msg">{notif.message}</div>
                           <div className="notif-item-time">{timeAgo(notif.createdAt)}</div>
                         </div>
-                        {!notif.isRead && (
-                          <div style={{ width: 8, height: 8, background: '#2563eb', borderRadius: '50%', flexShrink: 0, marginTop: 4 }} />
+                        {!notif.read && (
+                          <button
+                            className="notif-read-btn"
+                            title="Mark as read"
+                            onClick={() => handleMarkAsRead(notif.id, notif.read)}
+                          >
+                            <Check size={11} /> Read
+                          </button>
                         )}
                       </div>
                     );

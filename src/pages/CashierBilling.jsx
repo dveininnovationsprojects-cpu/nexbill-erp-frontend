@@ -127,19 +127,21 @@ export default function CashierBilling() {
 
   const addToCart = async (product) => {
     const price = product.sellingPrice || product.price || 0;
-    // Optimistic UI update
+    const currentQty = cart.find(i => i.id === product.id)?.qty || 0;
+    if (currentQty >= product.stock) {
+      alert(`Only ${product.stock} units available in stock!`);
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id);
       if (existing) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { ...product, price, qty: 1 }];
     });
-    // Sync with backend cart
     try {
       await api.post('/api/cart/add', { productId: product.id, quantity: 1 });
     } catch (err) {
       const msg = err?.response?.data || 'Failed to add to cart';
       alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
-      // Rollback
       setCart(prev => {
         const item = prev.find(i => i.id === product.id);
         if (item?.qty === 1) return prev.filter(i => i.id !== product.id);
@@ -152,6 +154,10 @@ export default function CashierBilling() {
     const item = cart.find(i => i.id === id);
     if (!item) return;
     const newQty = item.qty + delta;
+    if (delta > 0 && newQty > item.stock) {
+      alert(`Only ${item.stock} units available in stock!`);
+      return;
+    }
     if (newQty <= 0) {
       setCart(prev => prev.filter(i => i.id !== id));
       try { await api.delete(`/api/cart/remove/${id}`); } catch {}

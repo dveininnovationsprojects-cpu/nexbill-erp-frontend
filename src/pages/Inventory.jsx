@@ -6,7 +6,7 @@ import api from '../api';
 
 function getStatus(stock, minStock) {
   if (stock === 0) return 'out';
-  if (stock < minStock) return 'low';
+  if (minStock > 0 && stock < minStock) return 'low';
   return 'ok';
 }
 
@@ -32,7 +32,7 @@ export default function Inventory() {
             category: p.categoryName || p.category?.name || p.category || '—',
             supplier: p.supplier?.companyName || p.supplier || '—',
             stock: parseFloat(inv?.availableQuantity ?? p.stock ?? 0),
-            minStock: parseFloat(inv?.reorderLevel ?? p.minStock ?? 10),
+            minStock: parseFloat(inv?.reorderLevel ?? p.minStock ?? 0),
             unit: p.unit || 'pcs',
             lastUpdated: inv?.updatedAt ? inv.updatedAt.split('T')[0] : (p.lastUpdated || '—'),
             inventoryId: inv?.inventoryId,

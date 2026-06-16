@@ -11,35 +11,38 @@ export default function CashierDashboard() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('today');
 
-  useEffect(() => { fetchDashboard(); }, [range]);
+  useEffect(() => { fetchDashboard(range); }, [range]);
 
-  const getRange = () => {
+  const getRange = (r) => {
     const now = new Date();
     const start = new Date();
-    if (range === 'today') {
-      start.setHours(0, 0, 0, 0);
-    } else if (range === 'week') {
-      start.setDate(start.getDate() - 7);
-      start.setHours(0, 0, 0, 0);
-    } else if (range === 'month') {
-      start.setMonth(start.getMonth() - 1);
-      start.setHours(0, 0, 0, 0);
-    }
     const end = new Date();
     end.setHours(23, 59, 59, 999);
-    const fmt = (d) => d.toISOString().split('.')[0];
-    return { startDate: fmt(start), endDate: fmt(end) };
+    if (r === 'today') {
+      start.setHours(0, 0, 0, 0);
+    } else if (r === 'week') {
+      // This week: Sunday to Saturday
+      start.setDate(now.getDate() - now.getDay());
+      start.setHours(0, 0, 0, 0);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+    } else if (r === 'month') {
+      // This month: 1st to last day
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+    }
+    return { start, end };
   };
 
-  const fetchDashboard = async () => {
+  const fetchDashboard = async (currentRange) => {
     setLoading(true);
     try {
-      const token = user?.token;
-      const { startDate, endDate } = getRange();
+      const { start, end } = getRange(currentRange);
 
-      const res = await api.get('/api/billing/my-invoices', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/billing/history');
 
       const invoices = res.data || [];
 
@@ -47,9 +50,6 @@ export default function CashierDashboard() {
       const filtered = invoices.filter(inv => {
         if (!inv.createdAt) return false;
         const d = new Date(inv.createdAt);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
         return d >= start && d <= end;
       });
 
@@ -152,10 +152,7 @@ export default function CashierDashboard() {
         .cd-table{width:100%;border-collapse:collapse;font-size:13px}
         .cd-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;color:#8B7355;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #EFE7DE}
         .cd-table td{padding:11px 10px;border-bottom:1px solid #F8F5F2}
-        .cd-chart-wrap{display:flex;align-items:flex-end;gap:6px;height:140px;padding-top:8px}
-        .cd-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
-        .cd-bar{width:100%;background:#C6A969;border-radius:4px 4px 0 0;transition:height 0.3s;min-height:4px}
-        .cd-bar-lbl{font-size:9px;color:#8B7355;font-weight:500;white-space:nowrap}
+
       `}</style>
 
       <div className="cd-page">
@@ -221,7 +218,6 @@ export default function CashierDashboard() {
 
 
 
-        {/* Top Products + Performance */}
         <div className="cd-grid2">
           <div className="cd-card">
             <div className="cd-card-title"><Package size={16} />Top Selling Products</div>
